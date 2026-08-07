@@ -3,6 +3,7 @@ version: "3.8"
 services:
   postgres:
     image: postgres:16
+    hostname: postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -21,6 +22,7 @@ services:
 
   redis:
     image: redis:7
+    hostname: redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     volumes:
@@ -36,6 +38,7 @@ services:
 
   minio:
     image: minio/minio:latest
+    hostname: minio
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -56,6 +59,7 @@ services:
 
   usesend:
     image: ${USESEND_IMAGE}
+    hostname: usesend
     restart: unless-stopped
     depends_on:
       - postgres
@@ -95,6 +99,7 @@ services:
 
   mcp:
     image: ${MCP_IMAGE}
+    hostname: mcp
     restart: unless-stopped
     labels:
       com.centurylinklabs.watchtower.enable: "true"

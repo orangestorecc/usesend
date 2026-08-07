@@ -65,10 +65,14 @@ Crie dois **Proxy Hosts**. Ambos usam a rede Docker compartilhada, por isso o NP
 
 | Domínio | Scheme | Forward Hostname | Porta | Opções |
 | --- | --- | --- | --- | --- |
-| `send.exemplo.com` | `http` | `usesend` | `3000` | Websockets Support, Block Common Exploits, certificado Let's Encrypt e Force SSL |
-| `storage.exemplo.com` | `http` | `minio` | `9000` | certificado Let's Encrypt e Force SSL |
+| `send.exemplo.com` | `http` | `usesend_usesend` | `3000` | Websockets Support, Block Common Exploits, certificado Let's Encrypt e Force SSL |
+| `storage.exemplo.com` | `http` | `usesend_minio` | `9000` | certificado Let's Encrypt e Force SSL |
 
 Os dois registros DNS devem apontar para o IP do VPS. `storage.exemplo.com` precisa ser público: o navegador recebe URLs assinadas para enviar imagens e anexos. O console administrativo do MinIO não é publicado por esta Stack.
+
+<Note>
+Em Docker Swarm, use o nome completo do serviço, no formato `<nome-da-stack>_<nome-do-serviço>`, pois o NPM é uma Stack ou container separado. Para uma Stack chamada `usesend`, os destinos são `usesend_usesend:3000` e `usesend_minio:9000`. O NPM também precisa participar da mesma rede overlay externa `npm_public`. Se ele for um container Docker comum, essa rede deve ter sido criada com `--attachable`; o caminho mais simples é executar o próprio NPM como serviço Swarm nessa rede.
+</Note>
 
 Atualize a URL de callback do GitHub OAuth para `https://send.exemplo.com/api/auth/callback/github`. No painel do useSend, configure a região SES, a URL pública da aplicação para callbacks SNS e o domínio de envio.
 
