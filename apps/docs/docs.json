@@ -35,7 +35,12 @@
           },
           {
             "group": "Self Hosting",
-            "pages": ["self-hosting/overview", "self-hosting/railway"]
+            "pages": [
+              "self-hosting/overview",
+              "self-hosting/ubuntu-24",
+              "self-hosting/portainer-nginx-proxy-manager",
+              "self-hosting/railway"
+            ]
           },
           {
             "group": "Guides",

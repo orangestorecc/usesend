@@ -1,0 +1,326 @@
+---
+title: Ubuntu 24.04 em VPS
+description: Implante o useSend com Docker, HTTPS, PostgreSQL, Redis e MinIO em um VPS Ubuntu 24.04.
+---
+
+Este guia instala a aplicação web em Docker, com PostgreSQL, Redis e armazenamento S3 compatível (MinIO) no mesmo VPS. O proxy Caddy fica no host e publica somente HTTPS. É a opção indicada para uma instância pequena ou média; banco, Redis e MinIO não ficam acessíveis pela Internet.
+
+<Warning>
+O useSend envia por AWS SES e recebe eventos pelo AWS SNS. Ter o VPS pronto não basta para entregar e rastrear emails: é preciso configurar uma conta SES, domínio e callbacks públicos depois do primeiro acesso.
+</Warning>
+
+## Arquitetura e pré-requisitos
+
+Antes de começar, tenha:
+
+- Ubuntu Server 24.04 LTS, com pelo menos 2 vCPU, 4 GB de RAM e 40 GB de disco;
+- um domínio para a aplicação, como `send.exemplo.com`, e um subdomínio para arquivos, como `storage.exemplo.com`;
+- registros DNS `A`/`AAAA` desses nomes apontando para o IP do VPS;
+- credenciais AWS com permissões para SES e SNS, e uma região SES escolhida;
+- um provedor de autenticação: GitHub, Google, ou login por email. Para GitHub, cadastre o callback `https://send.exemplo.com/api/auth/callback/github`.
+
+Abra no firewall do provedor e do servidor as portas 22, 80 e 443. Não exponha 3000, 5432, 6379, 9000 ou 9001. Se for usar o proxy SMTP opcional, abra também apenas as portas SMTP escolhidas (normalmente 587 e 465); muitos provedores bloqueiam a porta 25 por padrão.
+
+<Warning>
+Portas publicadas diretamente pelo Docker podem contornar regras do UFW. Neste guia, os serviços web e de armazenamento são ligados apenas a `127.0.0.1`; para portas SMTP publicadas pelo Docker, aplique o controle também no firewall do provedor ou na cadeia `DOCKER-USER` do iptables.
+</Warning>
+
+## 1. Preparar o Ubuntu
+
+Conecte-se por SSH, aplique as atualizações e instale Docker pelo repositório oficial:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y ca-certificates curl gnupg ufw
+
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
+```
+
+Use `docker compose version` para confirmar o plugin. Configure o firewall antes de seguir, mantendo sua sessão SSH aberta até validar o acesso:
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+## 2. Criar os arquivos da implantação
+
+Crie um diretório que não será versionado e proteja-o. Os exemplos abaixo usam `/opt/usesend`.
+
+```bash
+sudo install -d -m 750 -o "$USER" -g "$USER" /opt/usesend
+cd /opt/usesend
+```
+
+Crie `.env` com `umask 077`. Substitua domínios, região e credenciais AWS. Gere os segredos com `openssl rand -hex 32`; não reutilize os valores de exemplo nem coloque aspas extras. A senha no `DATABASE_URL` deve ser exatamente a mesma de `POSTGRES_PASSWORD` e, se usar caracteres reservados em URL, deve ser codificada.
+
+```env
+POSTGRES_USER=usesend
+POSTGRES_PASSWORD=COLOQUE_UM_SEGREDO_HEX_AQUI
+POSTGRES_DB=usesend
+DATABASE_URL=postgresql://usesend:COLOQUE_O_MESMO_SEGREDO_AQUI@postgres:5432/usesend
+
+REDIS_URL=redis://redis:6379
+REDIS_KEY_PREFIX=usesend
+
+NEXTAUTH_URL=https://send.exemplo.com
+NEXTAUTH_SECRET=COLOQUE_OUTRO_SEGREDO_HEX_AQUI
+NEXT_PUBLIC_IS_CLOUD=false
+
+AWS_DEFAULT_REGION=us-east-1
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+
+# Preencha GitHub, Google, ou FROM_EMAIL. É obrigatório haver ao menos um método de login.
+GITHUB_ID=
+GITHUB_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+FROM_EMAIL=
+
+# Armazenamento de imagens e anexos no MinIO local
+MINIO_ROOT_USER=usesend
+MINIO_ROOT_PASSWORD=COLOQUE_OUTRO_SEGREDO_COM_PELO_MENOS_8_CARACTERES
+S3_COMPATIBLE_ACCESS_KEY=usesend
+S3_COMPATIBLE_SECRET_KEY=COLOQUE_O_MESMO_SEGREDO_DO_MINIO
+S3_COMPATIBLE_API_URL=https://storage.exemplo.com
+S3_COMPATIBLE_PUBLIC_URL=https://storage.exemplo.com
+S3_COMPATIBLE_BUCKET=unsend
+
+API_RATE_LIMIT=1
+AUTH_EMAIL_RATE_LIMIT=5
+```
+
+Depois proteja o arquivo:
+
+```bash
+chmod 600 .env
+```
+
+Crie `compose.yml`. A tag `latest` segue a distribuição atual do projeto; para atualizações previsíveis, substitua-a por uma tag de versão testada.
+
+```yaml
+name: usesend
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - ./redis-data:/data
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${NEXTAUTH_URL}
+    command: server /data --address ":9000"
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - ./minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; do sleep 2; done
+        mc mb --ignore-existing local/unsend
+
+  usesend:
+    image: usesend/usesend:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXT_PUBLIC_IS_CLOUD: ${NEXT_PUBLIC_IS_CLOUD}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      GITHUB_ID: ${GITHUB_ID:-}
+      GITHUB_SECRET: ${GITHUB_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      FROM_EMAIL: ${FROM_EMAIL:-}
+      API_RATE_LIMIT: ${API_RATE_LIMIT}
+      AUTH_EMAIL_RATE_LIMIT: ${AUTH_EMAIL_RATE_LIMIT}
+      S3_COMPATIBLE_ACCESS_KEY: ${S3_COMPATIBLE_ACCESS_KEY}
+      S3_COMPATIBLE_SECRET_KEY: ${S3_COMPATIBLE_SECRET_KEY}
+      S3_COMPATIBLE_API_URL: ${S3_COMPATIBLE_API_URL}
+      S3_COMPATIBLE_PUBLIC_URL: ${S3_COMPATIBLE_PUBLIC_URL}
+      S3_COMPATIBLE_BUCKET: ${S3_COMPATIBLE_BUCKET}
+```
+
+O MinIO armazena o bucket `unsend` no volume local. Se preferir S3, R2 ou outro provedor, remova o serviço `minio` e use as credenciais, endpoint HTTPS público e bucket desse provedor nas variáveis `S3_COMPATIBLE_*`.
+
+## 3. Instalar e configurar o proxy HTTPS
+
+Instale Caddy pelo repositório oficial. Com os registros DNS já apontados, ele obtém e renova os certificados TLS automaticamente.
+
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | \
+  sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | \
+  sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install -y caddy
+```
+
+Edite `/etc/caddy/Caddyfile` e use seus domínios reais:
+
+```caddyfile
+send.exemplo.com {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:3000
+}
+
+storage.exemplo.com {
+    reverse_proxy 127.0.0.1:9000
+}
+```
+
+Valide e recarregue sem derrubar o proxy:
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+<Tip>
+O subdomínio `storage` é intencionalmente público: o navegador recebe URLs assinadas para enviar imagens e anexos ao MinIO. O console administrativo do MinIO não é publicado neste guia.
+</Tip>
+
+## 4. Subir e validar a aplicação
+
+Confira a interpolação sem mostrar segredos, inicie os contêineres e acompanhe o primeiro boot:
+
+```bash
+cd /opt/usesend
+docker compose config --quiet
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs -f usesend
+```
+
+A imagem executa `prisma migrate deploy` antes de iniciar o servidor. Espere os logs indicarem que o servidor iniciou, depois abra `https://send.exemplo.com`. No primeiro login, crie a conta bootstrap; em instalação self-hosted, os demais usuários requerem convite.
+
+No painel, cadastre a região SES e use a URL pública `https://send.exemplo.com` como callback. Verifique o domínio de envio e solicite a saída do SES do modo sandbox antes de atender destinatários externos.
+
+Valide também pelo terminal:
+
+```bash
+curl -I https://send.exemplo.com
+curl -I https://storage.exemplo.com
+docker compose ps
+```
+
+## SMTP proxy (opcional)
+
+O proxy SMTP é necessário somente para clientes que não podem usar a API HTTP. Ele aceita uma API key do useSend como senha. Crie uma API key no painel e mantenha `SMTP_AUTH_USERNAME` igual ao usuário que seus clientes usarão.
+
+O proxy exige certificados próprios para oferecer STARTTLS/SMTPS. Não aponte certificados de `/etc/caddy` diretamente: o serviço Caddy não concede leitura deles ao usuário comum. Use um mecanismo de renovação que copie certificados em diretório protegido e monte-os somente-leitura no container, ou gere certificados pelo seu gerenciador TLS para `smtp.exemplo.com`.
+
+Exemplo de `smtp-compose.yml` após ter `./smtp-certs/fullchain.pem` e `./smtp-certs/privkey.pem`:
+
+```yaml
+services:
+  smtp:
+    image: usesend/smtp-proxy:latest
+    restart: unless-stopped
+    environment:
+      SMTP_AUTH_USERNAME: usesend
+      USESEND_BASE_URL: https://send.exemplo.com
+      USESEND_API_KEY_PATH: /certs/privkey.pem
+      USESEND_API_CERT_PATH: /certs/fullchain.pem
+    volumes:
+      - ./smtp-certs:/certs:ro
+    ports:
+      - "587:587"
+      - "465:465"
+```
+
+Inicie com `docker compose -f smtp-compose.yml up -d`. Configure o cliente com host `smtp.exemplo.com`, usuário `usesend`, senha igual à API key e TLS em 587 (STARTTLS) ou 465 (TLS implícito). Libere essas portas no firewall do provedor apenas quando o proxy estiver configurado; se restringir tráfego no host, use regras na cadeia `DOCKER-USER`, não somente UFW.
+
+## Operação, atualização e backup
+
+Não execute `docker compose down -v`: isso remove volumes nomeados e é um hábito perigoso em produção. Os dados deste guia ficam em `/opt/usesend/{postgres-data,redis-data,minio-data}`; faça backup fora do VPS, especialmente de PostgreSQL e MinIO.
+
+Um backup lógico consistente do banco pode ser gerado assim:
+
+```bash
+cd /opt/usesend
+mkdir -p backups
+docker compose exec -T postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > "backups/usesend-$(date +%F).sql.gz"
+```
+
+Teste a restauração em um ambiente separado. Para atualizar, faça backup, fixe ou revise a tag da imagem, e então execute:
+
+```bash
+cd /opt/usesend
+docker compose pull
+docker compose up -d
+docker image prune -f
+```
+
+Como a inicialização aplica migrations pendentes, leia as notas da versão e teste atualizações em staging quando houver dados reais. Para diagnóstico, use `docker compose logs --tail=200 usesend`, `docker compose logs --tail=200 postgres` e `sudo journalctl -u caddy -n 100`.
+
+## Problemas frequentes
+
+- **Erro "No auth providers found"**: preencha um par completo de GitHub/Google ou `FROM_EMAIL`; para login por email, confirme que SES pode enviar a mensagem de login.
+- **Callback AWS não chega**: `NEXTAUTH_URL` e o callback no painel devem usar o domínio HTTPS público, e 443 precisa estar aberto.
+- **Upload de imagem/anexo falha**: confirme que `storage.exemplo.com` resolve para o VPS, usa HTTPS válido, e que as quatro variáveis S3 são preenchidas.
+- **Login redireciona para localhost**: corrija `NEXTAUTH_URL`, recarregue com `docker compose up -d` e atualize a URL de callback no provedor OAuth.
+- **Não entrega para destinatários externos**: verifique sandbox do SES, identidade de domínio, DKIM/SPF e permissões AWS; o problema não é resolvido abrindo portas SMTP no VPS.

@@ -1,0 +1,108 @@
+---
+title: Portainer e Nginx Proxy Manager
+description: Execute o useSend em uma Stack Portainer, publique-o pelo Nginx Proxy Manager e atualize a imagem do seu fork com GitHub Actions.
+---
+
+Este caminho substitui o proxy Caddy do guia Ubuntu por Portainer e Nginx Proxy Manager (NPM). O banco, Redis e MinIO permanecem privados na rede Docker; o NPM é o único componente que publica HTTP/HTTPS.
+
+## Visão geral
+
+```text
+push em main → GitHub Actions → ghcr.io/seu-usuario/seu-fork:latest
+                                      │
+                                      └→ API Watchtower → recria apenas useSend
+VPS: Nginx Proxy Manager → Stack useSend → PostgreSQL / Redis / MinIO
+```
+
+O workflow incluído em `.github/workflows/deploy-fork.yml` publica a imagem do seu fork no GitHub Container Registry (GHCR). O Watchtower na Stack recebe uma chamada autenticada da Action e atualiza somente o contêiner rotulado `usesend`; o Portainer CE continua sendo a interface de administração da Stack.
+
+<Warning>
+O Watchtower precisa acessar `/var/run/docker.sock`, o que lhe dá alto privilégio sobre o Docker do VPS. Por isso, a configuração usa `--label-enable` e atualiza somente serviços marcados explicitamente. Mantenha o token da API longo, secreto e protegido por HTTPS.
+</Warning>
+
+## 1. Criar uma rede compartilhada para o NPM
+
+No host Docker, descubra a rede do NPM com `docker network ls`. Se ele já tiver uma rede externa compartilhada, use o nome dela no lugar de `npm_proxy` no arquivo da Stack. Caso contrário, crie a rede e conecte o contêiner NPM existente uma única vez:
+
+```bash
+docker network create npm_proxy
+docker network connect npm_proxy <nome-ou-id-do-container-npm>
+```
+
+O arquivo `docker/portainer/compose.yml` declara essa rede como externa. No seu fork, use esse mesmo arquivo; não publique portas para `usesend` ou `minio`.
+
+## 2. Criar a Stack no Portainer
+
+Em **Stacks → Add stack**, escolha **Repository**, informe a URL do seu fork, a branch `main` e o caminho `docker/portainer/compose.yml`. Para uma Stack vinculada ao Git, toda mudança na composição deve ser feita no Git, não no editor do Portainer.
+
+Em **Environment variables**, cadastre os valores abaixo. Guarde os valores secretos somente no Portainer, não em `.env` no Git.
+
+| Variável | Valor/exemplo |
+| --- | --- |
+| `USESEND_IMAGE` | `ghcr.io/SEU_USUARIO/SEU_FORK:latest` |
+| `GHCR_USERNAME`, `GHCR_READ_TOKEN` | usuário GitHub e PAT clássico limitado a `read:packages` |
+| `WATCHTOWER_HTTP_API_TOKEN` | novo segredo aleatório (`openssl rand -hex 32`) |
+| `POSTGRES_USER`, `POSTGRES_DB` | `usesend` |
+| `POSTGRES_PASSWORD` | segredo aleatório (`openssl rand -hex 32`) |
+| `DATABASE_URL` | `postgresql://usesend:SENHA@postgres:5432/usesend` |
+| `REDIS_URL`, `REDIS_KEY_PREFIX` | `redis://redis:6379`, `usesend` |
+| `NEXTAUTH_URL`, `NEXTAUTH_SECRET` | `https://send.exemplo.com`, segredo aleatório |
+| `NEXT_PUBLIC_IS_CLOUD` | `false` |
+| `AWS_DEFAULT_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | credenciais AWS SES/SNS |
+| `GITHUB_ID`, `GITHUB_SECRET` ou `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` ou `FROM_EMAIL` | ao menos um método de login |
+| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | usuário e segredo MinIO |
+| `S3_COMPATIBLE_ACCESS_KEY`, `S3_COMPATIBLE_SECRET_KEY` | os mesmos dados de acesso do MinIO neste exemplo |
+| `S3_COMPATIBLE_API_URL`, `S3_COMPATIBLE_PUBLIC_URL` | `https://storage.exemplo.com` |
+| `S3_COMPATIBLE_BUCKET` | `unsend` |
+| `API_RATE_LIMIT`, `AUTH_EMAIL_RATE_LIMIT` | `1`, `5` |
+
+Se o pacote GHCR do fork for privado, crie em **Registries** uma credencial para `ghcr.io` com seu usuário GitHub e um Personal Access Token clássico limitado a `read:packages`; associe esse registry à Stack. Como alternativa, torne somente o pacote de imagem público.
+
+Faça o primeiro deploy. A imagem executa migrations pendentes antes de iniciar; verifique os logs da Stack e só então faça login. O primeiro usuário é o bootstrap da instalação self-hosted.
+
+## 3. Criar os Proxy Hosts no Nginx Proxy Manager
+
+Crie dois **Proxy Hosts**. Ambos usam a rede Docker compartilhada, por isso o NPM encaminha pelo nome do serviço, sem expor portas no VPS.
+
+| Domínio | Scheme | Forward Hostname | Porta | Opções |
+| --- | --- | --- | --- | --- |
+| `send.exemplo.com` | `http` | `usesend` | `3000` | Websockets Support, Block Common Exploits, certificado Let's Encrypt e Force SSL |
+| `storage.exemplo.com` | `http` | `minio` | `9000` | certificado Let's Encrypt e Force SSL |
+| `updates.exemplo.com` | `http` | `watchtower` | `8080` | certificado Let's Encrypt e Force SSL |
+
+Os três registros DNS devem apontar para o IP do VPS. `storage.exemplo.com` precisa ser público: o navegador recebe URLs assinadas para enviar imagens e anexos. O console administrativo do MinIO não é publicado por esta Stack. O host `updates` é uma API administrativa: não o divulgue nem adicione encaminhamentos extras; toda chamada exige o token Bearer.
+
+Atualize a URL de callback do GitHub OAuth para `https://send.exemplo.com/api/auth/callback/github`. No painel do useSend, configure a região SES, a URL pública da aplicação para callbacks SNS e o domínio de envio.
+
+## 4. Ativar o deploy do fork pelo GitHub Actions
+
+O workflow já foi adicionado em `.github/workflows/deploy-fork.yml`. A cada push em `main`, ele:
+
+1. constrói `docker/Dockerfile`;
+2. publica `ghcr.io/<dono-do-fork>/<nome-do-fork>:latest` e uma tag imutável com SHA;
+3. envia um `POST` autenticado ao Watchtower, que baixa a nova `latest` e recria o useSend.
+
+No GitHub do fork, abra **Settings → Secrets and variables → Actions** e crie estes dois segredos:
+
+- `WATCHTOWER_UPDATE_URL`: `https://updates.exemplo.com/v1/update`
+- `WATCHTOWER_HTTP_API_TOKEN`: o mesmo valor de `WATCHTOWER_HTTP_API_TOKEN` cadastrado na Stack.
+
+Nunca coloque esse token no repositório. Sem os dois segredos, a Action somente publica a imagem e termina com sucesso, sem atualizar o VPS.
+
+O workflow usa `GITHUB_TOKEN` com a permissão `packages: write`; não é necessário salvar token de GHCR nos Actions. O token `read:packages` é usado apenas pelo Watchtower no VPS para baixar uma imagem privada. Depois do primeiro push, confirme que o pacote surgiu em **Packages** no GitHub e veja nos logs do Watchtower que apenas `usesend` foi recriado.
+
+<Tip>
+Para validar antes de produção, mude o gatilho do workflow para uma branch `staging` e aponte uma segunda Stack para `ghcr.io/...:latest` daquela branch, ou use a tag SHA publicada pelo job para fazer rollback manual.
+</Tip>
+
+## Atualização, rollback e backup
+
+Para uma atualização manual no Portainer, abra a Stack e use **Pull and redeploy**. Para rollback, altere `USESEND_IMAGE` para a tag SHA de uma execução conhecida, por exemplo `ghcr.io/seu-usuario/seu-fork:sha-<commit>`, e redeploy.
+
+Faça backup dos volumes `usesend_postgres-data` e `usesend_minio-data` (o prefixo pode variar conforme o nome da Stack). Um dump lógico do banco continua sendo a opção mais portátil:
+
+```bash
+docker exec -t usesend-postgres-1 pg_dump -U usesend usesend | gzip > usesend-$(date +%F).sql.gz
+```
+
+Confirme o nome real do contêiner em **Containers** antes de executar o comando. Nunca use **Remove stack** com a opção de apagar volumes em uma instalação com dados.
