@@ -57,8 +57,6 @@ services:
   usesend:
     image: ${USESEND_IMAGE}
     restart: unless-stopped
-    labels:
-      com.centurylinklabs.watchtower.enable: "true"
     depends_on:
       - postgres
       - redis
@@ -85,26 +83,6 @@ services:
       S3_COMPATIBLE_API_URL: ${S3_COMPATIBLE_API_URL}
       S3_COMPATIBLE_PUBLIC_URL: ${S3_COMPATIBLE_PUBLIC_URL}
       S3_COMPATIBLE_BUCKET: ${S3_COMPATIBLE_BUCKET}
-    networks:
-      - app_network
-      - npm_public
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-
-  watchtower:
-    image: nickfedor/watchtower:1.20
-    restart: unless-stopped
-    command: --label-enable --http-api-update --cleanup
-    environment:
-      WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_HTTP_API_TOKEN}
-      REPO_USER: ${GHCR_USERNAME}
-      REPO_PASS: ${GHCR_READ_TOKEN}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - app_network
       - npm_public

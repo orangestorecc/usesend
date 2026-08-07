@@ -8,16 +8,16 @@ Este caminho substitui o proxy Caddy do guia Ubuntu por Portainer e Nginx Proxy 
 ## Visão geral
 
 ```text
-push em main → GitHub Actions → ghcr.io/seu-usuario/seu-fork:latest
+push em main → GitHub Actions → ghcr.io/seu-usuario/seu-fork:sha-<commit>
                                       │
-                                      └→ API Watchtower → recria apenas useSend
+                                      └→ SSH no manager → docker service update
 VPS: Nginx Proxy Manager → Stack useSend → PostgreSQL / Redis / MinIO
 ```
 
-O workflow incluído em `.github/workflows/deploy-fork.yml` publica a imagem do seu fork no GitHub Container Registry (GHCR). O Watchtower mantido pela comunidade (`nickfedor/watchtower`) na Stack recebe uma chamada autenticada da Action e atualiza somente o contêiner rotulado `usesend`; o Portainer CE continua sendo a interface de administração da Stack.
+O workflow incluído em `.github/workflows/deploy-fork.yml` publica a imagem do seu fork no GitHub Container Registry (GHCR) e atualiza o serviço do Docker Swarm no manager via SSH. O Portainer CE continua sendo a interface de administração da Stack.
 
 <Warning>
-O Watchtower precisa acessar `/var/run/docker.sock`, o que lhe dá alto privilégio sobre o Docker do VPS. Por isso, a configuração usa `--label-enable` e atualiza somente serviços marcados explicitamente. Mantenha o token da API longo, secreto e protegido por HTTPS.
+Não use Watchtower para uma Stack Docker Swarm: ele tenta recriar containers diretamente e falha em redes overlay, que não são manualmente conectáveis. O usuário SSH de deploy deve ter permissão para executar `docker service update` no manager.
 </Warning>
 
 ## 1. Criar uma rede compartilhada para o NPM
@@ -41,7 +41,6 @@ Em **Environment variables**, cadastre os valores abaixo. Guarde os valores secr
 | --- | --- |
 | `USESEND_IMAGE` | `ghcr.io/SEU_USUARIO/SEU_FORK:latest` |
 | `GHCR_USERNAME`, `GHCR_READ_TOKEN` | usuário GitHub e PAT clássico limitado a `read:packages` |
-| `WATCHTOWER_HTTP_API_TOKEN` | novo segredo aleatório (`openssl rand -hex 32`) |
 | `POSTGRES_USER`, `POSTGRES_DB` | `usesend` |
 | `POSTGRES_PASSWORD` | segredo aleatório (`openssl rand -hex 32`) |
 | `DATABASE_URL` | `postgresql://usesend:SENHA@postgres:5432/usesend` |
@@ -68,9 +67,8 @@ Crie dois **Proxy Hosts**. Ambos usam a rede Docker compartilhada, por isso o NP
 | --- | --- | --- | --- | --- |
 | `send.exemplo.com` | `http` | `usesend` | `3000` | Websockets Support, Block Common Exploits, certificado Let's Encrypt e Force SSL |
 | `storage.exemplo.com` | `http` | `minio` | `9000` | certificado Let's Encrypt e Force SSL |
-| `updates.exemplo.com` | `http` | `watchtower` | `8080` | certificado Let's Encrypt e Force SSL |
 
-Os três registros DNS devem apontar para o IP do VPS. `storage.exemplo.com` precisa ser público: o navegador recebe URLs assinadas para enviar imagens e anexos. O console administrativo do MinIO não é publicado por esta Stack. O host `updates` é uma API administrativa: não o divulgue nem adicione encaminhamentos extras; toda chamada exige o token Bearer.
+Os dois registros DNS devem apontar para o IP do VPS. `storage.exemplo.com` precisa ser público: o navegador recebe URLs assinadas para enviar imagens e anexos. O console administrativo do MinIO não é publicado por esta Stack.
 
 Atualize a URL de callback do GitHub OAuth para `https://send.exemplo.com/api/auth/callback/github`. No painel do useSend, configure a região SES, a URL pública da aplicação para callbacks SNS e o domínio de envio.
 
@@ -80,16 +78,20 @@ O workflow já foi adicionado em `.github/workflows/deploy-fork.yml`. A cada pus
 
 1. constrói `docker/Dockerfile`;
 2. publica `ghcr.io/<dono-do-fork>/<nome-do-fork>:latest` e uma tag imutável com SHA;
-3. envia um `POST` autenticado ao Watchtower, que baixa a nova `latest` e recria o useSend.
+3. conecta por SSH ao manager do Swarm e atualiza o serviço com a tag SHA imutável.
 
-No GitHub do fork, abra **Settings → Secrets and variables → Actions** e crie estes dois segredos:
+No GitHub do fork, abra **Settings → Secrets and variables → Actions** e crie:
 
-- `WATCHTOWER_UPDATE_URL`: `https://updates.exemplo.com/v1/update`
-- `WATCHTOWER_HTTP_API_TOKEN`: o mesmo valor de `WATCHTOWER_HTTP_API_TOKEN` cadastrado na Stack.
+- `DEPLOY_HOST`: IP ou hostname do nó manager do Swarm;
+- `DEPLOY_USER`: usuário SSH com acesso ao Docker;
+- `DEPLOY_SSH_PRIVATE_KEY`: chave privada Ed25519 de deploy;
+- `DEPLOY_KNOWN_HOSTS`: resultado de `ssh-keyscan -H SEU_HOST` obtido e verificado previamente;
+- `GHCR_USERNAME` e `GHCR_READ_TOKEN`: usuário GitHub e PAT clássico `read:packages`;
+- `SWARM_SERVICE_NAME`: `usesend_usesend` se a Stack se chamar `usesend`.
 
-Nunca coloque esse token no repositório. Sem os dois segredos, a Action somente publica a imagem e termina com sucesso, sem atualizar o VPS.
+Nunca coloque a chave privada ou o PAT no repositório. Sem todos esses segredos, a Action somente publica a imagem e termina com sucesso, sem atualizar o VPS.
 
-O workflow usa `GITHUB_TOKEN` com a permissão `packages: write`; não é necessário salvar token de GHCR nos Actions. O token `read:packages` é usado apenas pelo Watchtower no VPS para baixar uma imagem privada. Depois do primeiro push, confirme que o pacote surgiu em **Packages** no GitHub e veja nos logs do Watchtower que apenas `usesend` foi recriado.
+O workflow usa `GITHUB_TOKEN` com a permissão `packages: write`; não é necessário salvar credencial de publicação. O token `read:packages` é enviado ao manager somente para o `docker service update --with-registry-auth` distribuir a imagem privada aos nós. Depois do primeiro push, confirme em **Services** no Portainer que `usesend_usesend` criou uma nova task.
 
 <Tip>
 Para validar antes de produção, mude o gatilho do workflow para uma branch `staging` e aponte uma segunda Stack para `ghcr.io/...:latest` daquela branch, ou use a tag SHA publicada pelo job para fazer rollback manual.

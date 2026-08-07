@@ -1,4 +1,4 @@
-name: Build fork image and request update
+name: Build fork image and deploy to Swarm
 
 on:
   push:
@@ -54,16 +54,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Request Watchtower update
+      - name: Deploy image on the Swarm manager
         env:
-          WATCHTOWER_UPDATE_URL: ${{ secrets.WATCHTOWER_UPDATE_URL }}
-          WATCHTOWER_HTTP_API_TOKEN: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          SWARM_SERVICE_NAME: ${{ secrets.SWARM_SERVICE_NAME }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
         run: |
-          if [ -z "$WATCHTOWER_UPDATE_URL" ] || [ -z "$WATCHTOWER_HTTP_API_TOKEN" ]; then
-            echo "Watchtower secrets are not configured; image published without automatic redeploy."
+          if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_USER" ] || [ -z "$DEPLOY_SSH_PRIVATE_KEY" ] || [ -z "$DEPLOY_KNOWN_HOSTS" ] || [ -z "$GHCR_USERNAME" ] || [ -z "$GHCR_READ_TOKEN" ] || [ -z "$SWARM_SERVICE_NAME" ]; then
+            echo "Swarm deployment secrets are not configured; image published without automatic deploy."
             exit 0
           fi
-          curl --fail --show-error --silent --retry 3 --retry-all-errors \
-            --request POST \
-            --header "Authorization: Bearer $WATCHTOWER_HTTP_API_TOKEN" \
-            "$WATCHTOWER_UPDATE_URL"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$GHCR_READ_TOKEN" | ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "docker login ghcr.io --username '$GHCR_USERNAME' --password-stdin && docker service update --with-registry-auth --image '$IMAGE_REF' '$SWARM_SERVICE_NAME'"
