@@ -56,17 +56,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Request Watchtower update
-        env:
-          WATCHTOWER_UPDATE_URL: ${{ secrets.WATCHTOWER_UPDATE_URL }}
-          WATCHTOWER_HTTP_API_TOKEN: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
-        run: |
-          if [ -z "$WATCHTOWER_UPDATE_URL" ] || [ -z "$WATCHTOWER_HTTP_API_TOKEN" ]; then
-            echo "Watchtower secrets are not configured; image published without automatic redeploy."
-            exit 0
-          fi
-          curl --fail --show-error --silent --retry 3 --retry-all-errors \
-            --request POST \
-            --header "Authorization: Bearer $WATCHTOWER_HTTP_API_TOKEN" \
-            "$WATCHTOWER_UPDATE_URL"
