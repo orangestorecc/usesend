@@ -12,6 +12,12 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - app_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   redis:
     image: redis:7
@@ -21,6 +27,12 @@ services:
       - redis-data:/data
     networks:
       - app_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   minio:
     image: minio/minio:latest
@@ -35,6 +47,12 @@ services:
     networks:
       - app_network
       - npm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   usesend:
     image: ${USESEND_IMAGE}
@@ -70,6 +88,12 @@ services:
     networks:
       - app_network
       - npm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   watchtower:
     image: nickfedor/watchtower:1.20
@@ -84,6 +108,12 @@ services:
     networks:
       - app_network
       - npm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
 volumes:
   postgres-data:
