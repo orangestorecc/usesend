@@ -1,0 +1,16 @@
+# Dependências
+node_modules/
+
+# Segredos e config local (NUNCA versionar)
+.env
+.env.*
+!.env.example
+
+# Logs de uso / telemetria
+*.jsonl
+usage.log.jsonl
+usage-ledger.jsonl
+
+# Build
+dist/
+*.tsbuildinfo
