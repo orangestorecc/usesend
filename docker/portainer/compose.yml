@@ -10,6 +10,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -22,6 +24,8 @@ services:
     command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     volumes:
       - redis-data:/data
+    networks:
+      - app_network
 
   minio:
     image: minio/minio:latest
@@ -99,6 +103,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
+      - app_network
       - npm_public
 
 volumes:
