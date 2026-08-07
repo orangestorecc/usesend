@@ -41,8 +41,7 @@ services:
     image: minio/mc:latest
     restart: "no"
     depends_on:
-      minio:
-        condition: service_started
+      - minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -59,12 +58,9 @@ services:
     labels:
       com.centurylinklabs.watchtower.enable: "true"
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      minio-init:
-        condition: service_completed_successfully
+      - postgres
+      - redis
+      - minio-init
     environment:
       PORT: 3000
       DATABASE_URL: ${DATABASE_URL}
