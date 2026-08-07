@@ -125,6 +125,7 @@ model Team {
   suppressionList  SuppressionList[]
   webhookEndpoints Webhook[]
   webhookCalls     WebhookCall[]
+  mcpKeys          McpKey[]
 }
 
 model TeamInvite {
@@ -522,4 +523,20 @@ model Segment {
 
   @@index([teamId])
   @@index([contactBookId])
+}
+
+model McpKey {
+  id           String    @id @default(cuid())
+  teamId       Int
+  name         String
+  clientId     String    @unique
+  tokenHash    String
+  partialToken String
+  scopes       Json
+  lastUsed     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  team         Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
 }

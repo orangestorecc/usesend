@@ -102,12 +102,9 @@ services:
       - usesend
     environment:
       PORT: 8787
-      # Fala com o useSend pela rede interna (sem sair pra internet)
+      # Fala com o useSend pela rede interna (sem sair pra internet).
+      # Auth/escopos/planos vêm do banco (McpKey), geridos em Developer Settings > MCP.
       USESEND_BASE_URL: http://usesend:3000/api
-      # msk_<cliente>=<api_key_do_useSend> ; ...
-      MCP_TOKEN_MAP: ${MCP_TOKEN_MAP}
-      # msk_<cliente>=nomePlano:precoPorContatoBRL:minContatos ; ...
-      MCP_PLANS: ${MCP_PLANS}
     networks:
       - app_network
       - npm_public

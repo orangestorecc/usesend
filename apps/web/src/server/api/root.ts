@@ -15,6 +15,7 @@ import { limitsRouter } from "./routers/limits";
 import { waitlistRouter } from "./routers/waitlist";
 import { feedbackRouter } from "./routers/feedback";
 import { webhookRouter } from "./routers/webhook";
+import { mcpRouter } from "./routers/mcp";
 
 /**
  * This is the primary router for your server.
@@ -38,6 +39,7 @@ export const appRouter = createTRPCRouter({
   waitlist: waitlistRouter,
   feedback: feedbackRouter,
   webhook: webhookRouter,
+  mcp: mcpRouter,
 });
 
 // export type definition of API

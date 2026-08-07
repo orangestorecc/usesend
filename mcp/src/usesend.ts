@@ -9,6 +9,18 @@ export type Contact = {
   subscribed?: boolean;
 };
 
+export type ScopeLevel = "none" | "read" | "write";
+export type McpScopes = {
+  contacts: ScopeLevel;
+  lists: ScopeLevel;
+  templates: ScopeLevel;
+  segments: ScopeLevel;
+  campaigns: ScopeLevel;
+  analytics: "none" | "read";
+  send: boolean;
+  plan?: { pricePerContactBRL: number; minContacts: number };
+};
+
 export class UseSendClient {
   constructor(
     private readonly baseUrl: string,
@@ -99,6 +111,15 @@ export class UseSendClient {
   }
   renderTemplate(content: string) {
     return this.req("POST", "/v1/templates/render", { content });
+  }
+
+  // Resolve o token MCP atual -> time + escopos (via useSend).
+  getMcpMe() {
+    return this.req("GET", "/v1/mcp/me") as Promise<{
+      teamId: number;
+      teamName: string;
+      scopes: McpScopes;
+    }>;
   }
 
   // Conta o total de contatos do time (soma _count.contacts das listas).

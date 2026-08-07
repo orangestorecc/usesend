@@ -5,21 +5,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { UseSendClient } from "./usesend.js";
 import { registerTools } from "./tools.js";
-import * as billing from "./billing.js";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const BASE_URL = process.env.USESEND_BASE_URL ?? "http://localhost:3000/api";
 const USAGE_LOG = "usage.log.jsonl";
-
-// Mapa token-de-MCP -> API key do useSend (por cliente).
-const tokenMap = new Map<string, string>();
-for (const pair of (process.env.MCP_TOKEN_MAP ?? "").split(";")) {
-  const [tok, key] = pair.split("=");
-  if (tok && key) tokenMap.set(tok.trim(), key.trim());
-}
-if (tokenMap.size === 0) {
-  console.error("[mcp] AVISO: MCP_TOKEN_MAP vazio — nenhum cliente configurado.");
-}
 
 function bearer(req: express.Request): string | null {
   const h = req.header("authorization") ?? "";
@@ -30,24 +19,38 @@ function bearer(req: express.Request): string | null {
 const app = express();
 app.use(express.json({ limit: "5mb" }));
 
-app.get("/health", (_req, res) => res.json({ ok: true, clientes: tokenMap.size }));
+app.get("/health", (_req, res) => res.json({ ok: true }));
 
 app.post("/mcp", async (req, res) => {
-  const mcpToken = bearer(req);
-  const apiKey = mcpToken ? tokenMap.get(mcpToken) : undefined;
-  if (!apiKey) {
+  const token = bearer(req);
+  if (!token) {
     return res.status(401).json({
       jsonrpc: "2.0",
-      error: { code: -32001, message: "Token de MCP inválido ou ausente (Authorization: Bearer msk_...)" },
+      error: { code: -32001, message: "Token ausente (Authorization: Bearer msk_...)" },
       id: null,
     });
   }
 
-  const client = new UseSendClient(BASE_URL, apiKey);
+  // O MCP é pass-through: usa o token do cliente direto contra o useSend,
+  // que resolve time + escopos (tabela McpKey no banco).
+  const client = new UseSendClient(BASE_URL, token);
+  let scopes;
+  try {
+    const me = await client.getMcpMe();
+    scopes = me.scopes;
+  } catch {
+    return res.status(401).json({
+      jsonrpc: "2.0",
+      error: { code: -32001, message: "Token de MCP inválido" },
+      id: null,
+    });
+  }
+
+  const clienteLabel = `${token.slice(0, 7)}...${token.slice(-3)}`;
   const log = (tool: string, args: unknown, status: "ok" | "error") => {
     const entry = {
       ts: new Date().toISOString(),
-      cliente: mcpToken,
+      cliente: clienteLabel,
       tool,
       status,
       args: summarizeArgs(args),
@@ -60,7 +63,7 @@ app.post("/mcp", async (req, res) => {
   };
 
   const server = new McpServer({ name: "usesend-mcp", version: "0.0.1" });
-  registerTools(server, client, log, billing.forClient(mcpToken!));
+  registerTools(server, client, log, scopes);
 
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless
@@ -94,7 +97,7 @@ function summarizeArgs(args: unknown): unknown {
 }
 
 app.listen(PORT, () => {
-  console.log(`[mcp] useSend MCP (Fase 0) rodando em http://localhost:${PORT}/mcp`);
+  console.log(`[mcp] useSend MCP rodando em http://localhost:${PORT}/mcp`);
   console.log(`[mcp] useSend base: ${BASE_URL}`);
-  console.log(`[mcp] clientes configurados: ${[...tokenMap.keys()].join(", ") || "(nenhum)"}`);
+  console.log(`[mcp] auth: token msk_ resolvido pelo useSend (McpKey no banco)`);
 });

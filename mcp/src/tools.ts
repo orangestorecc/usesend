@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { UseSendClient, type Contact } from "./usesend.js";
-import type { ClientBilling } from "./billing.js";
+import { UseSendClient, type Contact, type McpScopes, type ScopeLevel } from "./usesend.js";
+import { summarizeBilling } from "./billing.js";
 
 type LogFn = (tool: string, args: unknown, status: "ok" | "error") => void;
 
@@ -31,53 +31,75 @@ function wrap<T>(
   };
 }
 
+const canRead = (lvl: ScopeLevel | "none" | "read") =>
+  lvl === "read" || lvl === "write";
+const canWrite = (lvl: ScopeLevel) => lvl === "write";
+
 export function registerTools(
   server: McpServer,
   client: UseSendClient,
   log: LogFn,
-  bill: ClientBilling,
+  scopes: McpScopes,
 ) {
-  // ============ 🟢 LEITURA ============
-  server.tool(
+  // Só registra a ferramenta se o escopo permitir.
+  const reg = (
+    allowed: boolean,
+    name: string,
+    desc: string,
+    schema: Record<string, z.ZodTypeAny>,
+    handler: (args: any) => Promise<any> | any,
+  ) => {
+    if (allowed) server.tool(name, desc, schema, handler);
+  };
+
+  // ============ Consumo/cobrança (sempre disponível) ============
+  reg(
+    true,
     "get_usage",
     "Mostra o consumo do cliente: nº de contatos atuais, plano e custo mensal estimado (cobrança por contato).",
     {},
     wrap(log, "get_usage", async () =>
-      bill.summary(await client.countContacts()),
+      summarizeBilling(scopes.plan, await client.countContacts()),
     ),
   );
 
-  server.tool(
+  reg(
+    true,
     "billing_summary",
-    "Resumo de cobrança: plano, preço por contato, contatos atuais, contatos faturáveis (respeita mínimo) e custo mensal em BRL.",
+    "Resumo de cobrança: preço por contato, contatos atuais, contatos faturáveis (respeita mínimo) e custo mensal em BRL.",
     {},
     wrap(log, "billing_summary", async () =>
-      bill.summary(await client.countContacts()),
+      summarizeBilling(scopes.plan, await client.countContacts()),
     ),
   );
 
-  server.tool(
+  // ============ 🟢 LEITURA ============
+  reg(
+    canRead(scopes.lists),
     "list_lists",
     "Lista as listas de contatos (contact books) do cliente.",
     {},
     wrap(log, "list_lists", () => client.listContactBooks()),
   );
 
-  server.tool(
+  reg(
+    canRead(scopes.contacts),
     "list_contacts",
     "Lista os contatos de uma lista.",
     { listId: z.string().describe("ID da lista (contact book)") },
     wrap(log, "list_contacts", ({ listId }) => client.listContacts(listId)),
   );
 
-  server.tool(
+  reg(
+    canRead(scopes.campaigns),
     "list_campaigns",
     "Lista as campanhas do cliente.",
     {},
     wrap(log, "list_campaigns", () => client.listCampaigns()),
   );
 
-  server.tool(
+  reg(
+    canRead(scopes.campaigns),
     "get_campaign_report",
     "Relatório de uma campanha: enviados, entregues, abertos, cliques, bounces.",
     { campaignId: z.string() },
@@ -86,7 +108,8 @@ export function registerTools(
     ),
   );
 
-  server.tool(
+  reg(
+    scopes.analytics === "read",
     "get_analytics",
     "Métricas da conta. type='timeseries' (série temporal de e-mails) ou 'reputation' (reputação).",
     {
@@ -100,29 +123,51 @@ export function registerTools(
     ),
   );
 
-  server.tool(
+  reg(
+    canRead(scopes.templates),
     "list_templates",
     "Lista os templates de e-mail do cliente.",
     {},
     wrap(log, "list_templates", () => client.listTemplates()),
   );
 
-  server.tool(
+  reg(
+    canRead(scopes.templates),
     "get_template",
     "Retorna um template (inclui content JSON e html renderizado).",
     { templateId: z.string() },
     wrap(log, "get_template", ({ templateId }) => client.getTemplate(templateId)),
   );
 
-  server.tool(
+  reg(
+    canRead(scopes.templates),
     "render_preview",
     "Renderiza um JSON do editor (TipTap) para HTML, SEM salvar. Use para pré-visualizar o e-mail que a IA montou antes de salvar/enviar.",
     { content: z.string().describe("JSON do editor (TipTap)") },
     wrap(log, "render_preview", ({ content }) => client.renderTemplate(content)),
   );
 
+  reg(
+    canRead(scopes.segments),
+    "list_segments",
+    "Lista os segmentos salvos do cliente.",
+    {},
+    wrap(log, "list_segments", () => client.listSegments()),
+  );
+
+  reg(
+    canRead(scopes.segments),
+    "preview_segment",
+    "Prévia de um segmento: quantidade de contatos que casam + amostra. NÃO envia nada.",
+    { segmentId: z.string() },
+    wrap(log, "preview_segment", ({ segmentId }) =>
+      client.previewSegment(segmentId),
+    ),
+  );
+
   // ============ 🟡 ESCRITA REVERSÍVEL ============
-  server.tool(
+  reg(
+    canWrite(scopes.templates),
     "save_template",
     "Salva um template de e-mail. Passe content (JSON do editor TipTap, preferido — fica editável) ou html. Retorna o template com id e html renderizado.",
     {
@@ -134,7 +179,8 @@ export function registerTools(
     wrap(log, "save_template", (input) => client.createTemplate(input)),
   );
 
-  server.tool(
+  reg(
+    canWrite(scopes.lists),
     "create_list",
     "Cria uma lista de contatos (contact book).",
     {
@@ -148,7 +194,8 @@ export function registerTools(
     wrap(log, "create_list", (input) => client.createContactBook(input)),
   );
 
-  server.tool(
+  reg(
+    canWrite(scopes.contacts),
     "import_contacts",
     "Adiciona/atualiza contatos em uma lista (em lote, até 1000).",
     {
@@ -170,7 +217,8 @@ export function registerTools(
     ),
   );
 
-  server.tool(
+  reg(
+    canWrite(scopes.campaigns),
     "create_campaign",
     "Cria uma campanha em RASCUNHO (não envia). Fonte do conteúdo: templateId (template salvo), OU content (JSON do editor), OU html. Se faltar link de descadastro, um rodapé é adicionado automaticamente. Envio é feito depois por send_campaign/schedule_campaign.",
     {
@@ -191,7 +239,6 @@ export function registerTools(
         subject?: string;
       };
 
-      // Resolve template salvo, se informado.
       if (templateId) {
         const t: any = await client.getTemplate(templateId);
         content = content ?? t?.content ?? undefined;
@@ -199,7 +246,6 @@ export function registerTools(
         subject = subject ?? t?.subject;
       }
 
-      // useSend exige o placeholder de descadastro (no html OU no content). Injeta se faltar.
       const UNSUB = /\{\{\s*usesend_unsubscribe_url\s*\}\}/i;
       if (html && !UNSUB.test(html)) {
         html +=
@@ -243,15 +289,8 @@ export function registerTools(
     }),
   );
 
-  // ============ SEGMENTOS ============
-  server.tool(
-    "list_segments",
-    "Lista os segmentos salvos do cliente.",
-    {},
-    wrap(log, "list_segments", () => client.listSegments()),
-  );
-
-  server.tool(
+  reg(
+    canWrite(scopes.segments),
     "create_segment",
     "Cria um segmento (filtro salvo de contatos). Regras operam sobre: email, firstName, lastName, subscribed, ou properties.<chave>. Ops: eq, neq, contains, in. match: 'all' (E) ou 'any' (OU).",
     {
@@ -276,16 +315,8 @@ export function registerTools(
     wrap(log, "create_segment", (input) => client.createSegment(input)),
   );
 
-  server.tool(
-    "preview_segment",
-    "Prévia de um segmento: quantidade de contatos que casam + amostra. NÃO envia nada.",
-    { segmentId: z.string() },
-    wrap(log, "preview_segment", ({ segmentId }) =>
-      client.previewSegment(segmentId),
-    ),
-  );
-
-  server.tool(
+  reg(
+    canWrite(scopes.segments),
     "materialize_segment",
     "Cria uma NOVA lista (contact book) com os contatos que casam o segmento. Retorna listId — use em create_campaign para disparar só pro segmento.",
     { segmentId: z.string(), name: z.string().describe("Nome da nova lista") },
@@ -294,19 +325,21 @@ export function registerTools(
     ),
   );
 
-  server.tool(
+  reg(
+    canWrite(scopes.segments),
     "delete_segment",
     "Apaga um segmento (não apaga contatos).",
     { segmentId: z.string() },
     wrap(log, "delete_segment", ({ segmentId }) => client.deleteSegment(segmentId)),
   );
 
-  // ============ 🔴 ENVIA P/ GENTE REAL (exige confirm:true) ============
-  server.tool(
+  // ============ 🔴 ENVIA P/ GENTE REAL (exige confirm:true + escopo de envio) ============
+  reg(
+    scopes.send === true,
     "send_campaign",
     "DISPARA uma campanha JÁ CRIADA agora. Requer confirm:true. Sem confirm, retorna um resumo para conferência.",
     { campaignId: z.string(), confirm: z.boolean().default(false) },
-    async ({ campaignId, confirm }) => {
+    async ({ campaignId, confirm }: { campaignId: string; confirm: boolean }) => {
       try {
         const c: any = await client.getCampaign(campaignId);
         if (!confirm) {
@@ -334,11 +367,12 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  reg(
+    scopes.send === true,
     "schedule_campaign",
     "AGENDA o disparo de uma campanha. 'when' aceita ISO 8601 ou linguagem natural ('amanhã 9h'). Requer confirm:true.",
     { campaignId: z.string(), when: z.string(), confirm: z.boolean().default(false) },
-    async ({ campaignId, when, confirm }) => {
+    async ({ campaignId, when, confirm }: { campaignId: string; when: string; confirm: boolean }) => {
       try {
         const c: any = await client.getCampaign(campaignId);
         if (!confirm) {
@@ -359,7 +393,8 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  reg(
+    scopes.send === true,
     "send_email",
     "Envia um e-mail transacional avulso. Requer confirm:true. Aceita html ou templateId.",
     {
@@ -372,7 +407,7 @@ export function registerTools(
       replyTo: z.string().optional(),
       confirm: z.boolean().default(false),
     },
-    async ({ confirm, ...payload }) => {
+    async ({ confirm, ...payload }: any) => {
       try {
         if (!confirm) {
           log("send_email", { ...payload, confirm }, "ok");
