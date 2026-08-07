@@ -37,6 +37,7 @@ import getTemplate from "./api/templates/get-template";
 import createTemplate from "./api/templates/create-template";
 import renderTemplate from "./api/templates/render-template";
 import registerSegments from "./api/segments/segments";
+import mcpMe from "./api/mcp/me";
 
 
 export const app = getApp();
@@ -94,5 +95,8 @@ renderTemplate(app);
 
 /**Segment related APIs */
 registerSegments(app);
+
+/**MCP */
+mcpMe(app);
 
 export default app;

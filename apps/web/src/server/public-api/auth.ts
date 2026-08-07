@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { db } from "../db";
 import { UnsendApiError } from "./api-error";
 import { getTeamAndApiKey } from "../service/api-service";
+import { getTeamAndMcpKey } from "../service/mcp-key-service";
 import { isSelfHosted } from "~/utils/common";
 import { logger } from "../logger/log";
 
@@ -25,6 +26,23 @@ export const getTeamFromToken = async (c: Context) => {
       code: "UNAUTHORIZED",
       message: "No Authorization header provided",
     });
+  }
+
+  // Token de MCP (msk_...): resolve time + escopos. MCP não é escopado a domínio.
+  if (token.startsWith("msk_")) {
+    const mcp = await getTeamAndMcpKey(token);
+    if (!mcp || !mcp.team) {
+      throw new UnsendApiError({
+        code: "FORBIDDEN",
+        message: "Invalid MCP token",
+      });
+    }
+    return {
+      ...mcp.team,
+      apiKeyId: 0,
+      apiKey: { domainId: null },
+      mcpScopes: mcp.scopes,
+    };
   }
 
   const teamAndApiKey = await getTeamAndApiKey(token);

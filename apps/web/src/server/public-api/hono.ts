@@ -9,13 +9,44 @@ import { isSelfHosted } from "~/utils/common";
 import { UnsendApiError } from "./api-error";
 import { Team, ApiKey } from "@prisma/client";
 import { logger } from "../logger/log";
+import type { McpScopes } from "../service/mcp-key-service";
 
 // Define AppEnv for Hono context
 export type AppEnv = {
   Variables: {
-    team: Team & { apiKeyId: number; apiKey: { domainId: number | null } };
+    team: Team & {
+      apiKeyId: number;
+      apiKey: { domainId: number | null };
+      mcpScopes?: McpScopes;
+    };
   };
 };
+
+// Escopo exigido por (método, caminho) para tokens MCP. Retorna true se permitido.
+function mcpScopeAllows(method: string, path: string, scopes: McpScopes): boolean {
+  const isWrite = !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
+  const levelOk = (val: string, needWrite: boolean) =>
+    needWrite ? val === "write" : val === "read" || val === "write";
+
+  if (path.includes("/v1/mcp")) return true; // /v1/mcp/me
+  if (path.includes("/v1/analytics")) return scopes.analytics === "read";
+  if (path.includes("/v1/templates")) return levelOk(scopes.templates, isWrite);
+  if (path.includes("/v1/segments")) return levelOk(scopes.segments, isWrite);
+  if (path.includes("/v1/campaigns")) {
+    if (/\/(schedule|resume)/.test(path)) return scopes.send === true; // disparo
+    return levelOk(scopes.campaigns, isWrite);
+  }
+  if (path.includes("/v1/emails")) {
+    if (isWrite) return scopes.send === true; // enviar transacional
+    return true; // leitura de e-mails
+  }
+  if (path.includes("/v1/contactBooks")) {
+    const cap = path.includes("/contacts") ? scopes.contacts : scopes.lists;
+    return levelOk(cap, isWrite);
+  }
+  if (path.includes("/v1/domains")) return !isWrite; // cliente MCP: domínios só leitura
+  return true;
+}
 
 export function getApp() {
   const app = new OpenAPIHono<AppEnv>().basePath("/api");
@@ -43,6 +74,18 @@ export function getApp() {
       throw new UnsendApiError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Authentication failed",
+      });
+    }
+    await next();
+  });
+
+  // Enforcement de escopo para tokens MCP (msk_)
+  app.use("*", async (c: Context<AppEnv>, next: Next) => {
+    const scopes = c.var.team?.mcpScopes;
+    if (scopes && !mcpScopeAllows(c.req.method, c.req.path, scopes)) {
+      throw new UnsendApiError({
+        code: "FORBIDDEN",
+        message: "MCP token não tem permissão (escopo) para esta operação",
       });
     }
     await next();
