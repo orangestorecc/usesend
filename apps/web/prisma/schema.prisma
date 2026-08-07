@@ -510,3 +510,16 @@ model WebhookCall {
   @@index([teamId, webhookId, status])
   @@index([createdAt(sort: Desc)])
 }
+
+model Segment {
+  id            String   @id @default(cuid())
+  teamId        Int
+  contactBookId String?
+  name          String
+  rules         Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([teamId])
+  @@index([contactBookId])
+}

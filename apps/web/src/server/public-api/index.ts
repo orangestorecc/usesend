@@ -32,6 +32,11 @@ import emailTimeSeries from "./api/analytics/email-time-series";
 import reputationMetricsData from "./api/analytics/reputation-metrics-data";
 import bulkAddContactsHandle from "./api/contacts/bulk-add-contacts";
 import bulkDeleteContacts from "./api/contacts/bulk-delete-contacts";
+import getTemplates from "./api/templates/get-templates";
+import getTemplate from "./api/templates/get-template";
+import createTemplate from "./api/templates/create-template";
+import renderTemplate from "./api/templates/render-template";
+import registerSegments from "./api/segments/segments";
 
 
 export const app = getApp();
@@ -80,5 +85,14 @@ deleteCampaignHandle(app);
 /**Analytics related APIs */
 emailTimeSeries(app);
 reputationMetricsData(app);
+
+/**Template related APIs */
+getTemplates(app);
+getTemplate(app);
+createTemplate(app);
+renderTemplate(app);
+
+/**Segment related APIs */
+registerSegments(app);
 
 export default app;
