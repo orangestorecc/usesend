@@ -89,7 +89,7 @@ services:
       - npm_public
 
   watchtower:
-    image: containrrr/watchtower:latest
+    image: nickfedor/watchtower:1.20
     restart: unless-stopped
     command: --label-enable --http-api-update --cleanup
     environment:

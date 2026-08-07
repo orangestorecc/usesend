@@ -14,7 +14,7 @@ push em main → GitHub Actions → ghcr.io/seu-usuario/seu-fork:latest
 VPS: Nginx Proxy Manager → Stack useSend → PostgreSQL / Redis / MinIO
 ```
 
-O workflow incluído em `.github/workflows/deploy-fork.yml` publica a imagem do seu fork no GitHub Container Registry (GHCR). O Watchtower na Stack recebe uma chamada autenticada da Action e atualiza somente o contêiner rotulado `usesend`; o Portainer CE continua sendo a interface de administração da Stack.
+O workflow incluído em `.github/workflows/deploy-fork.yml` publica a imagem do seu fork no GitHub Container Registry (GHCR). O Watchtower mantido pela comunidade (`nickfedor/watchtower`) na Stack recebe uma chamada autenticada da Action e atualiza somente o contêiner rotulado `usesend`; o Portainer CE continua sendo a interface de administração da Stack.
 
 <Warning>
 O Watchtower precisa acessar `/var/run/docker.sock`, o que lhe dá alto privilégio sobre o Docker do VPS. Por isso, a configuração usa `--label-enable` e atualiza somente serviços marcados explicitamente. Mantenha o token da API longo, secreto e protegido por HTTPS.
