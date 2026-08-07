@@ -71,6 +71,25 @@ services:
       - app_network
       - npm_public
 
+  mcp:
+    image: ${MCP_IMAGE}
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    depends_on:
+      - usesend
+    environment:
+      PORT: 8787
+      # Fala com o useSend pela rede interna (sem sair pra internet)
+      USESEND_BASE_URL: http://usesend:3000/api
+      # msk_<cliente>=<api_key_do_useSend> ; ...
+      MCP_TOKEN_MAP: ${MCP_TOKEN_MAP}
+      # msk_<cliente>=nomePlano:precoPorContatoBRL:minContatos ; ...
+      MCP_PLANS: ${MCP_PLANS}
+    networks:
+      - app_network
+      - npm_public
+
   watchtower:
     image: nickfedor/watchtower:1.20
     restart: unless-stopped
