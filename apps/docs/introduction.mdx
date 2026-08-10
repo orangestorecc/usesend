@@ -1,55 +1,78 @@
 ---
-title: Introduction
-description: "useSend is open source alternative to Resend, Sendgrid, Mailgun and Postmark etc."
+title: Introdução
+description: "Madmail é e-mail marketing na era da IA: dispare campanhas conversando. Feito para o varejo, um produto da N49."
 icon: rocket
 ---
 
-## Setting up
+O **Madmail** é a plataforma de e-mail marketing na era da IA. Em vez de montar campanhas em telas complexas, você **dispara conversando** — descreve o que quer enviar e para quem, e a plataforma cuida do resto. Foi pensado para o **varejo**, com foco em resultado e simplicidade. Madmail é um produto da **N49**.
 
-Quicklinks to set up your account and get started
+## Comece por aqui
+
+Links rápidos para configurar sua conta e disparar sua primeira campanha.
 
 <CardGroup col={2}>
   <Card
-    title="Add domain"
+    title="Adicionar domínio"
     icon="globe"
-    href="https://app.usesend.com/domains"
+    href="https://app.madmail.com.br/domains"
   >
-  Add domains to send emails
+  Verifique um domínio para começar a enviar e-mails.
   </Card>
 
   <Card
-    title="Create API key"
-    icon="key"
-    href="https://app.usesend.com/dev-settings/api-keys"
+    title="Contatos e listas"
+    icon="users"
+    href="/api-reference/contacts/list-contact-books"
   >
-    Generate API key to send emails from your app.
+    Organize seus contatos em listas para segmentar campanhas.
   </Card>
   <Card
-    title="Try our API"
+    title="Campanhas"
+    icon="paper-plane"
+    href="/api-reference/campaigns/create-campaign"
+  >
+    Crie e agende campanhas para a sua base.
+  </Card>
+  <Card
+    title="Suporte a SMTP"
+    icon="envelope"
+    href="/get-started/smtp"
+  >
+    Envie e-mails via servidor SMTP, sem precisar de código.
+  </Card>
+</CardGroup>
+
+## Para desenvolvedores
+
+Precisa integrar o Madmail ao seu sistema? A API e os SDKs continuam disponíveis.
+
+<CardGroup col={2}>
+  <Card
+    title="Criar API key"
+    icon="key"
+    href="https://app.madmail.com.br/dev-settings/api-keys"
+  >
+    Gere uma API key para enviar e-mails a partir do seu app.
+  </Card>
+  <Card
+    title="API REST"
     icon="code"
     href="/api-reference/introduction"
   >
-    Learn how to use our API to send emails programmatically.
+    Envie e-mails programaticamente pela nossa API.
   </Card>
   <Card
     title="NodeJS"
     icon="node-js"
     href="/get-started/nodejs"
   >
-    Learn how to use our SDK using NodeJS to send emails programmatically.
+    Use o SDK de NodeJS para enviar e-mails.
   </Card>
   <Card
     title="Python"
     icon="python"
     href="/get-started/python"
   >
-    Learn how to use our SDK using Python to send emails programmatically.
-  </Card>
-    <Card
-    title="SMTP support"
-    icon="envelope"
-    href="/get-started/smtp"
-  >
-    Send emails with SMTP server instead of REST API.
+    Use o SDK de Python para enviar e-mails.
   </Card>
 </CardGroup>

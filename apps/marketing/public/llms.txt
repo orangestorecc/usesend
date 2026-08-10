@@ -1,0 +1,17 @@
+# Madmail
+
+> E-mail marketing na era da IA. Dispare conversando: monte listas, segmente,
+> agende e leia a performance falando com o Madmail dentro do ChatGPT ou Claude.
+> Feito para o varejo. Um produto da N49.
+
+## Páginas
+
+- [Home](https://www.madmail.com.br/home.md): visão geral, recursos e preços.
+- [IA](https://www.madmail.com.br/ai): como criar campanhas conversando.
+- [Preços](https://www.madmail.com.br/pricing): planos Free, Pro e Scale em R$.
+- [Docs](https://docs.madmail.com.br): documentação técnica.
+
+## Contato
+
+- App: https://app.madmail.com.br
+- E-mail: contato@madmail.com.br

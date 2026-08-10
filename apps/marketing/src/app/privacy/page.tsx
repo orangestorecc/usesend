@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { TopNav } from "~/components/TopNav";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy – useSend",
-  description: "Simple privacy policy for the useSend marketing site.",
+  title: "Privacy Policy – Madmail",
+  description: "Simple privacy policy for the Madmail marketing site.",
 };
 
 export default function PrivacyPage() {
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
         </h1>
         <p className="text-muted-foreground mb-8">
           This Privacy Policy explains how we collect, use, and share
-          information when you visit or interact with the useSend marketing
+          information when you visit or interact with the Madmail marketing
           website at usesend.com. It also summarizes the limited information we
           process when you sign up for our product and receive transactional or
           occasional marketing emails.
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
         <section className="space-y-3 mb-8">
           <h2 className="text-xl font-medium">Who We Are</h2>
           <p className="text-muted-foreground">
-            useSend ("we", "us") operates the marketing website at
+            Madmail ("we", "us") operates the marketing website at
             <span className="mx-1 font-mono">usesend.com</span>. The marketing
             site is hosted on Vercel. Our application is hosted on Railway. We
             are the controller of the information described in this policy for
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
               <span className="text-foreground">
                 Account and email data (product):
               </span>{" "}
-              If you sign up for useSend, we process your account information
+              If you sign up for Madmail, we process your account information
               and send transactional emails. If you opt in, we may also send
               occasional marketing emails. You can unsubscribe at any time via
               the link in those emails.

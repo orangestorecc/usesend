@@ -82,11 +82,14 @@ function Slider({
   );
 }
 
+const brl = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 export function PricingCalculator() {
-  // Rates from pricing copy
-  const MARKETING_RATE = 0.001; // $ per marketing email
-  const TRANSACTIONAL_RATE = 0.0004; // $ per transactional email
-  const MINIMUM_SPEND = 10; // $ minimum monthly spend
+  // Tarifas em R$ (conversão ~5x do modelo de referência)
+  const MARKETING_RATE = 0.005; // R$ por e-mail de marketing
+  const TRANSACTIONAL_RATE = 0.002; // R$ por e-mail transacional
+  const MINIMUM_SPEND = 50; // gasto mínimo mensal em R$
 
   // Defaults chosen to total $10: 8000*$0.001 + 5000*$0.0004 = 10
   const [marketing, setMarketing] = React.useState<number>(5000);
@@ -103,67 +106,63 @@ export function PricingCalculator() {
         <div className="bg-background rounded-xl p-5 pb-10">
           <div className="flex flex-col gap-6">
             <div className="text-center">
-              <div className="text-sm uppercase tracking-wider text-primary">
-                Pricing Calculator
+              <div className="text-sm uppercase tracking-wider text-muted-foreground">
+                Calculadora de preço
               </div>
               <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-                Drag the sliders to estimate your monthly cost.
+                Arraste os controles e estime seu custo mensal.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
               <Slider
-                label="Marketing emails / month"
+                label="E-mails de marketing / mês"
                 value={marketing}
                 onChange={setMarketing}
                 min={0}
                 max={3000000}
                 step={500}
-                suffix="emails"
+                suffix="e-mails"
               />
               <Slider
-                label="Transactional emails / month"
+                label="E-mails transacionais / mês"
                 value={transactional}
                 onChange={setTransactional}
                 min={0}
                 max={3000000}
                 step={500}
-                suffix="emails"
+                suffix="e-mails"
               />
             </div>
 
             <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-              <div className="rounded-lg border border-primary/30 p-4">
+              <div className="rounded-lg border border-border p-4">
                 <div className="text-xs text-muted-foreground">Marketing</div>
-                <div className="text-lg font-medium">
-                  ${marketingCost.toFixed(2)}
-                </div>
+                <div className="text-lg font-medium">{brl(marketingCost)}</div>
                 <div className="text-xs text-muted-foreground">
-                  @ ${MARKETING_RATE.toFixed(4)} each
+                  {brl(MARKETING_RATE)} por e-mail
                 </div>
               </div>
-              <div className="rounded-lg border border-primary/30 p-4">
+              <div className="rounded-lg border border-border p-4">
                 <div className="text-xs text-muted-foreground">
-                  Transactional
+                  Transacional
                 </div>
                 <div className="text-lg font-medium">
-                  ${transactionalCost.toFixed(2)}
+                  {brl(transactionalCost)}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  @ ${TRANSACTIONAL_RATE.toFixed(4)} each
+                  {brl(TRANSACTIONAL_RATE)} por e-mail
                 </div>
               </div>
-              <div className="rounded-lg border border-primary/30 p-4 bg-primary/10">
+              <div className="rounded-lg border border-primary/40 bg-primary/[0.06] p-4">
                 <div className="text-xs text-muted-foreground">
-                  Estimated Total
+                  Total estimado
                 </div>
-                <div className="text-3xl text-primary font-semibold">
-                  ${totalDue.toFixed(2)}
-                </div>
+                <div className="text-3xl font-semibold">{brl(totalDue)}</div>
                 <div className="text-xs text-muted-foreground">
                   {subtotal < MINIMUM_SPEND
-                    ? "Minimum $10 applies"
-                    : "before taxes"}
+                    ? `Mínimo de ${brl(MINIMUM_SPEND)}`
+                    : "antes de impostos"}
                 </div>
               </div>
             </div>

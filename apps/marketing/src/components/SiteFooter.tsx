@@ -11,21 +11,28 @@ export function SiteFooter() {
     <footer className="py-10 border-t border-border">
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          <div className="flex items-center gap-2 sm:w-56">
+          <div className="flex items-center sm:w-56">
             <Image
-              src="/logo-squircle.png"
-              alt="useSend"
-              width={24}
-              height={24}
+              src="/brand/madmail-wordmark-light.svg"
+              alt="Madmail"
+              width={120}
+              height={22}
+              className="block h-5 w-auto dark:hidden"
             />
-            <span className="text-primary font-mono">useSend</span>
+            <Image
+              src="/brand/madmail-wordmark-dark.svg"
+              alt="Madmail"
+              width={120}
+              height={22}
+              className="hidden h-5 w-auto dark:block"
+            />
           </div>
 
           <div className="sm:ml-auto flex items-start gap-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-2 text-sm">
               <div>
                 <div className="text-xs uppercase tracking-wider mb-2">
-                  Product
+                  Produto
                 </div>
                 <ul className="space-y-2 text-muted-foreground">
                   <li>
@@ -63,7 +70,7 @@ export function SiteFooter() {
 
               <div>
                 <div className="text-xs uppercase tracking-wider  mb-2">
-                  Contact
+                  Contato
                 </div>
                 <ul className="space-y-2 text-muted-foreground">
                   <li>
@@ -76,7 +83,7 @@ export function SiteFooter() {
                   </li>
                   <li>
                     <a
-                      href="https://x.com/useSend_com"
+                      href="https://x.com/Madmail_com"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-foreground text-xs"
@@ -119,15 +126,23 @@ export function SiteFooter() {
 
               <div>
                 <div className="text-xs uppercase tracking-wider mb-2">
-                  Company
+                  Empresa
                 </div>
                 <ul className="space-y-2 text-muted-foreground">
+                  <li>
+                    <Link
+                      href="/sobre"
+                      className="hover:text-foreground text-xs"
+                    >
+                      Sobre
+                    </Link>
+                  </li>
                   <li>
                     <Link
                       href="/privacy"
                       className="hover:text-foreground text-xs"
                     >
-                      Privacy
+                      Privacidade
                     </Link>
                   </li>
                   <li>
@@ -135,7 +150,7 @@ export function SiteFooter() {
                       href="/terms"
                       className="hover:text-foreground text-xs"
                     >
-                      Terms
+                      Termos
                     </Link>
                   </li>
                 </ul>
@@ -161,7 +176,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-6 text-xs text-muted-foreground mx-auto text-center">
-          © {new Date().getFullYear()} useSend. All rights reserved.
+          © {new Date().getFullYear()} Madmail. All rights reserved.
         </div>
       </div>
     </footer>

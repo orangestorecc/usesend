@@ -10,9 +10,9 @@ const usesend = new UseSend("us_12345");
 usesend.emails.send({
   to: "hello@acme.com",
   from: "hello@company.com",
-  subject: "useSend email",
-  html: "<p>useSend is the best open source product to send emails</p>",
-  text: "useSend is the best open source product to send emails",
+  subject: "Madmail email",
+  html: "<p>Madmail is the best open source product to send emails</p>",
+  text: "Madmail is the best open source product to send emails",
 });`;
 
 const PY_CODE = `from usesend import UseSend
@@ -22,9 +22,9 @@ client = UseSend("us_12345")
 data, err = client.emails.send({
     "to": "hello@acme.com",
     "from": "hello@company.com",
-    "subject": "useSend email",
-    "html": "<p>useSend is the best open source product to send emails</p>",
-    "text": "useSend is the best open source product to send emails",
+    "subject": "Madmail email",
+    "html": "<p>Madmail is the best open source product to send emails</p>",
+    "text": "Madmail is the best open source product to send emails",
 })
 
 print(data or err)`;
@@ -41,7 +41,7 @@ import (
 func main() {
     url := "https://app.usesend.com/api/v1/emails"
 
-    payload := strings.NewReader("{\n     \\\"to\\\": \\\"hello@acme.com\\\",\n     \\\"from\\\": \\\"hello@company.com\\\",\n     \\\"subject\\\": \\\"useSend email\\\",\n     \\\"html\\\": \\\"<p>useSend is the best open source product to send emails</p>\\\",\n     \\\"text\\\": \\\"useSend is the best open source product to send emails\\\"\n    }")
+    payload := strings.NewReader("{\n     \\\"to\\\": \\\"hello@acme.com\\\",\n     \\\"from\\\": \\\"hello@company.com\\\",\n     \\\"subject\\\": \\\"Madmail email\\\",\n     \\\"html\\\": \\\"<p>Madmail is the best open source product to send emails</p>\\\",\n     \\\"text\\\": \\\"Madmail is the best open source product to send emails\\\"\n    }")
 
     req, _ := http.NewRequest("POST", url, payload)
     req.Header.Add("Content-Type", "application/json")
@@ -68,9 +68,9 @@ curl_setopt_array($ch, [
   CURLOPT_POSTFIELDS => json_encode([
     'to' => 'hello@acme.com',
     'from' => 'hello@company.com',
-    'subject' => 'useSend email',
-    'html' => '<p>useSend is the best open source product to send emails</p>',
-    'text' => 'useSend is the best open source product to send emails',
+    'subject' => 'Madmail email',
+    'html' => '<p>Madmail is the best open source product to send emails</p>',
+    'text' => 'Madmail is the best open source product to send emails',
   ]),
 ]);
 

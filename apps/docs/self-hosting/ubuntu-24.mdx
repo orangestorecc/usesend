@@ -1,12 +1,12 @@
 ---
 title: Ubuntu 24.04 em VPS
-description: Implante o useSend com Docker, HTTPS, PostgreSQL, Redis e MinIO em um VPS Ubuntu 24.04.
+description: Implante o Madmail com Docker, HTTPS, PostgreSQL, Redis e MinIO em um VPS Ubuntu 24.04.
 ---
 
 Este guia instala a aplicação web em Docker, com PostgreSQL, Redis e armazenamento S3 compatível (MinIO) no mesmo VPS. O proxy Caddy fica no host e publica somente HTTPS. É a opção indicada para uma instância pequena ou média; banco, Redis e MinIO não ficam acessíveis pela Internet.
 
 <Warning>
-O useSend envia por AWS SES e recebe eventos pelo AWS SNS. Ter o VPS pronto não basta para entregar e rastrear emails: é preciso configurar uma conta SES, domínio e callbacks públicos depois do primeiro acesso.
+O Madmail envia por AWS SES e recebe eventos pelo AWS SNS. Ter o VPS pronto não basta para entregar e rastrear emails: é preciso configurar uma conta SES, domínio e callbacks públicos depois do primeiro acesso.
 </Warning>
 
 ## Arquitetura e pré-requisitos
@@ -269,7 +269,7 @@ docker compose ps
 
 ## SMTP proxy (opcional)
 
-O proxy SMTP é necessário somente para clientes que não podem usar a API HTTP. Ele aceita uma API key do useSend como senha. Crie uma API key no painel e mantenha `SMTP_AUTH_USERNAME` igual ao usuário que seus clientes usarão.
+O proxy SMTP é necessário somente para clientes que não podem usar a API HTTP. Ele aceita uma API key do Madmail como senha. Crie uma API key no painel e mantenha `SMTP_AUTH_USERNAME` igual ao usuário que seus clientes usarão.
 
 O proxy exige certificados próprios para oferecer STARTTLS/SMTPS. Não aponte certificados de `/etc/caddy` diretamente: o serviço Caddy não concede leitura deles ao usuário comum. Use um mecanismo de renovação que copie certificados em diretório protegido e monte-os somente-leitura no container, ou gere certificados pelo seu gerenciador TLS para `smtp.exemplo.com`.
 

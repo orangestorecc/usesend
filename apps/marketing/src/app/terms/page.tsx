@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { TopNav } from "~/components/TopNav";
 
 export const metadata: Metadata = {
-  title: "Terms of Service – useSend",
-  description: "Terms governing use of the useSend website and product.",
+  title: "Terms of Service – Madmail",
+  description: "Terms governing use of the Madmail website and product.",
 };
 
 export default function TermsPage() {
@@ -14,7 +14,7 @@ export default function TermsPage() {
         <h1 className="text-3xl font-semibold tracking-tight mb-6">Terms of Service</h1>
         <p className="text-muted-foreground mb-6">
           These Terms of Service ("Terms") govern your access to and use of the
-          useSend marketing website at usesend.com and the useSend application.
+          Madmail marketing website at usesend.com and the Madmail application.
           By accessing or using our site or product, you agree to be bound by
           these Terms.
         </p>
@@ -23,7 +23,7 @@ export default function TermsPage() {
           <h2 className="text-xl font-medium">Eligibility & Accounts</h2>
           <p className="text-muted-foreground">
             You may use the site and product only if you can form a binding
-            contract with useSend and are not barred from doing so under any
+            contract with Madmail and are not barred from doing so under any
             applicable laws. You are responsible for maintaining the security of
             your account credentials and for all activity under your account.
           </p>
@@ -55,7 +55,7 @@ export default function TermsPage() {
             may include immediate account suspension or termination.
           </p>
           <p className="text-muted-foreground">
-            Marketing communications sent via useSend must employ double
+            Marketing communications sent via Madmail must employ double
             opt-in verification. Accounts that bypass double opt-in or misuse
             our transactional mail API for promotional campaigns may be
             suspended or terminated without notice.
@@ -66,7 +66,7 @@ export default function TermsPage() {
           <h2 className="text-xl font-medium">Intellectual Property</h2>
           <p className="text-muted-foreground">
             Content on the site, including trademarks, logos, text, and
-            graphics, is owned by or licensed to useSend and protected by
+            graphics, is owned by or licensed to Madmail and protected by
             intellectual property laws. You may not use our marks without our
             prior written permission.
           </p>
@@ -91,7 +91,7 @@ export default function TermsPage() {
         <section className="space-y-3 mb-8">
           <h2 className="text-xl font-medium">Limitation of Liability</h2>
           <p className="text-muted-foreground">
-            To the fullest extent permitted by law, useSend shall not be liable
+            To the fullest extent permitted by law, Madmail shall not be liable
             for any indirect, incidental, special, consequential or punitive
             damages, or any loss of profits or revenues.
           </p>
@@ -100,7 +100,7 @@ export default function TermsPage() {
         <section className="space-y-3 mb-8">
           <h2 className="text-xl font-medium">Indemnification</h2>
           <p className="text-muted-foreground">
-            You agree to indemnify and hold harmless useSend from any claims,
+            You agree to indemnify and hold harmless Madmail from any claims,
             damages, liabilities, and expenses arising out of your use of the
             site or product or your violation of these Terms.
           </p>

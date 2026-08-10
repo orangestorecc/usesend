@@ -1,6 +1,6 @@
 ---
 title: Portainer e Nginx Proxy Manager
-description: Execute o useSend em uma Stack Portainer, publique-o pelo Nginx Proxy Manager e atualize a imagem do seu fork com GitHub Actions.
+description: Execute o Madmail em uma Stack Portainer, publique-o pelo Nginx Proxy Manager e atualize a imagem do seu fork com GitHub Actions.
 ---
 
 Este caminho substitui o proxy Caddy do guia Ubuntu por Portainer e Nginx Proxy Manager (NPM). O banco, Redis e MinIO permanecem privados na rede Docker; o NPM é o único componente que publica HTTP/HTTPS.
@@ -11,7 +11,7 @@ Este caminho substitui o proxy Caddy do guia Ubuntu por Portainer e Nginx Proxy 
 push em main → GitHub Actions → ghcr.io/seu-usuario/seu-fork:sha-<commit>
                                       │
                                       └→ SSH no manager → docker service update
-VPS: Nginx Proxy Manager → Stack useSend → PostgreSQL / Redis / MinIO
+VPS: Nginx Proxy Manager → Stack Madmail → PostgreSQL / Redis / MinIO
 ```
 
 O workflow incluído em `.github/workflows/deploy-fork.yml` publica a imagem do seu fork no GitHub Container Registry (GHCR) e atualiza o serviço do Docker Swarm no manager via SSH. O Portainer CE continua sendo a interface de administração da Stack.
@@ -74,7 +74,7 @@ Os dois registros DNS devem apontar para o IP do VPS. `storage.exemplo.com` prec
 Em Docker Swarm, use o nome completo do serviço, no formato `<nome-da-stack>_<nome-do-serviço>`, pois o NPM é uma Stack ou container separado. Para uma Stack chamada `usesend`, os destinos são `usesend_usesend:3000` e `usesend_minio:9000`. O NPM também precisa participar da mesma rede overlay externa `npm_public`. Se ele for um container Docker comum, essa rede deve ter sido criada com `--attachable`; o caminho mais simples é executar o próprio NPM como serviço Swarm nessa rede.
 </Note>
 
-Atualize a URL de callback do GitHub OAuth para `https://send.exemplo.com/api/auth/callback/github`. No painel do useSend, configure a região SES, a URL pública da aplicação para callbacks SNS e o domínio de envio.
+Atualize a URL de callback do GitHub OAuth para `https://send.exemplo.com/api/auth/callback/github`. No painel do Madmail, configure a região SES, a URL pública da aplicação para callbacks SNS e o domínio de envio.
 
 ## 4. Ativar o deploy do fork pelo GitHub Actions
 

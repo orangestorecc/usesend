@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
-  "name": "useSend",
+  "name": "Madmail",
   "colors": {
     "primary": "#21453D",
     "light": "#E6FAF5",
@@ -168,19 +168,19 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hey@usesend.com"
+        "label": "Suporte",
+        "href": "mailto:hey@madmail.com.br"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://app.usesend.com"
+      "href": "https://app.madmail.com.br"
     }
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/useSend_com",
+      "x": "https://x.com/Madmail_com",
       "github": "https://github.com/usesend"
     }
   },

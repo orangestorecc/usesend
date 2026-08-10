@@ -1,12 +1,12 @@
 ---
 title: Local Development
-description: "A guide on how to run useSend’s codebase locally"
+description: "A guide on how to run Madmail’s codebase locally"
 icon: code
 ---
 
 ## Introduction
 
-useSend's codebase is fully [open-source on github](https://github.com/usesend/usesend)
+Madmail's codebase is fully [open-source on github](https://github.com/usesend/usesend)
 
 Here is the codebase structure
 
@@ -27,7 +27,7 @@ The `apps` directory contains the code for:
 
 - `web`: Code for our dashboard and email infra
 
-- `marketing`: The code for the landing page of useSend
+- `marketing`: The code for the landing page of Madmail
 
 - `docs`: The documentation that you are currently reading.
 
@@ -35,7 +35,7 @@ The `packages` directory contains the code for:
 
 - `eslint-config` package contains shared ESLint configuration settings
 
-- `sdk` package contains TypeScript SDK for useSend REST API
+- `sdk` package contains TypeScript SDK for Madmail REST API
 
 - `tailwind-config` This package contains a shared Tailwind CSS configuration.
 
@@ -43,9 +43,9 @@ The `packages` directory contains the code for:
 
 - `ui` This package is a collection of reusable UI components like buttons, badges, etc
 
-## Running useSend locally
+## Running Madmail locally
 
-To run useSend locally, you will need to setup the following:
+To run Madmail locally, you will need to setup the following:
 
 - [AWS](https://aws.amazon.com/) Free tier account will work.
 
@@ -115,7 +115,7 @@ ln -s ../../.env apps/web/.env
     variables. for development email link will logged in the console.
   </Note>
 
-Next, [create a new GitHub App](https://github.com/settings/applications/new). This will allow you to sign in to useSend with your GitHub account.
+Next, [create a new GitHub App](https://github.com/settings/applications/new). This will allow you to sign in to Madmail with your GitHub account.
 
 Add the homepage as:
 
@@ -149,7 +149,7 @@ AWS_SECRET_ACCESS_KEY=<secret-access-key>
   </Step>
 </Steps>
 
-## Running useSend locally
+## Running Madmail locally
 
 We are using a local Postgresql server and a local Redis server. But if you don't have docker you can also manually set these up.
 

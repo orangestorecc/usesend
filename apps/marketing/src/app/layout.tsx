@@ -16,32 +16,37 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+const SITE_URL = "https://www.madmail.com.br";
+const TITLE = "Madmail — E-mail marketing na era da IA";
+const DESCRIPTION =
+  "Dispare conversando. Monte listas, segmente, agende e leia a performance falando com o Madmail dentro do ChatGPT ou do Claude. Feito para o varejo.";
+
 export const metadata: Metadata = {
-  title: "useSend – Open source email platform",
-  description: "Pay only for what you send, not for storing contacts",
+  title: TITLE,
+  description: DESCRIPTION,
   icons: [{ rel: "icon", url: "/favicon.ico" }],
-  metadataBase: new URL("https://usesend.com"),
+  metadataBase: new URL(SITE_URL),
   openGraph: {
-    title: "useSend – Open source email platform",
-    description: "Pay only for what you send, not for storing contacts",
-    url: "https://usesend.com",
-    siteName: "useSend",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    siteName: "Madmail",
     images: [
       {
         url: "https://uploads.usesend.com/logos/og.png",
         width: 1200,
         height: 630,
-        alt: "useSend – Open source email platform",
+        alt: TITLE,
         type: "image/png",
       },
     ],
-    locale: "en_US",
+    locale: "pt_BR",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "useSend – Open source email platform",
-    description: "Pay only for what you send, not for storing contacts",
+    title: TITLE,
+    description: DESCRIPTION,
     images: ["https://uploads.usesend.com/logos/og.png"],
   },
   robots: {
@@ -49,8 +54,25 @@ export const metadata: Metadata = {
     follow: true,
   },
   alternates: {
-    canonical: "https://usesend.com",
+    canonical: SITE_URL,
   },
+};
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Madmail",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description: DESCRIPTION,
+  url: SITE_URL,
+  offers: {
+    "@type": "AggregateOffer",
+    priceCurrency: "BRL",
+    lowPrice: "0",
+    highPrice: "450",
+  },
+  publisher: { "@type": "Organization", name: "N49" },
 };
 
 export default function RootLayout({
@@ -60,10 +82,16 @@ export default function RootLayout({
 }) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
       suppressHydrationWarning
       className="scroll-smooth bg-background"
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+        />
+      </head>
       {process.env.NODE_ENV === "production" && (
         <Script src="https://scripts.simpleanalyticscdn.com/latest.js" />
       )}

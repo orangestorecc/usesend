@@ -1,12 +1,12 @@
 export const metadata = {
-  title: "September Outage Update | useSend",
+  title: "September Outage Update | Madmail",
   description:
     "What happened during the September outage, how we responded, and the improvements now in motion.",
   alternates: {
     canonical: "https://usesend.com/update/september-outage",
   },
   openGraph: {
-    title: "September Outage Update | useSend",
+    title: "September Outage Update | Madmail",
     description:
       "What happened during the September outage, how we responded, and the improvements now in motion.",
     type: "article",
@@ -14,7 +14,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "September Outage Update | useSend",
+    title: "September Outage Update | Madmail",
     description:
       "What happened during the September outage, how we responded, and the improvements now in motion.",
   },
@@ -34,7 +34,7 @@ Our Amazon SES sending was temporarily paused after compliance signals indicated
 - **11:43** - Identified the problematic account, blocked it, and replied to AWS. Paused new signups as well.
 - **13:00** - No reply yet, so created a separate escalated support case to get on a call.
 - **14:00** - Initial response appeared to interpret us as the sender of the flagged emails; sending was not yet resumed.
-- **14:11** - Clarified our product offering again, noting we had blocked the account and paused signups. Shared the useSend site, GitHub, etc.
+- **14:11** - Clarified our product offering again, noting we had blocked the account and paused signups. Shared the Madmail site, GitHub, etc.
 - **15:53** - Similar response; only valid point is that some marketing emails lacked an unsubscribe link.
 - **17:40** - Shipped a change making an unsubscribe link mandatory for marketing emails; shared details on the fix and existing rate limits.
 - **18:36** - AWS still not clear with my product and suggestions included adding a CAPTCHA to a form (not applicable to our current flow).
@@ -45,7 +45,7 @@ Our Amazon SES sending was temporarily paused after compliance signals indicated
 
 ## Why
 
-The pause highlighted areas where we can be more diligent about what gets sent through useSend and ensure alignment with SES guidelines and broader email standards.
+The pause highlighted areas where we can be more diligent about what gets sent through Madmail and ensure alignment with SES guidelines and broader email standards.
 
 ## What's done till now
 
@@ -58,7 +58,7 @@ The pause highlighted areas where we can be more diligent about what gets sent t
 - More monitoring and pre-send checks (including email screening).
 - Double opt-in for contacts.
 - A backup SES account to improve resilience.
-- Considering a BYO SES option, with useSend managing it for a flat fee.
+- Considering a BYO SES option, with Madmail managing it for a flat fee.
 - Exploring a move to a self-hosted email server (Hard but will try my best).
 
 ## To my users
