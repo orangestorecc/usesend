@@ -1,23 +1,219 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@usesend/ui/src/button";
 import { Input } from "@usesend/ui/src/input";
 import { Label } from "@usesend/ui/src/label";
 import { Switch } from "@usesend/ui/src/switch";
 import { Textarea } from "@usesend/ui/src/textarea";
 import { Badge } from "@usesend/ui/src/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@usesend/ui/src/tabs";
 import { toast } from "@usesend/ui/src/toaster";
+import { CheckIcon, CopyIcon, UploadIcon } from "lucide-react";
 import { api } from "~/trpc/react";
+import { GatewayLogs } from "./gateway-logs";
+import { TokenizedCards } from "./tokenized-cards";
 
 type Field = {
   key: string;
   label: string;
-  type: "text" | "password" | "textarea";
+  type: "text" | "password" | "textarea" | "file";
   secret?: boolean;
   placeholder?: string;
   help?: string;
+  /** Extensões aceitas quando type === "file". */
+  accept?: string;
 };
+
+const MAX_INSTALLMENTS = 12;
+
+/** Bloco que mostra a URL de webhook a cadastrar no painel do provedor. */
+function WebhookUrlBox({ provider }: { provider: "inter" | "rede" }) {
+  const { data } = api.paymentGateway.webhookUrls.useQuery();
+  const [copied, setCopied] = useState(false);
+  const url = data?.[provider] ?? "";
+
+  const copy = () => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success("URL copiada.");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (!url) return null;
+
+  return (
+    <div className="rounded-lg border bg-muted/20 p-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs">URL de webhook</Label>
+        {data?.protected ? (
+          <Badge variant="outline">protegida por token</Badge>
+        ) : (
+          <Badge variant="destructive">sem token</Badge>
+        )}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <Input readOnly value={url} className="font-mono text-xs" />
+        <Button variant="outline" size="icon" onClick={copy}>
+          {copied ? (
+            <CheckIcon className="h-4 w-4" />
+          ) : (
+            <CopyIcon className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Cadastre esta URL no painel do provedor para receber a confirmação
+        automática dos pagamentos.
+        {!data?.protected
+          ? " Defina PAYMENTS_WEBHOOK_TOKEN no ambiente para proteger o endpoint."
+          : ""}
+      </p>
+    </div>
+  );
+}
+
+/** Campo de upload de certificado/chave: lê o arquivo e guarda o conteúdo PEM. */
+function FileField({
+  field,
+  value,
+  hasStored,
+  onChange,
+}: {
+  field: Field;
+  value: string;
+  hasStored: boolean;
+  onChange: (content: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [showPaste, setShowPaste] = useState(false);
+
+  const handleFile = async (file: File) => {
+    const text = await file.text();
+    if (!text.includes("-----BEGIN")) {
+      toast.error(
+        `${file.name} não parece um arquivo PEM válido (esperado "-----BEGIN...").`,
+      );
+      return;
+    }
+    onChange(text);
+    setFileName(file.name);
+    toast.success(`${file.name} carregado.`);
+  };
+
+  return (
+    <div>
+      <Label>{field.label}</Label>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <input
+          ref={inputRef}
+          type="file"
+          accept={field.accept}
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleFile(f);
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => inputRef.current?.click()}
+        >
+          <UploadIcon className="mr-1.5 h-4 w-4" />
+          Escolher arquivo
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          {fileName
+            ? `${fileName} (não salvo ainda)`
+            : value
+              ? "conteúdo carregado (não salvo ainda)"
+              : hasStored
+                ? "•••• já configurado"
+                : "nenhum arquivo"}
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowPaste((s) => !s)}
+          className="text-xs text-muted-foreground underline"
+        >
+          {showPaste ? "ocultar" : "ou colar conteúdo"}
+        </button>
+      </div>
+      {showPaste ? (
+        <Textarea
+          className="mt-2 font-mono text-xs"
+          rows={4}
+          placeholder={field.placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : null}
+      {field.help ? (
+        <p className="mt-1 text-xs text-muted-foreground">{field.help}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Editor de parcelas: 1x sempre ativa, demais desligadas por padrão. */
+function InstallmentsField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const enabled = new Set(
+    (value || "1")
+      .split(",")
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isInteger(n) && n >= 1),
+  );
+  enabled.add(1);
+
+  const toggle = (n: number) => {
+    if (n === 1) return; // 1x não pode ser desligada
+    const next = new Set(enabled);
+    if (next.has(n)) next.delete(n);
+    else next.add(n);
+    onChange([...next].sort((a, b) => a - b).join(","));
+  };
+
+  return (
+    <div>
+      <Label>Parcelamento</Label>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Só as parcelas marcadas aparecem no checkout. Por padrão, apenas 1x fica
+        ativa — habilite as demais conscientemente (o repasse e o custo mudam
+        por parcela).
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1).map((n) => {
+          const on = enabled.has(n);
+          return (
+            <button
+              key={n}
+              type="button"
+              onClick={() => toggle(n)}
+              disabled={n === 1}
+              className={`h-9 w-12 rounded-md border text-sm transition-colors ${
+                on
+                  ? "border-foreground bg-foreground text-background"
+                  : "text-muted-foreground hover:border-foreground/40"
+              } ${n === 1 ? "cursor-not-allowed opacity-90" : ""}`}
+              title={n === 1 ? "À vista sempre disponível" : undefined}
+            >
+              {n}x
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function GatewayCard({
   provider,
@@ -25,12 +221,14 @@ function GatewayCard({
   description,
   tags,
   fields,
+  showInstallments,
 }: {
   provider: "inter" | "rede";
   title: string;
   description: string;
   tags: string[];
   fields: Field[];
+  showInstallments?: boolean;
 }) {
   const utils = api.useUtils();
   const query = api.paymentGateway.get.useQuery({ provider });
@@ -83,43 +281,64 @@ function GatewayCard({
       </div>
 
       <div className="space-y-4 p-6">
-        {fields.map((f) => (
-          <div key={f.key}>
-            <Label>{f.label}</Label>
-            {f.type === "textarea" ? (
-              <Textarea
-                className="mt-1 font-mono text-xs"
-                rows={4}
-                placeholder={
-                  f.secret && has[f.key]
-                    ? "•••• já configurado (deixe em branco para manter)"
-                    : f.placeholder
-                }
-                value={values[f.key] ?? ""}
-                onChange={(e) =>
-                  setValues({ ...values, [f.key]: e.target.value })
-                }
-              />
-            ) : (
-              <Input
-                className="mt-1"
-                type={f.type}
-                placeholder={
-                  f.secret && has[f.key]
-                    ? "•••• já configurado (deixe em branco para manter)"
-                    : f.placeholder
-                }
-                value={values[f.key] ?? ""}
-                onChange={(e) =>
-                  setValues({ ...values, [f.key]: e.target.value })
-                }
-              />
-            )}
-            {f.help ? (
-              <p className="mt-1 text-xs text-muted-foreground">{f.help}</p>
-            ) : null}
-          </div>
-        ))}
+        {fields.map((f) =>
+          f.type === "file" ? (
+            <FileField
+              key={f.key}
+              field={f}
+              value={values[f.key] ?? ""}
+              hasStored={Boolean(has[f.key])}
+              onChange={(content) =>
+                setValues({ ...values, [f.key]: content })
+              }
+            />
+          ) : (
+            <div key={f.key}>
+              <Label>{f.label}</Label>
+              {f.type === "textarea" ? (
+                <Textarea
+                  className="mt-1 font-mono text-xs"
+                  rows={4}
+                  placeholder={
+                    f.secret && has[f.key]
+                      ? "•••• já configurado (deixe em branco para manter)"
+                      : f.placeholder
+                  }
+                  value={values[f.key] ?? ""}
+                  onChange={(e) =>
+                    setValues({ ...values, [f.key]: e.target.value })
+                  }
+                />
+              ) : (
+                <Input
+                  className="mt-1"
+                  type={f.type}
+                  placeholder={
+                    f.secret && has[f.key]
+                      ? "•••• já configurado (deixe em branco para manter)"
+                      : f.placeholder
+                  }
+                  value={values[f.key] ?? ""}
+                  onChange={(e) =>
+                    setValues({ ...values, [f.key]: e.target.value })
+                  }
+                />
+              )}
+              {f.help ? (
+                <p className="mt-1 text-xs text-muted-foreground">{f.help}</p>
+              ) : null}
+            </div>
+          ),
+        )}
+
+        {showInstallments ? (
+          <InstallmentsField
+            value={values.installments ?? "1"}
+            onChange={(v) => setValues({ ...values, installments: v })}
+          />
+        ) : null}
+
+        <WebhookUrlBox provider={provider} />
       </div>
 
       <div className="border-t bg-muted/20 px-6 py-3">
@@ -297,59 +516,81 @@ function PromoCodesCard() {
 
 export default function AdminPaymentsPage() {
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-5xl space-y-6">
       <p className="text-sm text-muted-foreground">
         Configure os provedores de pagamento da plataforma. As credenciais são
         guardadas criptografadas.
       </p>
 
-      <PromoCodesCard />
+      <Tabs defaultValue="inter">
+        <TabsList>
+          <TabsTrigger value="inter">Banco Inter</TabsTrigger>
+          <TabsTrigger value="rede">Rede</TabsTrigger>
+          <TabsTrigger value="promo">Cupons</TabsTrigger>
+        </TabsList>
 
-      <GatewayCard
-        provider="inter"
-        title="Banco Inter"
-        description="Cobranças via PIX e boleto bancário."
-        tags={["PIX", "Boleto"]}
-        fields={[
-          { key: "clientId", label: "Client ID", type: "text" },
-          {
-            key: "clientSecret",
-            label: "Client Secret",
-            type: "password",
-            secret: true,
-          },
-          {
-            key: "pixKey",
-            label: "Chave PIX (cadastrada no Inter)",
-            type: "text",
-            help: "Use a mesma chave PIX vinculada à conta Inter. Sem ela, apenas boletos serão emitidos.",
-          },
-          {
-            key: "certificate",
-            label: "Certificado (.crt)",
-            type: "textarea",
-            placeholder: "-----BEGIN CERTIFICATE-----",
-          },
-          {
-            key: "privateKey",
-            label: "Chave privada (.key)",
-            type: "textarea",
-            secret: true,
-            placeholder: "-----BEGIN PRIVATE KEY-----",
-          },
-        ]}
-      />
+        <TabsContent value="inter" className="space-y-6 pt-4">
+          <GatewayCard
+            provider="inter"
+            title="Banco Inter"
+            description="Cobranças via PIX e boleto bancário."
+            tags={["PIX", "Boleto"]}
+            fields={[
+              { key: "clientId", label: "Client ID", type: "text" },
+              {
+                key: "clientSecret",
+                label: "Client Secret",
+                type: "password",
+                secret: true,
+              },
+              {
+                key: "pixKey",
+                label: "Chave PIX (cadastrada no Inter)",
+                type: "text",
+                help: "Use a mesma chave PIX vinculada à conta Inter. Sem ela, apenas boletos serão emitidos.",
+              },
+              {
+                key: "certificate",
+                label: "Certificado (.crt)",
+                type: "file",
+                accept: ".crt,.pem,.cer",
+                placeholder: "-----BEGIN CERTIFICATE-----",
+                help: "Arquivo gerado no Internet Banking do Inter (API de Cobrança).",
+              },
+              {
+                key: "privateKey",
+                label: "Chave privada (.key)",
+                type: "file",
+                secret: true,
+                accept: ".key,.pem",
+                placeholder: "-----BEGIN PRIVATE KEY-----",
+                help: "Nunca é exibida depois de salva.",
+              },
+            ]}
+          />
+          <GatewayLogs provider="inter" />
+        </TabsContent>
 
-      <GatewayCard
-        provider="rede"
-        title="Rede"
-        description="Cobranças no cartão de crédito (com tokenização para reuso)."
-        tags={["Cartão"]}
-        fields={[
-          { key: "pv", label: "PV / Filiação", type: "text" },
-          { key: "token", label: "Token", type: "password", secret: true },
-        ]}
-      />
+        <TabsContent value="rede" className="space-y-6 pt-4">
+          <GatewayCard
+            provider="rede"
+            title="Rede"
+            description="Cobranças no cartão de crédito (com tokenização para reuso)."
+            tags={["Cartão"]}
+            showInstallments
+            fields={[
+              { key: "pv", label: "PV / Filiação", type: "text" },
+              { key: "token", label: "Token", type: "password", secret: true },
+            ]}
+          />
+          <TokenizedCards />
+          <GatewayLogs provider="rede" />
+        </TabsContent>
+
+        <TabsContent value="promo" className="pt-4">
+          <PromoCodesCard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

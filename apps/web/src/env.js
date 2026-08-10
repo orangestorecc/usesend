@@ -80,6 +80,7 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: z.string().optional(),
     PAYMENTS_SANDBOX: z.string().optional(),
     PAYMENTS_WEBHOOK_TOKEN: z.string().optional(),
+    PAYMENT_LOG_RETENTION_DAYS: z.string().optional(),
   },
 
   /**
@@ -147,6 +148,7 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     PAYMENTS_SANDBOX: process.env.PAYMENTS_SANDBOX,
     PAYMENTS_WEBHOOK_TOKEN: process.env.PAYMENTS_WEBHOOK_TOKEN,
+    PAYMENT_LOG_RETENTION_DAYS: process.env.PAYMENT_LOG_RETENTION_DAYS,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

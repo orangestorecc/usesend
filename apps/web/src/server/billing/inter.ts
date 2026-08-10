@@ -1,5 +1,6 @@
 import https from "node:https";
 import { requireGateway, isPaymentsSandbox, type InterConfig } from "./gateway-config";
+import { logGatewayCall } from "./gateway-log";
 
 /**
  * Adapter do Banco Inter (API PIX + API Cobrança/boleto).
@@ -21,15 +22,66 @@ type InterResponse = { status: number; json: any; text: string };
 /**
  * Requisição HTTPS com mTLS (cert/key do cliente Inter em PEM).
  */
-function interRequest(
+type InterRequestOpts = {
+  method: string;
+  path: string;
+  headers?: Record<string, string>;
+  body?: unknown;
+  form?: Record<string, string>;
+  /** Rótulo do log (ex: pix.create). */
+  operation?: string;
+  /** Cobrança relacionada, quando houver. */
+  chargeId?: string;
+};
+
+/**
+ * Executa a requisição e grava no log de transações (retenção >= 30 dias).
+ * O log nunca derruba a chamada: falhas de gravação são engolidas.
+ */
+async function interRequest(
   cfg: InterConfig,
-  opts: {
-    method: string;
-    path: string;
-    headers?: Record<string, string>;
-    body?: unknown;
-    form?: Record<string, string>;
-  },
+  opts: InterRequestOpts,
+): Promise<InterResponse> {
+  const startedAt = Date.now();
+  const url = BASE() + opts.path;
+  try {
+    const res = await interRequestRaw(cfg, opts);
+    void logGatewayCall({
+      provider: "inter",
+      direction: "outbound",
+      method: opts.method,
+      url,
+      operation: opts.operation,
+      requestHeaders: opts.headers,
+      requestBody: opts.form ?? opts.body,
+      responseStatus: res.status,
+      responseBody: res.json ?? res.text,
+      durationMs: Date.now() - startedAt,
+      success: res.status < 300,
+      chargeId: opts.chargeId,
+    });
+    return res;
+  } catch (err) {
+    void logGatewayCall({
+      provider: "inter",
+      direction: "outbound",
+      method: opts.method,
+      url,
+      operation: opts.operation,
+      requestHeaders: opts.headers,
+      requestBody: opts.form ?? opts.body,
+      durationMs: Date.now() - startedAt,
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+      chargeId: opts.chargeId,
+    });
+    throw err;
+  }
+}
+
+function interRequestRaw(
+  cfg: InterConfig,
+  opts: InterRequestOpts,
 ): Promise<InterResponse> {
   return new Promise((resolve, reject) => {
     const url = new URL(BASE() + opts.path);
@@ -92,6 +144,7 @@ async function getToken(cfg: InterConfig, scope: string): Promise<string> {
   const res = await interRequest(cfg, {
     method: "POST",
     path: "/oauth/v2/token",
+    operation: "oauth.token",
     form: {
       client_id: cfg.clientId!,
       client_secret: cfg.clientSecret!,
@@ -158,6 +211,7 @@ export async function createPixCharge(
   const res = await interRequest(cfg, {
     method: "POST",
     path: "/pix/v2/cob",
+    operation: "pix.create",
     headers: { Authorization: `Bearer ${token}` },
     body,
   });
@@ -178,6 +232,7 @@ export async function createPixCharge(
       const qr = await interRequest(cfg, {
         method: "GET",
         path: `/pix/v2/loc/${locId}/qrcode`,
+        operation: "pix.qrcode",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (qr.json?.imagemQrcode) {
@@ -252,6 +307,7 @@ export async function createBoleto(
   const res = await interRequest(cfg, {
     method: "POST",
     path: "/cobranca/v3/cobrancas",
+    operation: "boleto.create",
     headers: { Authorization: `Bearer ${token}` },
     body,
   });
@@ -270,6 +326,7 @@ export async function createBoleto(
     const detail = await interRequest(cfg, {
       method: "GET",
       path: `/cobranca/v3/cobrancas/${codigoSolicitacao}`,
+      operation: "boleto.detail",
       headers: { Authorization: `Bearer ${token}` },
     });
     linhaDigitavel = detail.json?.boleto?.linhaDigitavel ?? null;

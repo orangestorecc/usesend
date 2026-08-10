@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { createTRPCRouter, teamProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
-import { createCheckout } from "~/server/billing/payment-service";
+import {
+  createCheckout,
+  getEnabledInstallments,
+} from "~/server/billing/payment-service";
 
 const cardSchema = z.object({
   number: z.string().min(12),
@@ -58,6 +61,11 @@ export const paymentsRouter = createTRPCRouter({
         boletoBarcode: charge.boletoBarcode,
       };
     }),
+
+  /** Parcelas habilitadas pelo admin (1x sempre disponível). */
+  installmentOptions: teamProcedure.query(async () => {
+    return getEnabledInstallments();
+  }),
 
   paymentMethods: teamProcedure.query(async ({ ctx }) => {
     return db.paymentMethod.findMany({

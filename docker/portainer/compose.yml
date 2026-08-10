@@ -110,6 +110,12 @@ services:
       # Fala com o useSend pela rede interna (sem sair pra internet).
       # Auth/escopos/planos vêm do banco (McpKey), geridos em Developer Settings > MCP.
       USESEND_BASE_URL: http://usesend:3000/api
+      # URL pública do endpoint MCP (precisa terminar em /mcp). É a partir dela
+      # que se deriva o /.well-known/oauth-protected-resource.
+      MCP_PUBLIC_URL: ${MCP_PUBLIC_URL:-https://mcp.madmail.com.br/mcp}
+      # Servidor de autorização OAuth = o app. Deve ser IGUAL ao NEXTAUTH_URL do
+      # serviço usesend, senão a descoberta OAuth quebra.
+      AUTH_SERVER_URL: ${AUTH_SERVER_URL:-https://app.madmail.com.br}
     networks:
       - app_network
       - npm_public
