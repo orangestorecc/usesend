@@ -1,0 +1,51 @@
+# Proxy reverso do Madmail. O Caddy emite e renova o SSL sozinho
+# (Let's Encrypt), sem UI e sem intervenção manual.
+#
+# docs.madmail.com.br NÃO aparece aqui: é Mintlify (SaaS), resolvido por
+# CNAME direto para eles.
+
+{
+	email {$ACME_EMAIL}
+}
+
+# Aplicação principal
+app.madmail.com.br {
+	encode zstd gzip
+	reverse_proxy web:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+# Servidor MCP (conectores de IA)
+mcp.madmail.com.br {
+	encode zstd gzip
+	reverse_proxy mcp:8787
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}
+
+# Site institucional
+www.madmail.com.br {
+	encode zstd gzip
+	reverse_proxy marketing:80
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+}
+
+# Domínio raiz redireciona para o www
+madmail.com.br {
+	redir https://www.madmail.com.br{uri} permanent
+}

@@ -1,0 +1,127 @@
+# Stack de produção do Madmail — servidor próprio (Docker Compose).
+#
+# Sobe: Postgres, Redis, o app, o site institucional, o servidor MCP e o
+# Caddy (proxy reverso com SSL automático).
+#
+# NÃO sobe MinIO: o storage é o da infra da Evel, apontado via S3_COMPATIBLE_*.
+# NÃO sobe docs: docs.madmail.com.br é Mintlify (SaaS), só um CNAME.
+#
+#   docker compose -f compose.prod.yml up -d
+#
+name: madmail
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command:
+      ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/orangestorecc/usesend:latest}
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-madmail}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXT_PUBLIC_IS_CLOUD: ${NEXT_PUBLIC_IS_CLOUD:-true}
+      # AWS (SES envio + S3 do recebimento) — mesma conta de hoje
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-sa-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      # Recebimento: inbound do SES só existe em us-east-1
+      INBOUND_S3_BUCKET: ${INBOUND_S3_BUCKET:-}
+      INBOUND_S3_REGION: ${INBOUND_S3_REGION:-us-east-1}
+      # Storage de anexos/imagens — MinIO da infra da Evel
+      S3_COMPATIBLE_ACCESS_KEY: ${S3_COMPATIBLE_ACCESS_KEY}
+      S3_COMPATIBLE_SECRET_KEY: ${S3_COMPATIBLE_SECRET_KEY}
+      S3_COMPATIBLE_API_URL: ${S3_COMPATIBLE_API_URL}
+      S3_COMPATIBLE_PUBLIC_URL: ${S3_COMPATIBLE_PUBLIC_URL}
+      S3_COMPATIBLE_BUCKET: ${S3_COMPATIBLE_BUCKET}
+      # Login social (opcionais)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_ID: ${GITHUB_ID:-}
+      GITHUB_SECRET: ${GITHUB_SECRET:-}
+      FROM_EMAIL: ${FROM_EMAIL:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      API_RATE_LIMIT: ${API_RATE_LIMIT:-1}
+      AUTH_EMAIL_RATE_LIMIT: ${AUTH_EMAIL_RATE_LIMIT:-0}
+      # Pagamentos (credenciais dos gateways ficam cifradas no banco)
+      PAYMENTS_SANDBOX: ${PAYMENTS_SANDBOX:-false}
+      PAYMENTS_WEBHOOK_TOKEN: ${PAYMENTS_WEBHOOK_TOKEN:-}
+      PAYMENT_LOG_RETENTION_DAYS: ${PAYMENT_LOG_RETENTION_DAYS:-90}
+      # IA no editor de e-mail
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      EMAIL_CLEANUP_DAYS: ${EMAIL_CLEANUP_DAYS:-}
+    networks: [internal, edge]
+
+  marketing:
+    image: ${MARKETING_IMAGE:-ghcr.io/orangestorecc/usesend-marketing:latest}
+    restart: unless-stopped
+    networks: [edge]
+
+  mcp:
+    image: ${MCP_IMAGE:-ghcr.io/orangestorecc/usesend-mcp:latest}
+    restart: unless-stopped
+    depends_on: [web]
+    environment:
+      PORT: 8787
+      USESEND_BASE_URL: http://web:3000/api
+      MCP_PUBLIC_URL: ${MCP_PUBLIC_URL:-https://mcp.madmail.com.br/mcp}
+      AUTH_SERVER_URL: ${AUTH_SERVER_URL:-https://app.madmail.com.br}
+    networks: [internal, edge]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [web, marketing, mcp]
+    networks: [edge]
+
+volumes:
+  postgres-data:
+  redis-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  # Banco e cache não ficam expostos ao proxy.
+  internal:
+  edge:
