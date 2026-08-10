@@ -33,7 +33,13 @@ ssh -p 2203 madmail@IP 'echo porta 2203 ok'
 # 3. só então fechar a 22
 ssh -p 2203 madmail@IP 'sudo cp /tmp/finalize-ssh.sh /opt/madmail/ && sudo bash /opt/madmail/finalize-ssh.sh'
 
-# 4. arquivos da stack
+# 4. login no GHCR — as imagens do projeto são PRIVADAS
+#    Precisa de um token do GitHub com escopo read:packages
+#    (o repo já tem um em Settings > Secrets como GHCR_READ_TOKEN)
+ssh -p 2203 madmail@IP \
+  'echo "<TOKEN>" | docker login ghcr.io -u <usuario-github> --password-stdin'
+
+# 5. arquivos da stack
 scp -P 2203 infra/compose.prod.yml infra/Caddyfile infra/deploy.sh infra/backup.sh \
     madmail@IP:/opt/madmail/
 scp -P 2203 infra/env.example madmail@IP:/opt/madmail/.env
@@ -102,6 +108,16 @@ gunzip -c backups/madmail-AAAAMMDD-HHMMSS.sql.gz \
   | docker compose -f compose.prod.yml exec -T postgres \
       psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 ```
+
+## Pré-requisitos (o que precisa estar em mãos)
+
+| Item | Onde consegue |
+|---|---|
+| IP e usuário do servidor | Fabio |
+| Token do GitHub (`read:packages`) | as imagens do GHCR são privadas; existe um em Secrets como `GHCR_READ_TOKEN` |
+| Credenciais do MinIO (Evel) | Fabio: endpoint, access key, secret key, bucket, URL pública |
+| Credenciais AWS | mesma conta de hoje (SES + S3 do inbound) |
+| Token do Cloudflare | para apontar o DNS |
 
 ## Regras que não podem ser esquecidas
 
