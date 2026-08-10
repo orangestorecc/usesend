@@ -1,0 +1,12 @@
+# Arquivos que são executados no Linux precisam de quebra de linha LF.
+# Com CRLF, o shell falha com "bad interpreter: /bin/bash^M" — e o erro é
+# confuso porque o arquivo "parece" certo no editor.
+*.sh            text eol=lf
+Dockerfile*     text eol=lf
+Caddyfile       text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+env.example     text eol=lf
+
+# Deixa o git decidir o resto pelo conteúdo.
+* text=auto
