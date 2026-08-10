@@ -66,6 +66,7 @@ usesend.emails.send({
 
 export type EditorProps = {
   onUpdate?: (content: TipTapEditor) => void;
+  onCreate?: (editor: TipTapEditor) => void;
   initialContent?: Content;
   variables?: Array<string>;
   uploadImage?: UploadFn;
@@ -74,6 +75,7 @@ export type EditorProps = {
 
 export const Editor: React.FC<EditorProps> = ({
   onUpdate,
+  onCreate,
   initialContent,
   variables,
   uploadImage,
@@ -103,6 +105,9 @@ export const Editor: React.FC<EditorProps> = ({
       uploadImage,
       variableSuggestionsHelperText,
     }),
+    onCreate: ({ editor }) => {
+      onCreate?.(editor);
+    },
     onUpdate: ({ editor }) => {
       onUpdate?.(editor);
     },

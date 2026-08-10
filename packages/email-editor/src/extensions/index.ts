@@ -19,6 +19,15 @@ import { UnsubscribeFooterExtension } from "./UnsubsubscribeExtension";
 import { ResizableImageExtension, UploadFn } from "./ImageExtension";
 import { SpacerExtension } from "./SpacerExtension";
 import { HtmlExtension } from "./HtmlExtension";
+import { SectionExtension } from "./SectionExtension";
+import { ColumnsExtension, ColumnExtension } from "./ColumnsExtension";
+import { SocialLinksExtension } from "./SocialLinksExtension";
+import {
+  YoutubeExtension,
+  TwitterExtension,
+  ChartExtension,
+} from "./EmbedExtensions";
+import { PageStyleDocument } from "./PageStyleExtension";
 
 export function extensions({
   variables,
@@ -30,7 +39,9 @@ export function extensions({
   variableSuggestionsHelperText?: string;
 }) {
   const extensions = [
+    PageStyleDocument,
     StarterKit.configure({
+      document: false,
       heading: {
         levels: [1, 2, 3],
       },
@@ -92,6 +103,13 @@ export function extensions({
     ResizableImageExtension.configure({ uploadImage }),
     SpacerExtension,
     HtmlExtension,
+    SectionExtension,
+    ColumnsExtension,
+    ColumnExtension,
+    SocialLinksExtension,
+    YoutubeExtension,
+    TwitterExtension,
+    ChartExtension,
   ];
 
   return extensions;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@usesend/ui/src/button";
 import { Input } from "@usesend/ui/src/input";
@@ -12,7 +12,7 @@ import {
   TabsTrigger,
 } from "@usesend/ui/src/tabs";
 import { toast } from "@usesend/ui/src/toaster";
-import { ArrowLeft, CreditCard, QrCode, Barcode } from "lucide-react";
+import { ArrowLeft, CreditCard, QrCode, Barcode, Check, Copy } from "lucide-react";
 import { api } from "~/trpc/react";
 import {
   TRANSACTIONAL_PLANS,
@@ -37,21 +37,56 @@ function applyPromo(priceBRL: number, promo: Promo | null): number {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+type PixState = { copiaECola: string; qrImage: string | null };
+type BoletoState = { url: string | null; linhaDigitavel: string | null };
+
 function CheckoutInner() {
   const sp = useSearchParams();
   const router = useRouter();
-  const product = sp.get("product") === "marketing" ? "marketing" : "transactional";
+  const product =
+    sp.get("product") === "marketing" ? "marketing" : "transactional";
   const plans = product === "marketing" ? MARKETING_PLANS : TRANSACTIONAL_PLANS;
   const plan = plans.find((p) => p.key === sp.get("plan")) ?? null;
 
   const [email, setEmail] = useState("");
   void email;
+  const [method, setMethod] = useState<"card" | "pix" | "boleto">("card");
+
+  // Cartão
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [saveCard, setSaveCard] = useState(true);
+
+  // Resultado pendente (PIX / boleto)
+  const [chargeId, setChargeId] = useState<string | null>(null);
+  const [pix, setPix] = useState<PixState | null>(null);
+  const [boleto, setBoleto] = useState<BoletoState | null>(null);
 
   // Código promocional
   const [showPromo, setShowPromo] = useState(false);
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<Promo | null>(null);
   const validatePromo = api.promoCode.validate.useMutation();
+
+  const checkout = api.payments.checkout.useMutation();
+
+  // Polling do status enquanto PIX/boleto pendente.
+  const chargeQuery = api.payments.getCharge.useQuery(
+    { chargeId: chargeId ?? "" },
+    {
+      enabled: !!chargeId && method !== "card",
+      refetchInterval: 4000,
+    },
+  );
+
+  useEffect(() => {
+    if (chargeQuery.data?.status === "paid") {
+      toast.success("Pagamento confirmado! Plano ativado.");
+      router.push("/dashboard");
+    }
+  }, [chargeQuery.data?.status, router]);
 
   const applyCode = () => {
     if (!promoInput.trim()) return;
@@ -71,12 +106,73 @@ function CheckoutInner() {
   const basePrice = plan?.priceBRL ?? 0;
   const total = applyPromo(basePrice, promo);
 
-  const notReady = () =>
-    toast.info("Integração de pagamento em breve — este é o front do checkout.");
+  const submit = () => {
+    if (!plan) return;
+    if (plan.priceBRL === null) {
+      toast.info("Plano personalizado — fale com o time de vendas.");
+      return;
+    }
+
+    let card:
+      | {
+          number: string;
+          holderName: string;
+          expirationMonth: number;
+          expirationYear: number;
+          securityCode: string;
+        }
+      | undefined;
+
+    if (method === "card") {
+      const m = cardExpiry.match(/^(\d{2})\s*\/\s*(\d{2,4})$/);
+      if (!cardNumber || !m || !cardCvc || !cardHolder) {
+        toast.error("Preencha os dados do cartão.");
+        return;
+      }
+      const mm = Number(m[1]);
+      const yy = m[2]!.length === 2 ? 2000 + Number(m[2]) : Number(m[2]);
+      card = {
+        number: cardNumber.replace(/\s/g, ""),
+        holderName: cardHolder,
+        expirationMonth: mm,
+        expirationYear: yy,
+        securityCode: cardCvc,
+      };
+    }
+
+    checkout.mutate(
+      {
+        product,
+        planKey: plan.key,
+        method,
+        promoCode: promo?.code,
+        saveCard: method === "card" ? saveCard : undefined,
+        card,
+      },
+      {
+        onSuccess: (res) => {
+          if (res.status === "paid") {
+            toast.success("Pagamento aprovado! Plano ativado.");
+            router.push("/dashboard");
+            return;
+          }
+          setChargeId(res.chargeId);
+          if (res.method === "pix" && res.pix) setPix(res.pix);
+          if (res.method === "boleto" && res.boleto) setBoleto(res.boleto);
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
+
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copiado!");
+  };
 
   return (
     <main className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      {/* Painel esquerdo — escuro, conteúdo alinhado ao centro da tela */}
+      {/* Painel esquerdo */}
       <div className="flex justify-center bg-[#05050A] px-8 py-12 text-[#EDEEF0] lg:justify-end lg:pr-16">
         <div className="w-full max-w-sm">
           <div className="flex items-center gap-3">
@@ -133,7 +229,6 @@ function CheckoutInner() {
               </span>
             </div>
 
-            {/* Código promocional */}
             {promo ? (
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <span className="flex items-center gap-2">
@@ -193,91 +288,196 @@ function CheckoutInner() {
         </div>
       </div>
 
-      {/* Painel direito — claro, conteúdo alinhado ao centro da tela */}
+      {/* Painel direito */}
       <div className="flex justify-center bg-background px-8 py-12 lg:justify-start lg:pl-16">
         <div className="w-full max-w-md">
-          <div className="text-sm font-medium">Dados para contato</div>
-          <div className="mt-2">
-            <Label className="text-xs text-muted-foreground">E-mail</Label>
-            <Input
-              className="mt-1"
-              type="email"
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="voce@empresa.com"
-            />
-          </div>
-
-          <div className="mt-8">
-            <div className="mb-2 text-sm font-medium">Forma de pagamento</div>
-            <Tabs defaultValue="card">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="card">
-                  <CreditCard className="mr-1.5 h-4 w-4" /> Cartão
-                </TabsTrigger>
-                <TabsTrigger value="pix">
-                  <QrCode className="mr-1.5 h-4 w-4" /> PIX
-                </TabsTrigger>
-                <TabsTrigger value="boleto">
-                  <Barcode className="mr-1.5 h-4 w-4" /> Boleto
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="card" className="space-y-3 pt-4">
+          {/* Estado pendente: PIX */}
+          {pix ? (
+            <div className="space-y-4">
+              <div className="text-sm font-medium">Pague com PIX</div>
+              {pix.qrImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={pix.qrImage}
+                  alt="QR Code PIX"
+                  className="mx-auto h-56 w-56 rounded-lg border"
+                />
+              ) : null}
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  PIX copia e cola
+                </Label>
+                <div className="mt-1 flex gap-2">
+                  <Input readOnly value={pix.copiaECola} className="font-mono text-xs" />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => copy(pix.copiaECola)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Aguardando pagamento… a página confirma automaticamente.
+              </p>
+            </div>
+          ) : boleto ? (
+            <div className="space-y-4">
+              <div className="text-sm font-medium">Boleto gerado</div>
+              {boleto.linhaDigitavel ? (
                 <div>
-                  <Label>Dados do cartão</Label>
-                  <Input className="mt-1" placeholder="1234 1234 1234 1234" />
+                  <Label className="text-xs text-muted-foreground">
+                    Linha digitável
+                  </Label>
+                  <div className="mt-1 flex gap-2">
+                    <Input
+                      readOnly
+                      value={boleto.linhaDigitavel}
+                      className="font-mono text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => copy(boleto.linhaDigitavel!)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="MM / AA" />
-                  <Input placeholder="CVC" />
-                </div>
-                <div>
-                  <Label>Nome do titular</Label>
-                  <Input className="mt-1" placeholder="Nome completo" />
-                </div>
-                <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <input type="checkbox" className="rounded border" />
-                  Salvar cartão para cobranças futuras
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  O cartão será tokenizado pela Rede — os dados não passam pelo
-                  nosso servidor.
-                </p>
-              </TabsContent>
+              ) : null}
+              {boleto.url ? (
+                <a href={boleto.url} target="_blank" rel="noreferrer">
+                  <Button className="w-full" variant="outline">
+                    <Barcode className="mr-2 h-4 w-4" /> Abrir boleto (PDF)
+                  </Button>
+                </a>
+              ) : null}
+              <p className="text-xs text-muted-foreground">
+                Após o pagamento, o plano é ativado automaticamente.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="text-sm font-medium">Dados para contato</div>
+              <div className="mt-2">
+                <Label className="text-xs text-muted-foreground">E-mail</Label>
+                <Input
+                  className="mt-1"
+                  type="email"
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="voce@empresa.com"
+                />
+              </div>
 
-              <TabsContent value="pix" className="pt-4">
-                <div className="flex flex-col items-center rounded-lg border border-dashed p-8 text-center">
-                  <QrCode className="h-8 w-8 text-muted-foreground" />
-                  <p className="mt-2 text-sm">
-                    Um QR Code PIX será gerado via Banco Inter.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Pagamento confirmado automaticamente (webhook).
-                  </p>
-                </div>
-              </TabsContent>
+              <div className="mt-8">
+                <div className="mb-2 text-sm font-medium">Forma de pagamento</div>
+                <Tabs
+                  value={method}
+                  onValueChange={(v) => setMethod(v as typeof method)}
+                >
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="card">
+                      <CreditCard className="mr-1.5 h-4 w-4" /> Cartão
+                    </TabsTrigger>
+                    <TabsTrigger value="pix">
+                      <QrCode className="mr-1.5 h-4 w-4" /> PIX
+                    </TabsTrigger>
+                    <TabsTrigger value="boleto">
+                      <Barcode className="mr-1.5 h-4 w-4" /> Boleto
+                    </TabsTrigger>
+                  </TabsList>
 
-              <TabsContent value="boleto" className="pt-4">
-                <div className="flex flex-col items-center rounded-lg border border-dashed p-8 text-center">
-                  <Barcode className="h-8 w-8 text-muted-foreground" />
-                  <p className="mt-2 text-sm">
-                    Um boleto será emitido via Banco Inter.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Compensação em até 2 dias úteis.
-                  </p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+                  <TabsContent value="card" className="space-y-3 pt-4">
+                    <div>
+                      <Label>Dados do cartão</Label>
+                      <Input
+                        className="mt-1"
+                        placeholder="1234 1234 1234 1234"
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value)}
+                        inputMode="numeric"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        placeholder="MM / AA"
+                        value={cardExpiry}
+                        onChange={(e) => setCardExpiry(e.target.value)}
+                      />
+                      <Input
+                        placeholder="CVC"
+                        value={cardCvc}
+                        onChange={(e) => setCardCvc(e.target.value)}
+                        inputMode="numeric"
+                      />
+                    </div>
+                    <div>
+                      <Label>Nome do titular</Label>
+                      <Input
+                        className="mt-1"
+                        placeholder="Nome completo"
+                        value={cardHolder}
+                        onChange={(e) => setCardHolder(e.target.value)}
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        className="rounded border"
+                        checked={saveCard}
+                        onChange={(e) => setSaveCard(e.target.checked)}
+                      />
+                      Salvar cartão para cobranças futuras (recorrência)
+                    </label>
+                  </TabsContent>
 
-          <Button className="mt-8 w-full" size="lg" onClick={notReady}>
-            Assinar
-          </Button>
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            Ao assinar, você autoriza o Madmail a cobrar em BRL de forma
-            recorrente mensal, conforme os termos.
-          </p>
+                  <TabsContent value="pix" className="pt-4">
+                    <div className="flex flex-col items-center rounded-lg border border-dashed p-8 text-center">
+                      <QrCode className="h-8 w-8 text-muted-foreground" />
+                      <p className="mt-2 text-sm">
+                        Um QR Code PIX será gerado via Banco Inter.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Pagamento confirmado automaticamente (webhook).
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="boleto" className="pt-4">
+                    <div className="flex flex-col items-center rounded-lg border border-dashed p-8 text-center">
+                      <Barcode className="h-8 w-8 text-muted-foreground" />
+                      <p className="mt-2 text-sm">
+                        Um boleto será emitido via Banco Inter.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Compensação em até 2 dias úteis.
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              <Button
+                className="mt-8 w-full"
+                size="lg"
+                onClick={submit}
+                disabled={checkout.isPending}
+              >
+                {checkout.isPending ? (
+                  "Processando…"
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" /> Assinar
+                  </>
+                )}
+              </Button>
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Ao assinar, você autoriza o Madmail a cobrar em BRL de forma
+                recorrente mensal, conforme os termos.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </main>

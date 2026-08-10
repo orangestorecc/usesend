@@ -77,6 +77,9 @@ export const env = createEnv({
         .transform((str) => (str ? parseInt(str, 10) : undefined)),
     INBOUND_S3_BUCKET: z.string().optional(),
     INBOUND_S3_REGION: z.string().default("us-east-1"),
+    ANTHROPIC_API_KEY: z.string().optional(),
+    PAYMENTS_SANDBOX: z.string().optional(),
+    PAYMENTS_WEBHOOK_TOKEN: z.string().optional(),
   },
 
   /**
@@ -141,7 +144,9 @@ export const env = createEnv({
     EMAIL_CLEANUP_DAYS: process.env.EMAIL_CLEANUP_DAYS,
     INBOUND_S3_BUCKET: process.env.INBOUND_S3_BUCKET,
     INBOUND_S3_REGION: process.env.INBOUND_S3_REGION,
-
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    PAYMENTS_SANDBOX: process.env.PAYMENTS_SANDBOX,
+    PAYMENTS_WEBHOOK_TOKEN: process.env.PAYMENTS_WEBHOOK_TOKEN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

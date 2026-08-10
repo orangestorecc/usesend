@@ -5,6 +5,8 @@ import { Spinner } from "@usesend/ui/src/spinner";
 import { Button } from "@usesend/ui/src/button";
 import { Input } from "@usesend/ui/src/input";
 import { Editor } from "@usesend/email-editor";
+import type { TiptapEditor } from "@usesend/email-editor";
+import { EditorToolbar } from "~/components/editor-toolbar";
 import { use, useMemo, useState } from "react";
 import { Campaign } from "@prisma/client";
 import {
@@ -106,6 +108,9 @@ function CampaignEditor({
     campaign.content ? JSON.parse(campaign.content) : undefined,
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [editorInstance, setEditorInstance] = useState<TiptapEditor | null>(
+    null,
+  );
   const [name, setName] = useState(campaign.name);
   const [subject, setSubject] = useState(campaign.subject);
   const [from, setFrom] = useState(campaign.from);
@@ -442,9 +447,11 @@ function CampaignEditor({
         ) : (
           <div className=" rounded-lg bg-gray-50 w-[700px] mx-auto p-10">
             <div className="w-[600px] mx-auto">
+              <EditorToolbar editor={editorInstance} />
               <Editor
                 key={`campaign-editor-${contactBookId ?? "none"}-${editorVariables.join(",")}`}
                 initialContent={json}
+                onCreate={(ed) => setEditorInstance(ed)}
                 onUpdate={(content) => {
                   setJson(content.getJSON());
                   setIsSaving(true);

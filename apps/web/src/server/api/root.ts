@@ -24,6 +24,8 @@ import { paymentGatewayRouter } from "./routers/payment-gateway";
 import { promoCodeRouter } from "./routers/promo-code";
 import { planCatalogRouter } from "./routers/plan-catalog";
 import { inboundRouter } from "./routers/inbound";
+import { paymentsRouter } from "./routers/payments";
+import { aiRouter } from "./routers/ai";
 
 /**
  * This is the primary router for your server.
@@ -56,6 +58,8 @@ export const appRouter = createTRPCRouter({
   promoCode: promoCodeRouter,
   planCatalog: planCatalogRouter,
   inbound: inboundRouter,
+  payments: paymentsRouter,
+  ai: aiRouter,
 });
 
 // export type definition of API

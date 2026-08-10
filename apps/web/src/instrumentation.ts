@@ -55,6 +55,11 @@ export async function register() {
         );
         await initInboundPollJob();
       }
+
+      const { initSubscriptionBillingJob } = await import(
+        "~/server/jobs/subscription-billing-job"
+      );
+      await initSubscriptionBillingJob();
     }
 
     initialized = true;

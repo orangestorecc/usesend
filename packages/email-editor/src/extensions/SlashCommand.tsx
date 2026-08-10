@@ -19,6 +19,14 @@ import {
   TextQuoteIcon,
   UserXIcon,
   VariableIcon,
+  LayoutPanelTopIcon,
+  Columns2Icon,
+  Columns3Icon,
+  Columns4Icon,
+  Share2Icon,
+  YoutubeIcon,
+  TwitterIcon,
+  BarChart3Icon,
 } from "lucide-react";
 import {
   ReactNode,
@@ -251,6 +259,86 @@ const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
     icon: <RectangleEllipsisIcon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor.chain().focus().deleteRange(range).setButton().run();
+    },
+  },
+  {
+    title: "Seção",
+    description: "Agrupe blocos com fundo e preenchimento.",
+    searchTerms: ["section", "secao", "container", "bloco"],
+    section: "Layout",
+    icon: <LayoutPanelTopIcon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setSection().run();
+    },
+  },
+  {
+    title: "2 Colunas",
+    description: "Layout com duas colunas.",
+    searchTerms: ["columns", "colunas", "2", "duas"],
+    section: "Layout",
+    icon: <Columns2Icon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setColumns(2).run();
+    },
+  },
+  {
+    title: "3 Colunas",
+    description: "Layout com três colunas.",
+    searchTerms: ["columns", "colunas", "3", "tres"],
+    section: "Layout",
+    icon: <Columns3Icon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setColumns(3).run();
+    },
+  },
+  {
+    title: "4 Colunas",
+    description: "Layout com quatro colunas.",
+    searchTerms: ["columns", "colunas", "4", "quatro"],
+    section: "Layout",
+    icon: <Columns4Icon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setColumns(4).run();
+    },
+  },
+  {
+    title: "Redes sociais",
+    description: "Ícones com links para redes sociais.",
+    searchTerms: ["social", "redes", "instagram", "facebook", "icons"],
+    section: "Mídia",
+    icon: <Share2Icon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setSocialLinks().run();
+    },
+  },
+  {
+    title: "YouTube",
+    description: "Thumbnail clicável de um vídeo do YouTube.",
+    searchTerms: ["youtube", "video", "embed"],
+    section: "Mídia",
+    icon: <YoutubeIcon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setYoutube().run();
+    },
+  },
+  {
+    title: "Post do X",
+    description: "Card de um post do X (Twitter).",
+    searchTerms: ["x", "twitter", "tweet", "post"],
+    section: "Mídia",
+    icon: <TwitterIcon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setTwitter().run();
+    },
+  },
+  {
+    title: "Gráfico",
+    description: "Gráfico de barras/linha/pizza como imagem.",
+    searchTerms: ["chart", "grafico", "barra", "pizza"],
+    section: "Mídia",
+    icon: <BarChart3Icon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setChart().run();
     },
   },
   {

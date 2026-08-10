@@ -19,6 +19,7 @@ import {
   Code,
 } from "jsx-email";
 import { AllowedAlignments } from "./types";
+import { socialIconUrl, youtubeId, quickChartUrl } from "./lib/embed-helpers";
 
 interface NodeOptions {
   parent?: JSONContent;
@@ -204,6 +205,12 @@ export class EmailRenderer {
 
   markup() {
     const nodes = this.email.content || [];
+    const pageStyle = (this.email.attrs?.pageStyle ?? {}) as {
+      backgroundColor?: string;
+      contentBackground?: string;
+      contentWidth?: string;
+      fontFamily?: string;
+    };
 
     const jsxNodes = nodes.map((node, index) => {
       const nodeOptions: NodeOptions = {
@@ -250,15 +257,22 @@ export class EmailRenderer {
           <meta content="light" name="color-scheme" />
           <meta content="light" name="supported-color-schemes" />
         </Head>
-        <Body>
+        <Body
+          style={{
+            backgroundColor: pageStyle.backgroundColor || undefined,
+            fontFamily: pageStyle.fontFamily || undefined,
+            margin: 0,
+          }}
+        >
           <Container
             style={{
-              maxWidth: "600px",
+              maxWidth: pageStyle.contentWidth || "600px",
               minWidth: "300px",
               width: "100%",
               marginLeft: "auto",
               marginRight: "auto",
               padding: "0.5rem",
+              backgroundColor: pageStyle.contentBackground || undefined,
             }}
           >
             {jsxNodes}
@@ -617,6 +631,173 @@ export class EmailRenderer {
       <Container style={{ maxWidth: "100%" }}>
         <div dangerouslySetInnerHTML={{ __html: rawHtml }} />
       </Container>
+    );
+  }
+
+  private section(node: JSONContent, _?: NodeOptions): React.ReactNode {
+    const { attrs } = node;
+    const {
+      backgroundColor = "#f4f4f5",
+      padding = "24px",
+      borderRadius = "8px",
+      align = "left",
+    } = attrs || {};
+
+    return (
+      <Container
+        style={{
+          backgroundColor,
+          padding,
+          borderRadius,
+          textAlign: align as AllowedAlignments,
+          maxWidth: "100%",
+          marginBottom: "16px",
+        }}
+      >
+        {this.getMappedContent(node)}
+      </Container>
+    );
+  }
+
+  private columns(node: JSONContent, _?: NodeOptions): React.ReactNode {
+    const cols = node.content || [];
+    const width = `${Math.floor(100 / (cols.length || 1))}%`;
+
+    return (
+      <Row style={{ marginBottom: "16px" }}>
+        {cols.map((col) => (
+          <Column
+            key={generateKey()}
+            style={{
+              width,
+              verticalAlign: "top",
+              paddingLeft: "8px",
+              paddingRight: "8px",
+            }}
+          >
+            {this.getMappedContent(col)}
+          </Column>
+        ))}
+      </Row>
+    );
+  }
+
+  private column(node: JSONContent, _?: NodeOptions): React.ReactNode {
+    return (
+      <Column style={{ verticalAlign: "top" }}>
+        {this.getMappedContent(node)}
+      </Column>
+    );
+  }
+
+  private socialLinks(node: JSONContent, _?: NodeOptions): React.ReactNode {
+    const links = ((node.attrs?.links as Array<{ platform: string; url: string }>) ||
+      []).filter((l) => l.url);
+    const align = (node.attrs?.align as AllowedAlignments) || "center";
+    const size = (node.attrs?.size as number) || 32;
+
+    if (links.length === 0) return null;
+
+    return (
+      <Row style={{ marginBottom: "16px" }}>
+        <Column align={align}>
+          {links.map((l) => (
+            <a
+              key={generateKey()}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-block",
+                marginLeft: "6px",
+                marginRight: "6px",
+              }}
+            >
+              <Img
+                alt={l.platform}
+                src={socialIconUrl(l.platform, 64)}
+                style={{ width: size, height: size }}
+              />
+            </a>
+          ))}
+        </Column>
+      </Row>
+    );
+  }
+
+  private youtube(node: JSONContent, _?: NodeOptions): React.ReactNode {
+    const url = (node.attrs?.url as string) || "";
+    const id = youtubeId(url);
+    const align = (node.attrs?.align as AllowedAlignments) || "center";
+    if (!id) return null;
+
+    return (
+      <Row style={{ marginBottom: "16px" }}>
+        <Column align={align}>
+          <a
+            href={`https://www.youtube.com/watch?v=${id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Img
+              alt="YouTube"
+              src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`}
+              style={{ maxWidth: "100%", borderRadius: "8px" }}
+            />
+          </a>
+        </Column>
+      </Row>
+    );
+  }
+
+  private twitter(node: JSONContent, _?: NodeOptions): React.ReactNode {
+    const {
+      url = "",
+      username = "",
+      text = "",
+    } = (node.attrs || {}) as {
+      url: string;
+      username: string;
+      text: string;
+    };
+
+    return (
+      <Container
+        style={{
+          border: "1px solid #e5e7eb",
+          borderRadius: "12px",
+          padding: "16px",
+          maxWidth: "480px",
+          marginBottom: "16px",
+        }}
+      >
+        {username ? (
+          <Text style={{ fontWeight: 700, margin: 0 }}>{`@${username}`}</Text>
+        ) : null}
+        {text ? (
+          <Text style={{ margin: "8px 0 0" }}>{text}</Text>
+        ) : null}
+        {url ? (
+          <Link href={url} style={{ color: "rgb(59,130,246)" }}>
+            Ver no X →
+          </Link>
+        ) : null}
+      </Container>
+    );
+  }
+
+  private chart(node: JSONContent, _?: NodeOptions): React.ReactNode {
+    const align = (node.attrs?.align as AllowedAlignments) || "center";
+    return (
+      <Row style={{ marginBottom: "16px" }}>
+        <Column align={align}>
+          <Img
+            alt={(node.attrs?.title as string) || "Gráfico"}
+            src={quickChartUrl(node.attrs || {})}
+            style={{ maxWidth: "100%" }}
+          />
+        </Column>
+      </Row>
     );
   }
 
