@@ -5,7 +5,10 @@ import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
 import { env } from "~/env";
 
-const isSecure = env.NEXTAUTH_URL.startsWith("https");
+// Docker builds skip environment validation, so this module can be evaluated
+// without NEXTAUTH_URL while Next.js collects route data. Runtime validation
+// still requires the URL in production.
+const isSecure = env.NEXTAUTH_URL?.startsWith("https") ?? false;
 const SESSION_COOKIE = isSecure
   ? "__Secure-next-auth.session-token"
   : "next-auth.session-token";
