@@ -441,7 +441,7 @@ describe("WebhookService documented behavior", () => {
         domainIds: [1, 2],
         secret: "whsec_test_create",
       }),
-    ).rejects.toThrow("One or more domains were not found");
+    ).rejects.toThrow("Um ou mais domínios não foram encontrados");
 
     expect(mockDb.webhook.create).not.toHaveBeenCalled();
   });
@@ -545,7 +545,7 @@ describe("WebhookService documented behavior", () => {
         teamId: 77,
         domainIds: [5, 6],
       }),
-    ).rejects.toThrow("One or more domains were not found");
+    ).rejects.toThrow("Um ou mais domínios não foram encontrados");
 
     expect(mockDb.webhook.update).not.toHaveBeenCalled();
   });
