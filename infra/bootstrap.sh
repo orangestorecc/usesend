@@ -15,6 +15,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 DEPLOY_USER="${DEPLOY_USER:-madmail}"
+SSH_PORT="${SSH_PORT:-2203}"
 
 log "Atualizando o sistema"
 export DEBIAN_FRONTEND=noninteractive
@@ -69,20 +70,33 @@ if [ -f /root/.ssh/authorized_keys ]; then
     /root/.ssh/authorized_keys "/home/$DEPLOY_USER/.ssh/authorized_keys"
 fi
 
-log "Firewall (UFW): libera 22, 80, 443"
+log "Firewall (UFW): libera $SSH_PORT, 80, 443 (22 fica aberta na transição)"
 ufw --force reset >/dev/null
 ufw default deny incoming >/dev/null
 ufw default allow outgoing >/dev/null
-ufw allow 22/tcp  >/dev/null
+ufw allow "$SSH_PORT"/tcp >/dev/null
+ufw allow 22/tcp  >/dev/null   # removida por finalize-ssh.sh
 ufw allow 80/tcp  >/dev/null
 ufw allow 443/tcp >/dev/null
 ufw --force enable >/dev/null
 ufw status verbose
 
-log "SSH: desliga login por senha e login direto de root"
+log "SSH: porta $SSH_PORT, sem senha, sem root direto"
+# Escuta nas DUAS portas por ora. Trocar a porta e cortar a 22 de uma vez é
+# a maneira clássica de se trancar pra fora — o finalize-ssh.sh fecha a 22
+# depois que a nova porta estiver comprovadamente funcionando.
+sed -i 's/^#\?Port .*//' /etc/ssh/sshd_config
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
-systemctl reload ssh || systemctl reload sshd
+if ! grep -q "^Port $SSH_PORT" /etc/ssh/sshd_config; then
+  printf '\nPort %s\nPort 22\n' "$SSH_PORT" >> /etc/ssh/sshd_config
+fi
+# Ubuntu 24.04 usa socket activation: sem isso a porta nova é ignorada.
+systemctl disable --now ssh.socket >/dev/null 2>&1 || true
+sshd -t   # aborta se a config ficou inválida — antes de reiniciar
+systemctl restart ssh || systemctl restart sshd
+sleep 1
+ss -tlnp | grep -E ":($SSH_PORT|22)\b" || true
 
 log "fail2ban e atualizações de segurança automáticas"
 systemctl enable --now fail2ban
@@ -100,8 +114,20 @@ cat <<EOF
  Usuário de deploy : $DEPLOY_USER
  Diretório         : /opt/madmail
  Docker            : $(docker --version)
+ SSH               : portas $SSH_PORT e 22 (transição)
 
- Próximo passo: copiar infra/compose.prod.yml, infra/Caddyfile e o
- arquivo .env para /opt/madmail e subir a stack.
+ ATENÇÃO — antes de fechar esta sessão:
+
+   1. Abra um terminal NOVO e confirme que a porta nova funciona:
+        ssh -p $SSH_PORT $DEPLOY_USER@<IP>
+
+   2. Só depois de conectar, feche a porta 22:
+        sudo bash /opt/madmail/finalize-ssh.sh
+
+ Se fechar esta sessão sem testar e a porta nova não funcionar, o
+ acesso ao servidor se perde e só o console do provedor resolve.
+
+ Próximo passo: copiar compose.prod.yml, Caddyfile e .env para
+ /opt/madmail e subir a stack.
 ================================================================
 EOF

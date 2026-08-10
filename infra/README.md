@@ -19,22 +19,43 @@ Também no servidor, sem porta exposta: **Postgres 16**, **Redis 7** e o
 
 ## Instalação
 
+O SSH fica na **porta 2203**. O bootstrap escuta em 2203 e 22 ao mesmo tempo;
+a 22 só é fechada depois que a porta nova estiver comprovadamente funcionando.
+
 ```bash
-# 1. bootstrap (como root, na VM limpa)
-scp infra/bootstrap.sh usuario@IP:/tmp/
+# 1. bootstrap (ainda pela porta 22, que é como a VM chega)
+scp infra/bootstrap.sh infra/finalize-ssh.sh usuario@IP:/tmp/
 ssh usuario@IP 'sudo bash /tmp/bootstrap.sh'
 
-# 2. arquivos da stack
-scp infra/compose.prod.yml infra/Caddyfile infra/deploy.sh infra/backup.sh \
+# 2. CONFIRMAR a porta nova num terminal separado, sem fechar o anterior
+ssh -p 2203 madmail@IP 'echo porta 2203 ok'
+
+# 3. só então fechar a 22
+ssh -p 2203 madmail@IP 'sudo cp /tmp/finalize-ssh.sh /opt/madmail/ && sudo bash /opt/madmail/finalize-ssh.sh'
+
+# 4. arquivos da stack
+scp -P 2203 infra/compose.prod.yml infra/Caddyfile infra/deploy.sh infra/backup.sh \
     madmail@IP:/opt/madmail/
-scp infra/env.example madmail@IP:/opt/madmail/.env
+scp -P 2203 infra/env.example madmail@IP:/opt/madmail/.env
 
-# 3. preencher os segredos
-ssh madmail@IP 'chmod 600 /opt/madmail/.env && nano /opt/madmail/.env'
+# 5. preencher os segredos
+ssh -p 2203 madmail@IP 'chmod 600 /opt/madmail/.env && nano /opt/madmail/.env'
 
-# 4. subir
-ssh madmail@IP 'cd /opt/madmail && docker compose -f compose.prod.yml up -d'
+# 6. subir
+ssh -p 2203 madmail@IP 'cd /opt/madmail && docker compose -f compose.prod.yml up -d'
 ```
+
+Para não digitar `-p 2203` toda vez, em `~/.ssh/config`:
+
+```
+Host madmail
+    HostName <IP>
+    User madmail
+    Port 2203
+    IdentityFile ~/.ssh/madmail_deploy
+```
+
+Depois disso: `ssh madmail`, `scp arquivo madmail:/opt/madmail/`.
 
 As migrations do Prisma rodam sozinhas no boot do container (`docker/start.sh`),
 então o banco nasce com o schema correto.
@@ -60,6 +81,7 @@ streaming e o proxy costuma atrapalhar.
 ## Operação
 
 ```bash
+ssh -p 2203 madmail@IP                                   # acesso
 /opt/madmail/deploy.sh                                   # atualizar
 docker compose -f compose.prod.yml logs -f web           # logs do app
 docker compose -f compose.prod.yml ps                    # estado
