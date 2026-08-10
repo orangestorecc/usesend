@@ -70,33 +70,57 @@ if [ -f /root/.ssh/authorized_keys ]; then
     /root/.ssh/authorized_keys "/home/$DEPLOY_USER/.ssh/authorized_keys"
 fi
 
-log "Firewall (UFW): libera $SSH_PORT, 80, 443 (22 fica aberta na transição)"
-ufw --force reset >/dev/null
-ufw default deny incoming >/dev/null
-ufw default allow outgoing >/dev/null
-ufw allow "$SSH_PORT"/tcp >/dev/null
-ufw allow 22/tcp  >/dev/null   # removida por finalize-ssh.sh
-ufw allow 80/tcp  >/dev/null
-ufw allow 443/tcp >/dev/null
-ufw --force enable >/dev/null
-ufw status verbose
-
-log "SSH: porta $SSH_PORT, sem senha, sem root direto"
-# Escuta nas DUAS portas por ora. Trocar a porta e cortar a 22 de uma vez é
-# a maneira clássica de se trancar pra fora — o finalize-ssh.sh fecha a 22
-# depois que a nova porta estiver comprovadamente funcionando.
-sed -i 's/^#\?Port .*//' /etc/ssh/sshd_config
-sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
-if ! grep -q "^Port $SSH_PORT" /etc/ssh/sshd_config; then
-  printf '\nPort %s\nPort 22\n' "$SSH_PORT" >> /etc/ssh/sshd_config
+# Detecta se o sshd JÁ está na porta desejada (VM entregue assim) ou se ainda
+# está na 22 e precisa de transição.
+if ss -tln | grep -qE ":$SSH_PORT\b"; then
+  ALREADY_ON_PORT=1
+else
+  ALREADY_ON_PORT=0
 fi
-# Ubuntu 24.04 usa socket activation: sem isso a porta nova é ignorada.
-systemctl disable --now ssh.socket >/dev/null 2>&1 || true
-sshd -t   # aborta se a config ficou inválida — antes de reiniciar
-systemctl restart ssh || systemctl restart sshd
-sleep 1
-ss -tlnp | grep -E ":($SSH_PORT|22)\b" || true
+
+if [ "$ALREADY_ON_PORT" = "1" ]; then
+  log "Firewall (UFW): libera $SSH_PORT, 80, 443"
+  ufw --force reset >/dev/null
+  ufw default deny incoming >/dev/null
+  ufw default allow outgoing >/dev/null
+  ufw allow "$SSH_PORT"/tcp >/dev/null
+  ufw allow 80/tcp  >/dev/null
+  ufw allow 443/tcp >/dev/null
+  ufw --force enable >/dev/null
+  ufw status verbose
+
+  log "SSH já está na porta $SSH_PORT — só endurece a configuração"
+  sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+  sshd -t
+  systemctl reload ssh || systemctl reload sshd
+else
+  log "Firewall (UFW): libera $SSH_PORT, 80, 443 (22 aberta na transição)"
+  ufw --force reset >/dev/null
+  ufw default deny incoming >/dev/null
+  ufw default allow outgoing >/dev/null
+  ufw allow "$SSH_PORT"/tcp >/dev/null
+  ufw allow 22/tcp  >/dev/null   # removida por finalize-ssh.sh
+  ufw allow 80/tcp  >/dev/null
+  ufw allow 443/tcp >/dev/null
+  ufw --force enable >/dev/null
+  ufw status verbose
+
+  log "SSH: migrando da 22 para a $SSH_PORT"
+  # Escuta nas DUAS portas por ora. Trocar a porta e cortar a 22 de uma vez é
+  # a maneira clássica de se trancar pra fora — o finalize-ssh.sh fecha a 22
+  # depois que a nova porta estiver comprovadamente funcionando.
+  sed -i 's/^#\?Port .*//' /etc/ssh/sshd_config
+  sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+  printf '\nPort %s\nPort 22\n' "$SSH_PORT" >> /etc/ssh/sshd_config
+  # Ubuntu 24.04 usa socket activation: sem isso a porta nova é ignorada.
+  systemctl disable --now ssh.socket >/dev/null 2>&1 || true
+  sshd -t   # aborta se a config ficou inválida — antes de reiniciar
+  systemctl restart ssh || systemctl restart sshd
+  sleep 1
+fi
+ss -tln | grep -E ":($SSH_PORT|22)\b" || true
 
 log "fail2ban e atualizações de segurança automáticas"
 systemctl enable --now fail2ban
@@ -114,19 +138,19 @@ cat <<EOF
  Usuário de deploy : $DEPLOY_USER
  Diretório         : /opt/madmail
  Docker            : $(docker --version)
- SSH               : portas $SSH_PORT e 22 (transição)
+ SSH               : $(if [ "$ALREADY_ON_PORT" = "1" ]; then echo "porta $SSH_PORT (já era, nada a migrar)"; else echo "portas $SSH_PORT e 22 (transição)"; fi)
+$(if [ "$ALREADY_ON_PORT" != "1" ]; then cat <<'AVISO'
 
  ATENÇÃO — antes de fechar esta sessão:
 
-   1. Abra um terminal NOVO e confirme que a porta nova funciona:
-        ssh -p $SSH_PORT $DEPLOY_USER@<IP>
-
+   1. Abra um terminal NOVO e confirme que a porta nova funciona
    2. Só depois de conectar, feche a porta 22:
         sudo bash /opt/madmail/finalize-ssh.sh
 
  Se fechar esta sessão sem testar e a porta nova não funcionar, o
  acesso ao servidor se perde e só o console do provedor resolve.
-
+AVISO
+fi)
  Próximo passo: copiar compose.prod.yml, Caddyfile e .env para
  /opt/madmail e subir a stack.
 ================================================================
