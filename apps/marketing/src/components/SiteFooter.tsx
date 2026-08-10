@@ -158,19 +158,18 @@ export function SiteFooter() {
             </div>
 
             <a
-              href="https://status.usesend.com"
+              href="https://status.madmail.com.br/status/madmail"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Service status"
-              title="Service status"
-              className="inline-flex items-center"
+              aria-label="Status do serviço"
+              title="Status do serviço"
+              className="inline-flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://status.usesend.com/api/badge/2/status?upColor=30D9BD&style=plastic"
-                alt="Service status"
-                className="h-5"
-              />
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              </span>
+              Status
             </a>
           </div>
         </div>
