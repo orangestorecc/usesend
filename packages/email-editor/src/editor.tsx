@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  BubbleMenu,
-  EditorContent,
-  EditorProvider,
-  FloatingMenu,
-  useEditor,
-} from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import React, { useRef } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import React, { useMemo, useRef, useState } from "react";
 import { TextMenu } from "./menus/TextMenu";
 import { cn } from "@usesend/ui/lib/utils";
 
@@ -16,53 +9,15 @@ import { extensions } from "./extensions";
 import LinkMenu from "./menus/LinkMenu";
 import { Content, Editor as TipTapEditor } from "@tiptap/core";
 import { UploadFn } from "./extensions/ImageExtension";
+import { EditorShell } from "./chrome/EditorShell";
+import {
+  EditorChromeProvider,
+  type AiRequest,
+  type AiResult,
+  type EditorMode,
+} from "./context/EditorChromeContext";
 
-const content = `<h2>Hello World!</h2>
-
-<h3>useSend is the best open source resend alternative.</h3>
-
-<p>Use markdown (<code># </code>, <code>## </code>, <code>### </code>, <code>\`\`</code>, <code>* *</code>, <code>** **</code>) to write your email. </p>
-<p>You can <b>Bold</b> text.
-You can <i>Italic</i> text.
-You can <u>Underline</u> text.
-You can <del>Delete</del> text.
-You can <code>Code</code> text.
-you can change <span style="color: #dc2626;"> color</span> of text. Add <a href="https://usesend.com" target="_blank">link</a> to text
-</p>
-<br>
-You can create ordered list
-<ol>
-  <li>Ordered list item</li>
-  <li>Ordered list item</li>
-  <li>Ordered list item</li>
-</ol>
-
-<br>
-You can create unordered list
-<ul>
-  <li>Unordered list item</li>
-  <li>Unordered list item</li>
-  <li>Unordered list item</li>
-</ul>
-
-<p></p>
-<p>Add code by typing \`\`\` and enter</p>
-<pre>
-<code>
-const usesend = new UseSend("us_12345");
-
-// const usesend = new UseSend("us_12345", "https://app.usesend.com");
-
-usesend.emails.send({
-  to: "john@doe.com",
-  from: "john@doe.com",
-  subject: "Hello World!",
-  html: "<p>Hello World!</p>",
-  text: "Hello World!",
-});
-</code>
-</pre>
-`;
+export type { AiRequest, AiResult, EditorMode };
 
 export type EditorProps = {
   onUpdate?: (content: TipTapEditor) => void;
@@ -71,6 +26,27 @@ export type EditorProps = {
   variables?: Array<string>;
   uploadImage?: UploadFn;
   variableSuggestionsHelperText?: string;
+
+  // ---- Novos (todos opcionais; com tudo desligado o editor renderiza
+  //      exatamente como antes da reformulação) ----
+
+  /** Liga o trilho lateral e a paleta de blocos. */
+  showBlockPalette?: boolean;
+  /** Liga o painel direito de propriedades / estilo da página. */
+  showPropertiesPanel?: boolean;
+  /** Conteúdo acima do canvas (cabeçalho De/Assunto). */
+  header?: React.ReactNode;
+  /** Topo do painel direito (avatar, menu, Publicar). */
+  panelHeaderSlot?: React.ReactNode;
+  /** Rodapé do painel direito (tema, CSS global). */
+  panelFooterSlot?: React.ReactNode;
+  /** Executor de IA injetado pelo app. Ausente => a UI de IA não aparece. */
+  onAiRequest?: (req: AiRequest) => Promise<AiResult>;
+  /** Texto do placeholder do corpo. */
+  placeholder?: string;
+  /** Modo controlado do trilho. Ausente => o componente controla sozinho. */
+  mode?: EditorMode;
+  onModeChange?: (mode: EditorMode) => void;
 };
 
 export const Editor: React.FC<EditorProps> = ({
@@ -80,8 +56,24 @@ export const Editor: React.FC<EditorProps> = ({
   variables,
   uploadImage,
   variableSuggestionsHelperText,
+  showBlockPalette = false,
+  showPropertiesPanel = false,
+  header,
+  panelHeaderSlot,
+  panelFooterSlot,
+  onAiRequest,
+  placeholder,
+  mode: controlledMode,
+  onModeChange,
 }) => {
   const menuContainerRef = useRef(null);
+  const [internalMode, setInternalMode] = useState<EditorMode>("edit");
+
+  const mode = controlledMode ?? internalMode;
+  const setMode = (next: EditorMode) => {
+    if (!controlledMode) setInternalMode(next);
+    onModeChange?.(next);
+  };
 
   const editor = useEditor({
     editorProps: {
@@ -104,6 +96,7 @@ export const Editor: React.FC<EditorProps> = ({
       variables,
       uploadImage,
       variableSuggestionsHelperText,
+      placeholder,
     }),
     onCreate: ({ editor }) => {
       onCreate?.(editor);
@@ -114,7 +107,19 @@ export const Editor: React.FC<EditorProps> = ({
     content: initialContent,
   });
 
-  return (
+  const chromeValue = useMemo(
+    () => ({
+      editor,
+      mode,
+      setMode,
+      aiRequest: onAiRequest,
+      uploadImage,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editor, mode, onAiRequest, uploadImage],
+  );
+
+  const canvas = (
     <div
       className="bg-white rounded-md text-black p-4 sm:p-8 unsend-editor light"
       ref={menuContainerRef}
@@ -123,5 +128,30 @@ export const Editor: React.FC<EditorProps> = ({
       {editor ? <TextMenu editor={editor} /> : null}
       {editor ? <LinkMenu editor={editor} appendTo={menuContainerRef} /> : null}
     </div>
+  );
+
+  // Sem nenhuma das novas áreas ligadas, devolve o canvas puro — mesmo DOM de
+  // antes, para não afetar as telas que ainda não migraram.
+  if (!showBlockPalette && !showPropertiesPanel && !header) {
+    return canvas;
+  }
+
+  return (
+    <EditorChromeProvider value={chromeValue}>
+      <EditorShell
+        header={header}
+        left={showBlockPalette ? <div data-editor-left /> : undefined}
+        right={
+          showPropertiesPanel ? (
+            <div data-editor-right>
+              {panelHeaderSlot}
+              {panelFooterSlot}
+            </div>
+          ) : undefined
+        }
+      >
+        {canvas}
+      </EditorShell>
+    </EditorChromeProvider>
   );
 };

@@ -2,33 +2,6 @@ import { Editor, Extension, Range, ReactRenderer } from "@tiptap/react";
 import Suggestion, { SuggestionOptions } from "@tiptap/suggestion";
 import { cn } from "@usesend/ui/lib/utils";
 import {
-  Code2Icon,
-  CodeIcon,
-  DivideIcon,
-  EraserIcon,
-  MoveVerticalIcon,
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
-  ImageIcon,
-  ListIcon,
-  ListOrderedIcon,
-  RectangleEllipsisIcon,
-  SquareSplitVerticalIcon,
-  TextIcon,
-  TextQuoteIcon,
-  UserXIcon,
-  VariableIcon,
-  LayoutPanelTopIcon,
-  Columns2Icon,
-  Columns3Icon,
-  Columns4Icon,
-  Share2Icon,
-  YoutubeIcon,
-  TwitterIcon,
-  BarChart3Icon,
-} from "lucide-react";
-import {
   ReactNode,
   useCallback,
   useEffect,
@@ -38,6 +11,7 @@ import {
 } from "react";
 import tippy, { GetReferenceClientRect } from "tippy.js";
 import { UploadFn } from "./ImageExtension";
+import { BLOCK_REGISTRY, CATEGORY_LABEL } from "../blocks/registry";
 
 export interface CommandProps {
   editor: Editor;
@@ -95,332 +69,25 @@ export const SlashCommand = Extension.create({
   },
 });
 
-const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
-  {
-    title: "Texto",
-    description: "Comece a digitar com texto simples.",
-    searchTerms: ["p", "paragraph", "texto"],
-    section: "Texto",
-    icon: <TextIcon className="h-4 w-4" />,
-    command: ({ editor, range }) => {
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .toggleNode("paragraph", "paragraph")
-        .run();
-    },
-  },
-  {
-    title: "Título 1",
-    description: "Título de seção grande.",
-    searchTerms: ["title", "big", "large", "titulo", "h1"],
-    section: "Texto",
-    shortcut: "#",
-    icon: <Heading1Icon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .setNode("heading", { level: 1 })
-        .run();
-    },
-  },
-  {
-    title: "Título 2",
-    description: "Título de seção médio.",
-    searchTerms: ["subtitle", "medium", "subtitulo", "h2"],
-    section: "Texto",
-    shortcut: "##",
-    icon: <Heading2Icon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .setNode("heading", { level: 2 })
-        .run();
-    },
-  },
-  {
-    title: "Título 3",
-    description: "Título de seção pequeno.",
-    searchTerms: ["subtitle", "small", "h3"],
-    section: "Texto",
-    shortcut: "###",
-    icon: <Heading3Icon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .setNode("heading", { level: 3 })
-        .run();
-    },
-  },
-  {
-    title: "Lista com marcadores",
-    description: "Crie uma lista com marcadores simples.",
-    searchTerms: ["unordered", "point", "lista", "bullet"],
-    section: "Texto",
-    shortcut: "-",
-    icon: <ListIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).toggleBulletList().run();
-    },
-  },
-  {
-    title: "Lista numerada",
-    description: "Crie uma lista com numeração.",
-    searchTerms: ["ordered", "numerada"],
-    section: "Texto",
-    shortcut: "1.",
-    icon: <ListOrderedIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).toggleOrderedList().run();
-    },
-  },
-  {
-    title: "Citação",
-    description: "Adicione uma citação.",
-    searchTerms: ["quote", "blockquote", "citacao"],
-    section: "Texto",
-    shortcut: ">",
-    icon: <TextQuoteIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).toggleBlockquote().run();
-    },
-  },
-  {
-    title: "Bloco de código",
-    description: "Adicione código.",
-    searchTerms: ["code", "codigo"],
-    section: "Texto",
-    icon: <CodeIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
-    },
-  },
-  {
-    title: "Imagem",
-    description: "Imagem em largura total",
-    searchTerms: ["image", "imagem"],
-    section: "Mídia",
-    icon: <ImageIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      if (uploadImage) {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
-        input.onchange = async () => {
-          const file = input.files?.[0];
-          if (file && uploadImage) {
-            editor.chain().focus().deleteRange(range).run();
-            const placeholder = URL.createObjectURL(file);
-            editor
-              .chain()
-              .focus()
-              .setImage({ src: placeholder })
-              .updateAttributes("image", { isUploading: true })
-              .run();
-            try {
-              console.log("before upload");
-              const url = await uploadImage(file);
-              editor
-                .chain()
-                .focus()
-                .updateAttributes("image", { src: url, isUploading: false })
-                .run();
-            } catch (e) {
-              editor.chain().focus().deleteNode("image").run();
-              console.error("Failed to upload image:", e);
-            }
-          }
-        };
-        input.click();
-      } else {
-        const imageUrl = prompt("URL da imagem: ") || "";
+/**
+ * Itens do menu "/" derivados do registry de blocos.
+ *
+ * A ordem do BLOCK_REGISTRY define a ordem e os cabecalhos de secao do menu:
+ * o CommandList mostra um cabecalho sempre que a secao muda em relacao ao item
+ * anterior. Mexer na ordem do registry muda o menu.
+ */
+const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] =>
+  BLOCK_REGISTRY.map((block) => ({
+    title: block.title,
+    description: block.description,
+    searchTerms: block.searchTerms,
+    section: CATEGORY_LABEL[block.category],
+    shortcut: block.shortcut,
+    icon: block.icon,
+    command: ({ editor, range }: CommandProps) =>
+      block.insert(editor, { range, uploadImage }),
+  }));
 
-        if (!imageUrl) {
-          return;
-        }
-
-        editor.chain().focus().deleteRange(range).run();
-        editor.chain().focus().setImage({ src: imageUrl }).run();
-      }
-    },
-  },
-  {
-    title: "Botão",
-    description: "Adicione um botão.",
-    searchTerms: ["button", "botao"],
-    section: "Layout",
-    icon: <RectangleEllipsisIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setButton().run();
-    },
-  },
-  {
-    title: "Seção",
-    description: "Agrupe blocos com fundo e preenchimento.",
-    searchTerms: ["section", "secao", "container", "bloco"],
-    section: "Layout",
-    icon: <LayoutPanelTopIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setSection().run();
-    },
-  },
-  {
-    title: "2 Colunas",
-    description: "Layout com duas colunas.",
-    searchTerms: ["columns", "colunas", "2", "duas"],
-    section: "Layout",
-    icon: <Columns2Icon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setColumns(2).run();
-    },
-  },
-  {
-    title: "3 Colunas",
-    description: "Layout com três colunas.",
-    searchTerms: ["columns", "colunas", "3", "tres"],
-    section: "Layout",
-    icon: <Columns3Icon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setColumns(3).run();
-    },
-  },
-  {
-    title: "4 Colunas",
-    description: "Layout com quatro colunas.",
-    searchTerms: ["columns", "colunas", "4", "quatro"],
-    section: "Layout",
-    icon: <Columns4Icon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setColumns(4).run();
-    },
-  },
-  {
-    title: "Redes sociais",
-    description: "Ícones com links para redes sociais.",
-    searchTerms: ["social", "redes", "instagram", "facebook", "icons"],
-    section: "Mídia",
-    icon: <Share2Icon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setSocialLinks().run();
-    },
-  },
-  {
-    title: "YouTube",
-    description: "Thumbnail clicável de um vídeo do YouTube.",
-    searchTerms: ["youtube", "video", "embed"],
-    section: "Mídia",
-    icon: <YoutubeIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setYoutube().run();
-    },
-  },
-  {
-    title: "Post do X",
-    description: "Card de um post do X (Twitter).",
-    searchTerms: ["x", "twitter", "tweet", "post"],
-    section: "Mídia",
-    icon: <TwitterIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setTwitter().run();
-    },
-  },
-  {
-    title: "Gráfico",
-    description: "Gráfico de barras/linha/pizza como imagem.",
-    searchTerms: ["chart", "grafico", "barra", "pizza"],
-    section: "Mídia",
-    icon: <BarChart3Icon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setChart().run();
-    },
-  },
-  {
-    title: "Divisor",
-    description: "Adicione um divisor.",
-    searchTerms: ["horizontal", "rule", "divisor"],
-    section: "Layout",
-    icon: <SquareSplitVerticalIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setHorizontalRule().run();
-    },
-  },
-  {
-    title: "Espaçador",
-    description: "Adicione um espaço vertical.",
-    searchTerms: ["spacer", "espaco", "gap"],
-    section: "Layout",
-    icon: <MoveVerticalIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setSpacer().run();
-    },
-  },
-  {
-    title: "Quebra de linha",
-    description: "Adicione uma quebra entre linhas.",
-    searchTerms: ["break", "line", "quebra"],
-    section: "Layout",
-    icon: <DivideIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setHardBreak().run();
-    },
-  },
-  {
-    title: "Variável",
-    description: "Adicione uma variável.",
-    searchTerms: ["variable", "variavel"],
-    section: "Utilitário",
-    shortcut: "{{",
-    icon: <VariableIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).insertContent("{{").run();
-    },
-  },
-  {
-    title: "HTML",
-    description: "Insira um bloco de HTML personalizado.",
-    searchTerms: ["html", "code", "custom"],
-    section: "Utilitário",
-    icon: <Code2Icon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setHtmlBlock().run();
-    },
-  },
-  {
-    title: "Limpar linha",
-    description: "Limpe a linha atual.",
-    searchTerms: ["clear", "line", "limpar"],
-    section: "Utilitário",
-    icon: <EraserIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().selectParentNode().deleteSelection().run();
-    },
-  },
-  {
-    title: "Rodapé de cancelamento",
-    description: "Adicione um link de cancelamento de inscrição.",
-    searchTerms: ["unsubscribe", "cancelamento"],
-    section: "Utilitário",
-    icon: <UserXIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .setHorizontalRule()
-        .insertContent(
-          `<unsub data-unsend-component='unsubscribe-footer'><p>Você está recebendo este e-mail porque se inscreveu através do nosso site.<br/><br/><a href="{{usesend_unsubscribe_url}}">Cancelar inscrição da lista</a></p><br><br><p>Nome da empresa,<br/>00 nome da rua<br/>Cidade, Estado 000000</p></unsub>`
-        )
-        .run();
-    },
-  },
-];
 
 export const updateScrollView = (container: HTMLElement, item: HTMLElement) => {
   const containerHeight = container.offsetHeight;

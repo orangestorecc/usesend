@@ -33,10 +33,12 @@ export function extensions({
   variables,
   uploadImage,
   variableSuggestionsHelperText,
+  placeholder,
 }: {
   variables?: Array<string>;
   uploadImage?: UploadFn;
   variableSuggestionsHelperText?: string;
+  placeholder?: string;
 }) {
   const extensions = [
     PageStyleDocument,
@@ -89,7 +91,7 @@ export function extensions({
       uploadImage,
     }),
     Placeholder.configure({
-      placeholder: "write something on '/' for commands",
+      placeholder: placeholder ?? "Digite '/' para ver os blocos disponíveis",
     }),
     ButtonExtension,
     GlobalDragHandle,
