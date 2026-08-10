@@ -87,6 +87,25 @@ services:
       S3_COMPATIBLE_API_URL: ${S3_COMPATIBLE_API_URL}
       S3_COMPATIBLE_PUBLIC_URL: ${S3_COMPATIBLE_PUBLIC_URL}
       S3_COMPATIBLE_BUCKET: ${S3_COMPATIBLE_BUCKET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      # Recebimento de e-mail (SES inbound -> S3). O job de polling SÓ inicia
+      # se INBOUND_S3_BUCKET estiver definido. Inbound do SES só existe em
+      # us-east-1, independente da região de envio.
+      INBOUND_S3_BUCKET: ${INBOUND_S3_BUCKET:-}
+      INBOUND_S3_REGION: ${INBOUND_S3_REGION:-us-east-1}
+      # Pagamentos (Rede / Banco Inter). As credenciais dos gateways ficam
+      # cifradas no banco, geridas em Admin > Pagamentos — aqui vão só os
+      # ajustes de ambiente.
+      PAYMENTS_SANDBOX: ${PAYMENTS_SANDBOX:-false}
+      # Exigido no querystring dos webhooks de pagamento. Sem ele, qualquer um
+      # pode postar em /api/webhook/{inter,rede} e forjar confirmação.
+      PAYMENTS_WEBHOOK_TOKEN: ${PAYMENTS_WEBHOOK_TOKEN:-}
+      # Retenção do log de transações dos gateways (mínimo 30 dias).
+      PAYMENT_LOG_RETENTION_DAYS: ${PAYMENT_LOG_RETENTION_DAYS:-90}
+      # Geração de conteúdo por IA no editor de e-mail.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Limpeza de corpos de e-mail antigos (vazio = desligado).
+      EMAIL_CLEANUP_DAYS: ${EMAIL_CLEANUP_DAYS:-}
     networks:
       - app_network
       - npm_public
