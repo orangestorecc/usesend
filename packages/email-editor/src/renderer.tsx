@@ -18,7 +18,7 @@ import {
   render,
   Code,
 } from "jsx-email";
-import { AllowedAlignments } from "./types";
+import { AllowedAlignments, PAGE_STYLE_DEFAULTS, type PageStyle } from "./types";
 import { socialIconUrl, youtubeId, quickChartUrl } from "./lib/embed-helpers";
 
 interface NodeOptions {
@@ -205,12 +205,16 @@ export class EmailRenderer {
 
   markup() {
     const nodes = this.email.content || [];
-    const pageStyle = (this.email.attrs?.pageStyle ?? {}) as {
-      backgroundColor?: string;
-      contentBackground?: string;
-      contentWidth?: string;
-      fontFamily?: string;
-    };
+    const pageStyle = (this.email.attrs?.pageStyle ?? {}) as PageStyle;
+    // Defaults idênticos ao comportamento anterior: sem pageStyle, o HTML
+    // gerado tem que sair byte a byte igual ao de antes destes campos.
+    const contentWidth =
+      pageStyle.contentWidth || PAGE_STYLE_DEFAULTS.contentWidth;
+    const contentPadding =
+      pageStyle.contentPadding || PAGE_STYLE_DEFAULTS.contentPadding;
+    const align = pageStyle.contentAlign || PAGE_STYLE_DEFAULTS.contentAlign;
+    const marginLeft = align === "left" ? "0" : "auto";
+    const marginRight = align === "right" ? "0" : "auto";
 
     const jsxNodes = nodes.map((node, index) => {
       const nodeOptions: NodeOptions = {
@@ -261,18 +265,30 @@ export class EmailRenderer {
           style={{
             backgroundColor: pageStyle.backgroundColor || undefined,
             fontFamily: pageStyle.fontFamily || undefined,
+            padding: pageStyle.pagePadding || undefined,
+            color: pageStyle.textColor || undefined,
             margin: 0,
           }}
         >
           <Container
             style={{
-              maxWidth: pageStyle.contentWidth || "600px",
-              minWidth: "300px",
+              maxWidth: contentWidth,
+              // Mantido em 100%: trocar por largura fixa quebraria o layout
+              // em telas estreitas e alteraria e-mails já salvos.
               width: "100%",
-              marginLeft: "auto",
-              marginRight: "auto",
-              padding: "0.5rem",
+              minWidth: "300px",
+              height: pageStyle.contentHeight || undefined,
+              marginLeft,
+              marginRight,
+              marginTop: pageStyle.contentMargin || undefined,
+              marginBottom: pageStyle.contentMargin || undefined,
+              padding: contentPadding,
               backgroundColor: pageStyle.contentBackground || undefined,
+              color: pageStyle.textColor || undefined,
+              borderRadius: pageStyle.contentBorderRadius || undefined,
+              borderWidth: pageStyle.contentBorderWidth || undefined,
+              borderColor: pageStyle.contentBorderColor || undefined,
+              borderStyle: pageStyle.contentBorderWidth ? "solid" : undefined,
             }}
           >
             {jsxNodes}

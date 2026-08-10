@@ -10,6 +10,10 @@ import LinkMenu from "./menus/LinkMenu";
 import { Content, Editor as TipTapEditor } from "@tiptap/core";
 import { UploadFn } from "./extensions/ImageExtension";
 import { EditorShell } from "./chrome/EditorShell";
+import { LeftRail } from "./chrome/LeftRail";
+import { BlockPalette } from "./chrome/BlockPalette";
+import { CodeView } from "./chrome/CodeView";
+import { PropertiesPanel } from "./panels/PropertiesPanel";
 import {
   EditorChromeProvider,
   type AiRequest,
@@ -140,17 +144,27 @@ export const Editor: React.FC<EditorProps> = ({
     <EditorChromeProvider value={chromeValue}>
       <EditorShell
         header={header}
-        left={showBlockPalette ? <div data-editor-left /> : undefined}
+        left={
+          showBlockPalette ? (
+            <div className="flex h-full items-start">
+              <LeftRail />
+              {mode === "edit" ? <BlockPalette /> : null}
+            </div>
+          ) : undefined
+        }
         right={
           showPropertiesPanel ? (
-            <div data-editor-right>
+            <div className="flex h-full flex-col">
               {panelHeaderSlot}
+              <div className="flex-1 overflow-y-auto">
+                <PropertiesPanel />
+              </div>
               {panelFooterSlot}
             </div>
           ) : undefined
         }
       >
-        {canvas}
+        {mode === "code" ? <CodeView /> : canvas}
       </EditorShell>
     </EditorChromeProvider>
   );

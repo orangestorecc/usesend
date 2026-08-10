@@ -1,11 +1,7 @@
 import { Node } from "@tiptap/core";
+import type { PageStyle } from "../types";
 
-export type PageStyle = {
-  backgroundColor?: string;
-  contentBackground?: string;
-  contentWidth?: string;
-  fontFamily?: string;
-};
+export type { PageStyle };
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
