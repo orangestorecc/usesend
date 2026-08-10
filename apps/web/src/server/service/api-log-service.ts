@@ -55,22 +55,30 @@ export function logApiRequest(data: {
 
   const source = detectSource(data.userAgent, data.isMcp);
 
-  db.apiRequestLog
-    .create({
-      data: {
-        teamId: data.teamId,
-        apiKeyId: data.apiKeyId && data.apiKeyId > 0 ? data.apiKeyId : null,
-        apiKeyName: data.apiKeyName ?? null,
-        method: data.method,
-        endpoint: normalizeEndpoint(data.path),
-        path: data.path,
-        statusCode: data.statusCode,
-        source,
-        userAgent: data.userAgent?.slice(0, 300) ?? null,
-        durationMs: data.durationMs,
-      },
-    })
-    .catch((err) =>
-      logger.error({ err }, "[ApiLog] Falha ao gravar log de requisição"),
-    );
+  // Blindado de ponta a ponta: gravar log NUNCA pode derrubar a requisição.
+  // O .catch() sozinho não basta — se o model não existir no client (mock em
+  // teste, client desatualizado), o acesso a .create lança de forma síncrona
+  // e o erro sobe pelo middleware, virando 500 numa resposta que deu certo.
+  try {
+    db.apiRequestLog
+      ?.create({
+        data: {
+          teamId: data.teamId,
+          apiKeyId: data.apiKeyId && data.apiKeyId > 0 ? data.apiKeyId : null,
+          apiKeyName: data.apiKeyName ?? null,
+          method: data.method,
+          endpoint: normalizeEndpoint(data.path),
+          path: data.path,
+          statusCode: data.statusCode,
+          source,
+          userAgent: data.userAgent?.slice(0, 300) ?? null,
+          durationMs: data.durationMs,
+        },
+      })
+      .catch((err: unknown) =>
+        logger.error({ err }, "[ApiLog] Falha ao gravar log de requisição"),
+      );
+  } catch (err) {
+    logger.error({ err }, "[ApiLog] Falha ao gravar log de requisição");
+  }
 }

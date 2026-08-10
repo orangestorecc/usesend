@@ -71,7 +71,7 @@ describe("teamRouter.resendTeamInvite authorization", () => {
       caller.resendTeamInvite({ inviteId: "invite_team_2" }),
     ).rejects.toMatchObject({
       code: "NOT_FOUND",
-      message: "Invite not found",
+      message: "Convite não encontrado",
     });
 
     expect(mockDb.teamInvite.findFirst).toHaveBeenCalledWith({

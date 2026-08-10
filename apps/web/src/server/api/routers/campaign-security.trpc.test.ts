@@ -98,7 +98,7 @@ describe("campaignRouter.updateCampaign authorization", () => {
       }),
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
-      message: "Contact book not found",
+      message: "Lista de contatos não encontrada",
     });
 
     expect(mockDb.contactBook.findUnique).toHaveBeenCalledWith({
