@@ -9,7 +9,7 @@ export const ThemeSwitcher = () => {
     <div className="flex gap-2 items-center justify-between">
       <p className="text-sm text-popover-foreground flex items-center gap-2">
         <SunMoonIcon className="h-4 w-4" />
-        Theme
+        Tema
       </p>
       <div className="flex gap-2 border rounded-md p-1 ">
         <Button

@@ -80,13 +80,13 @@ export default function EditCampaignPage({
   if (error) {
     return (
       <div className="flex justify-center items-center h-full">
-        <p className="text-red-500">Failed to load campaign</p>
+        <p className="text-red-500">Falha ao carregar a campanha</p>
       </div>
     );
   }
 
   if (!campaign) {
-    return <div>Campaign not found</div>;
+    return <div>Campanha não encontrada</div>;
   }
 
   return <CampaignEditor campaign={campaign} />;
@@ -143,7 +143,7 @@ function CampaignEditor({
   const handleFileChange = async (file: File) => {
     if (file.size > IMAGE_SIZE_LIMIT) {
       throw new Error(
-        `File should be less than ${IMAGE_SIZE_LIMIT / 1024 / 1024}MB`,
+        `O arquivo deve ter menos de ${IMAGE_SIZE_LIMIT / 1024 / 1024}MB`,
       );
     }
 
@@ -159,7 +159,7 @@ function CampaignEditor({
     });
 
     if (!response.ok) {
-      throw new Error("Failed to upload file");
+      throw new Error("Falha ao enviar o arquivo");
     }
 
     return imageUrl;
@@ -174,7 +174,7 @@ function CampaignEditor({
   );
   const variableSuggestionsHelperText = contactBookId
     ? undefined
-    : "Select the contact book for related variable";
+    : "Selecione a lista de contatos para as variáveis relacionadas";
 
   return (
     <div className="p-4 container mx-auto ">
@@ -201,7 +201,7 @@ function CampaignEditor({
                 },
                 {
                   onError: (e) => {
-                    toast.error(`${e.message}. Reverting changes.`);
+                    toast.error(`${e.message}. Revertendo alterações.`);
                     setName(campaign.name);
                   },
                 },
@@ -216,8 +216,8 @@ function CampaignEditor({
                 <div className="h-2 w-2 bg-emerald-500 rounded-full" />
               )}
               {formatDistanceToNow(campaign.updatedAt) === "less than a minute"
-                ? "just now"
-                : `${formatDistanceToNow(campaign.updatedAt)} ago`}
+                ? "agora mesmo"
+                : `há ${formatDistanceToNow(campaign.updatedAt)}`}
             </div>
 
             <ScheduleCampaign
@@ -234,7 +234,7 @@ function CampaignEditor({
             <div className="flex flex-col border shadow rounded-lg mt-12 mb-12 p-4 w-[700px] mx-auto z-50">
               <div className="flex items-center gap-4">
                 <label className="block text-sm  w-[80px] text-muted-foreground">
-                  Subject
+                  Assunto
                 </label>
                 <input
                   type="text"
@@ -256,7 +256,7 @@ function CampaignEditor({
                       },
                       {
                         onError: (e) => {
-                          toast.error(`${e.message}. Reverting changes.`);
+                          toast.error(`${e.message}. Revertendo alterações.`);
                           setSubject(campaign.subject);
                         },
                       },
@@ -272,7 +272,7 @@ function CampaignEditor({
               <AccordionContent className=" flex flex-col gap-4">
                 <div className=" flex items-center gap-4 mt-4">
                   <label className=" text-sm  w-[80px] text-muted-foreground">
-                    From
+                    De
                   </label>
                   <input
                     type="text"
@@ -281,7 +281,7 @@ function CampaignEditor({
                       setFrom(e.target.value);
                     }}
                     className="mt-1 py-1 w-full text-sm outline-none border-b border-transparent  focus:border-border bg-transparent"
-                    placeholder="Friendly name<hello@example.com>"
+                    placeholder="Nome amigável<hello@example.com>"
                     onBlur={() => {
                       if (isApiCampaign) {
                         return;
@@ -296,7 +296,7 @@ function CampaignEditor({
                         },
                         {
                           onError: (e) => {
-                            toast.error(`${e.message}. Reverting changes.`);
+                            toast.error(`${e.message}. Revertendo alterações.`);
                             setFrom(campaign.from);
                           },
                         },
@@ -308,7 +308,7 @@ function CampaignEditor({
                 </div>
                 <div className="flex items-center gap-4">
                   <label className="block text-sm  w-[80px] text-muted-foreground">
-                    Reply To
+                    Responder para
                   </label>
                   <input
                     type="text"
@@ -332,7 +332,7 @@ function CampaignEditor({
                         },
                         {
                           onError: (e) => {
-                            toast.error(`${e.message}. Reverting changes.`);
+                            toast.error(`${e.message}. Revertendo alterações.`);
                             setReplyTo(campaign.replyTo[0]);
                           },
                         },
@@ -345,7 +345,7 @@ function CampaignEditor({
 
                 <div className="flex items-center gap-4">
                   <label className="block text-sm  w-[80px] text-muted-foreground">
-                    Preview
+                    Prévia
                   </label>
                   <input
                     type="text"
@@ -370,7 +370,7 @@ function CampaignEditor({
                         },
                         {
                           onError: (e) => {
-                            toast.error(`${e.message}. Reverting changes.`);
+                            toast.error(`${e.message}. Revertendo alterações.`);
                             setPreviewText(campaign.previewText ?? "");
                           },
                         },
@@ -383,7 +383,7 @@ function CampaignEditor({
                 </div>
                 <div className=" flex items-center gap-2">
                   <label className="block text-sm  w-[80px] text-muted-foreground">
-                    To
+                    Para
                   </label>
                   {contactBooksQuery.isLoading ? (
                     <Spinner className="w-6 h-6" />
@@ -413,7 +413,7 @@ function CampaignEditor({
                       <SelectTrigger className="w-[300px]">
                         {contactBook
                           ? `${contactBook.emoji} ${contactBook.name}`
-                          : "Select a contact book"}
+                          : "Selecione uma lista de contatos"}
                       </SelectTrigger>
                       <SelectContent>
                         {contactBooksQuery.data?.map((book) => (
@@ -421,7 +421,7 @@ function CampaignEditor({
                             {book.emoji} {book.name}{" "}
                             <span className="text-xs text-muted-foreground ml-4">
                               {" "}
-                              {book._count.contacts} contacts
+                              {book._count.contacts} contatos
                             </span>
                           </SelectItem>
                         ))}
@@ -436,8 +436,8 @@ function CampaignEditor({
 
         {isApiCampaign ? (
           <p className="text-sm text-center text-muted-foreground">
-            Email created from API. Campaign content can only be updated via
-            API.
+            E-mail criado a partir da API. O conteúdo da campanha só pode ser
+            atualizado via API.
           </p>
         ) : (
           <div className=" rounded-lg bg-gray-50 w-[700px] mx-auto p-10">

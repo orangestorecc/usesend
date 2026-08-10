@@ -18,10 +18,10 @@ export const DeleteTemplate: React.FC<{
     .object({
       confirmation: z
         .string()
-        .min(1, "Please type the template name to confirm"),
+        .min(1, "Digite o nome do template para confirmar"),
     })
     .refine((data) => data.confirmation === template.name, {
-      message: "Template name does not match",
+      message: "O nome do template não corresponde",
       path: ["confirmation"],
     });
 
@@ -33,7 +33,7 @@ export const DeleteTemplate: React.FC<{
       {
         onSuccess: () => {
           utils.template.getTemplates.invalidate();
-          toast.success(`Template deleted`);
+          toast.success(`Template excluído`);
         },
       },
     );
@@ -41,7 +41,7 @@ export const DeleteTemplate: React.FC<{
 
   return (
     <DeleteResource
-      title="Delete Template"
+      title="Excluir template"
       resourceName={template.name || ""}
       schema={templateSchema}
       isLoading={deleteTemplateMutation.isPending}
@@ -51,7 +51,7 @@ export const DeleteTemplate: React.FC<{
           <Trash2 className="h-[18px] w-[18px] text-red/80" />
         </Button>
       }
-      confirmLabel="Delete Template"
+      confirmLabel="Excluir template"
     />
   );
 };

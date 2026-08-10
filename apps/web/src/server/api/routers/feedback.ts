@@ -18,14 +18,14 @@ export const feedbackRouter = createTRPCRouter({
       if (!isCloud()) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Feedback is only available on the cloud version.",
+          message: "O feedback está disponível apenas na versão cloud.",
         });
       }
 
       if (!env.FOUNDER_EMAIL) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Feedback email is not configured.",
+          message: "O e-mail de feedback não está configurado.",
         });
       }
 

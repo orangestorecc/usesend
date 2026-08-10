@@ -32,6 +32,7 @@ import { useColors } from "./hooks/useColors";
 interface ReputationMetricsProps {
   days: number;
   domain: string | null;
+  campaign?: string | null;
 }
 
 enum ACCOUNT_STATUS {
@@ -48,10 +49,15 @@ const CustomLabel = ({ value, stroke }: { value: string; stroke: string }) => {
   );
 };
 
-export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
+export function ReputationMetrics({
+  days,
+  domain,
+  campaign,
+}: ReputationMetricsProps) {
   const { data: metrics, isLoading } =
     api.dashboard.reputationMetricsData.useQuery({
       domain: domain ? Number(domain) : undefined,
+      campaignId: campaign ?? undefined,
     });
 
   const colors = useColors();
@@ -59,7 +65,7 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
   const bouncedMetric = metrics
     ? [
         {
-          name: "Bounce Rate",
+          name: "Taxa de retorno",
           value: metrics.bounceRate,
         },
       ]
@@ -68,7 +74,7 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
   const complaintMetric = metrics
     ? [
         {
-          name: "Complaint Rate",
+          name: "Taxa de reclamação",
           value: metrics.complaintRate,
         },
       ]
@@ -94,14 +100,16 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
         <div className="w-full sm:w-1/2 border rounded-xl shadow p-4">
           <div className="flex justify-between">
             <div className=" flex items-center gap-2">
-              <div className="text-muted-foreground font-mono">Bounce Rate</div>
+              <div className="text-muted-foreground font-mono">
+                Taxa de retorno
+              </div>
               <Tooltip>
                 <TooltipTrigger>
                   <InfoIcon className=" h-3.5  w-3.5 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent className="w-[300px]">
-                  The percentage of emails sent from your account that resulted
-                  in a hard bounce.
+                  A porcentagem de e-mails enviados da sua conta que resultaram
+                  em um retorno definitivo (hard bounce).
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -195,7 +203,7 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
                           style={{ background: colors.clicked }}
                         ></div>
                         <p className="text-xs text-muted-foreground w-[70px]">
-                          Current
+                          Atual
                         </p>
                         <p className="text-xs font-mono">
                           {data.value.toFixed(2)}%
@@ -207,7 +215,7 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
                           style={{ background: colors.complained }}
                         ></div>
                         <p className="text-xs text-muted-foreground w-[70px]">
-                          Warning at
+                          Alerta em
                         </p>
                         <p className="text-xs font-mono">
                           {HARD_BOUNCE_WARNING_RATE}%
@@ -219,7 +227,7 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
                           style={{ background: colors.bounced }}
                         ></div>
                         <p className="text-xs text-muted-foreground w-[70px]">
-                          Risk at
+                          Risco em
                         </p>
                         <p className="text-xs font-mono">
                           {HARD_BOUNCE_RISK_RATE}%
@@ -243,15 +251,15 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
         <div className="w-full sm:w-1/2 border rounded-xl shadow p-4">
           <div className=" flex items-center gap-2">
             <div className=" text-muted-foreground font-mono">
-              Complaint Rate
+              Taxa de reclamação
             </div>
             <Tooltip>
               <TooltipTrigger>
                 <InfoIcon className=" h-3.5 w-3.5 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent className="w-[300px]">
-                The percentage of emails sent from your account that resulted in
-                recipients reporting them as spam.
+                A porcentagem de e-mails enviados da sua conta cujos
+                destinatários os denunciaram como spam.
               </TooltipContent>
             </Tooltip>
           </div>
@@ -334,7 +342,7 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
                           style={{ background: colors.clicked }}
                         ></div>
                         <p className="text-xs text-muted-foreground w-[70px]">
-                          Current
+                          Atual
                         </p>
                         <p className="text-xs font-mono">
                           {data.value.toFixed(2)}%
@@ -346,7 +354,7 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
                           style={{ background: colors.complained }}
                         ></div>
                         <p className="text-xs text-muted-foreground w-[70px]">
-                          Warning at
+                          Alerta em
                         </p>
                         <p className="text-xs font-mono">
                           {COMPLAINED_WARNING_RATE}%
@@ -358,7 +366,7 @@ export function ReputationMetrics({ days, domain }: ReputationMetricsProps) {
                           style={{ background: colors.bounced }}
                         ></div>
                         <p className="text-xs text-muted-foreground w-[70px]">
-                          Risk at
+                          Risco em
                         </p>
                         <p className="text-xs font-mono">
                           {COMPLAINED_RISK_RATE}%

@@ -82,7 +82,7 @@ export class SuppressionService {
 
       throw new UnsendApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to add email to suppression list",
+        message: "Falha ao adicionar o e-mail à lista de supressão",
       });
     }
   }
@@ -218,7 +218,7 @@ export class SuppressionService {
 
       throw new UnsendApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to remove email from suppression list",
+        message: "Falha ao remover o e-mail da lista de supressão",
       });
     }
   }
@@ -282,7 +282,7 @@ export class SuppressionService {
 
       throw new UnsendApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to get suppression list",
+        message: "Falha ao obter a lista de supressão",
       });
     }
   }
@@ -344,7 +344,7 @@ export class SuppressionService {
 
       throw new UnsendApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to add multiple emails to suppression list",
+        message: "Falha ao adicionar múltiplos e-mails à lista de supressão",
       });
     }
   }
@@ -384,7 +384,7 @@ export class SuppressionService {
 
       throw new UnsendApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to get suppression stats",
+        message: "Falha ao obter as estatísticas da lista de supressão",
       });
     }
   }

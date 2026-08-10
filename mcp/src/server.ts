@@ -10,10 +10,30 @@ const PORT = Number(process.env.PORT ?? 8787);
 const BASE_URL = process.env.USESEND_BASE_URL ?? "http://localhost:3000/api";
 const USAGE_LOG = "usage.log.jsonl";
 
+// OAuth: URL pública deste MCP (Resource Server) e do Authorization Server (app Madmail).
+const MCP_PUBLIC_URL =
+  process.env.MCP_PUBLIC_URL ?? "https://mcp.madmail.com.br/mcp";
+const AUTH_SERVER_URL =
+  process.env.AUTH_SERVER_URL ?? "https://app.madmail.com.br";
+const PROTECTED_RESOURCE_METADATA = `${new URL(MCP_PUBLIC_URL).origin}/.well-known/oauth-protected-resource`;
+
 function bearer(req: express.Request): string | null {
   const h = req.header("authorization") ?? "";
   const [scheme, token] = h.split(" ");
   return scheme?.toLowerCase() === "bearer" && token ? token : null;
+}
+
+// 401 com o header WWW-Authenticate que aponta os clientes de IA ao fluxo OAuth.
+function unauthorized(res: express.Response, message: string) {
+  res.setHeader(
+    "WWW-Authenticate",
+    `Bearer resource_metadata="${PROTECTED_RESOURCE_METADATA}"`,
+  );
+  return res.status(401).json({
+    jsonrpc: "2.0",
+    error: { code: -32001, message },
+    id: null,
+  });
 }
 
 const app = express();
@@ -21,14 +41,22 @@ app.use(express.json({ limit: "5mb" }));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
+// Metadados do Protected Resource (RFC 9728) — descoberta do Authorization Server.
+app.get("/.well-known/oauth-protected-resource", (_req, res) => {
+  res.json({
+    resource: MCP_PUBLIC_URL,
+    authorization_servers: [AUTH_SERVER_URL],
+    bearer_methods_supported: ["header"],
+  });
+});
+
 app.post("/mcp", async (req, res) => {
   const token = bearer(req);
   if (!token) {
-    return res.status(401).json({
-      jsonrpc: "2.0",
-      error: { code: -32001, message: "Token ausente (Authorization: Bearer msk_...)" },
-      id: null,
-    });
+    return unauthorized(
+      res,
+      "Token ausente. Faça login com sua conta Madmail (OAuth) ou use um token msk_.",
+    );
   }
 
   // O MCP é pass-through: usa o token do cliente direto contra o useSend,
@@ -39,11 +67,7 @@ app.post("/mcp", async (req, res) => {
     const me = await client.getMcpMe();
     scopes = me.scopes;
   } catch {
-    return res.status(401).json({
-      jsonrpc: "2.0",
-      error: { code: -32001, message: "Token de MCP inválido" },
-      id: null,
-    });
+    return unauthorized(res, "Token de MCP inválido ou expirado.");
   }
 
   const clienteLabel = `${token.slice(0, 7)}...${token.slice(-3)}`;

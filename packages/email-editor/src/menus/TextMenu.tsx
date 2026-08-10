@@ -54,39 +54,39 @@ export type ContentTypePickerOption = {
 
 const textColors = [
   {
-    name: "default",
+    name: "padrão",
     value: "#000000",
   },
   {
-    name: "red",
+    name: "vermelho",
     value: "#dc2626",
   },
   {
-    name: "green",
+    name: "verde",
     value: "#16a34a",
   },
   {
-    name: "blue",
+    name: "azul",
     value: "#2563eb",
   },
   {
-    name: "yellow",
+    name: "amarelo",
     value: "#eab308",
   },
   {
-    name: "purple",
+    name: "roxo",
     value: "#a855f7",
   },
   {
-    name: "orange",
+    name: "laranja",
     value: "#f97316",
   },
   {
-    name: "pink",
+    name: "rosa",
     value: "#db2777",
   },
   {
-    name: "gray",
+    name: "cinza",
     value: "#6b7280",
   },
 ];
@@ -174,7 +174,7 @@ export function TextMenu(props: TextMenuProps) {
           !editor?.isActive("orderedList") &&
           !editor?.isActive("bulletList") &&
           !editor?.isActive("taskList"),
-        label: "Text",
+        label: "Texto",
         type: "option",
       },
       {
@@ -190,7 +190,7 @@ export function TextMenu(props: TextMenuProps) {
         id: "heading1",
         disabled: () => !editor?.can().setHeading({ level: 1 }),
         isActive: () => editor?.isActive("heading", { level: 1 }),
-        label: "Heading 1",
+        label: "Título 1",
         type: "option",
       },
       {
@@ -206,7 +206,7 @@ export function TextMenu(props: TextMenuProps) {
         id: "heading2",
         disabled: () => !editor?.can().setHeading({ level: 2 }),
         isActive: () => editor?.isActive("heading", { level: 2 }),
-        label: "Heading 2",
+        label: "Título 2",
         type: "option",
       },
       {
@@ -222,7 +222,7 @@ export function TextMenu(props: TextMenuProps) {
         id: "heading3",
         disabled: () => !editor?.can().setHeading({ level: 3 }),
         isActive: () => editor?.isActive("heading", { level: 3 }),
-        label: "Heading 3",
+        label: "Título 3",
         type: "option",
       },
       {
@@ -231,7 +231,7 @@ export function TextMenu(props: TextMenuProps) {
         id: "bulletList",
         disabled: () => !editor?.can()?.toggleBulletList(),
         isActive: () => editor?.isActive("bulletList"),
-        label: "Bullet list",
+        label: "Lista com marcadores",
         type: "option",
       },
       {
@@ -240,7 +240,7 @@ export function TextMenu(props: TextMenuProps) {
         id: "orderedList",
         disabled: () => !editor?.can()?.toggleOrderedList(),
         isActive: () => editor?.isActive("orderedList"),
-        label: "Numbered list",
+        label: "Lista numerada",
         type: "option",
       },
     ],
@@ -368,7 +368,7 @@ function ContentTypePicker({ options }: ContentTypePickerProps) {
           variant="ghost"
           className="hover:bg-slate-100  hover:text-slate-600 text-slate-600 px-2"
         >
-          <span>{activeOption?.label || "Text"}</span>
+          <span>{activeOption?.label || "Texto"}</span>
           <ChevronDown className="h-4 w-4 ml-1.5 text-gray-800" />
         </Button>
       </PopoverTrigger>

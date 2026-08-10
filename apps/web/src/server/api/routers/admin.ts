@@ -159,7 +159,7 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!existingUser) {
-        throw new Error("User not found");
+        throw new Error("Usuário não encontrado");
       }
 
       const updatedUser = await db.user.update({
@@ -237,12 +237,12 @@ export const adminRouter = createTRPCRouter({
         const userFirstName =
           updatedUser.name?.split(" ")[0] ?? updatedUser.name ?? recipient;
 
-        const text = `Hey ${userFirstName},\n\nThanks for hanging in while we reviewed your waitlist request. I've just moved your account off the waitlist, so you now have full access to useSend.\n\nGo ahead and log back in to start sending: ${env.NEXTAUTH_URL}\n\nIf anything feels unclear or you want help getting set up, reply to this email and it comes straight to me.\n\nCheers,\n${founderName}\n${replyTo}`;
+        const text = `Hey ${userFirstName},\n\nThanks for hanging in while we reviewed your waitlist request. I've just moved your account off the waitlist, so you now have full access to Madmail.\n\nGo ahead and log back in to start sending: ${env.NEXTAUTH_URL}\n\nIf anything feels unclear or you want help getting set up, reply to this email and it comes straight to me.\n\nCheers,\n${founderName}\n${replyTo}`;
 
         try {
           await sendMail(
             recipient,
-            "useSend: You're off the waitlist",
+            "Madmail: You're off the waitlist",
             text,
             toPlainHtml(text),
             replyTo,
@@ -272,11 +272,11 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!user) {
-        throw new Error("User not found");
+        throw new Error("Usuário não encontrado");
       }
 
       if (!user.email) {
-        throw new Error("User email is missing");
+        throw new Error("O e-mail do usuário está faltando");
       }
 
       const founderEmail = env.FOUNDER_EMAIL ?? undefined;
@@ -285,7 +285,7 @@ export const adminRouter = createTRPCRouter({
       const replyTo = founderEmail ?? fallbackFrom;
 
       if (!replyTo) {
-        throw new Error("No sender email configured");
+        throw new Error("Nenhum e-mail de remetente configurado");
       }
 
       const fromOverride = founderEmail ?? undefined;
@@ -293,17 +293,17 @@ export const adminRouter = createTRPCRouter({
       const text = [
         "Hello,",
         "",
-        "Sorry, We cannot proceed with this request at this time, this might affect useSend\u2019s sending reputation.",
+        "Sorry, We cannot proceed with this request at this time, this might affect Madmail\u2019s sending reputation.",
         "",
         "",
         "cheers,",
-        "koushik - useSend.com",
+        "koushik - Madmail.com",
       ].join("\n");
 
       try {
         await sendMail(
           user.email,
-          "useSend: Waitlist request update",
+          "Madmail: Waitlist request update",
           text,
           toPlainHtml(text),
           replyTo,
@@ -314,11 +314,19 @@ export const adminRouter = createTRPCRouter({
           { userId: user.id, error },
           "Failed to send waitlist rejection email",
         );
-        throw new Error("Failed to send waitlist rejection email");
+        throw new Error("Falha ao enviar o e-mail de rejeição da lista de espera");
       }
 
       return { sent: true };
     }),
+
+  listTeams: adminProcedure.query(async () => {
+    return db.team.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      select: teamAdminSelection,
+    });
+  }),
 
   findTeam: adminProcedure
     .input(

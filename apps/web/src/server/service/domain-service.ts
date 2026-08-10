@@ -65,28 +65,31 @@ function buildDnsRecords(domain: Domain): DomainDnsRecord[] {
     ? DomainStatus.SUCCESS
     : DomainStatus.NOT_STARTED;
 
+  // Recebimento (inbound): MX no próprio domínio apontando para o SES inbound
+  // (região de recebimento, us-east-1). Só aparece quando o recebimento está ligado.
+  const inboundRegion = env.INBOUND_S3_REGION;
+  const receivingRecords: DomainDnsRecord[] = domain.receivingEnabled
+    ? [
+        {
+          type: "MX",
+          name: domain.subdomain ? domain.subdomain : "@",
+          value: `inbound-smtp.${inboundRegion}.amazonaws.com`,
+          ttl: "Auto",
+          priority: "10",
+          status: DomainStatus.NOT_STARTED,
+          group: "receiving",
+        },
+      ]
+    : [];
+
   return [
-    {
-      type: "MX",
-      name: mailDomain,
-      value: `feedback-smtp.${domain.region}.amazonses.com`,
-      ttl: "Auto",
-      priority: "10",
-      status: spfStatus,
-    },
     {
       type: "TXT",
       name: `${dkimSelector}._domainkey${subdomainSuffix}`,
       value: `p=${domain.publicKey}`,
       ttl: "Auto",
       status: dkimStatus,
-    },
-    {
-      type: "TXT",
-      name: mailDomain,
-      value: "v=spf1 include:amazonses.com ~all",
-      ttl: "Auto",
-      status: spfStatus,
+      group: "verification",
     },
     {
       type: "TXT",
@@ -95,7 +98,26 @@ function buildDnsRecords(domain: Domain): DomainDnsRecord[] {
       ttl: "Auto",
       status: dmarcStatus,
       recommended: true,
+      group: "verification",
     },
+    {
+      type: "MX",
+      name: mailDomain,
+      value: `feedback-smtp.${domain.region}.amazonses.com`,
+      ttl: "Auto",
+      priority: "10",
+      status: spfStatus,
+      group: "sending",
+    },
+    {
+      type: "TXT",
+      name: mailDomain,
+      value: "v=spf1 include:amazonses.com ~all",
+      ttl: "Auto",
+      status: spfStatus,
+      group: "sending",
+    },
+    ...receivingRecords,
   ];
 }
 
@@ -270,10 +292,10 @@ async function sendDomainStatusNotification({
 
   const subject =
     domain.status === DomainStatus.SUCCESS
-      ? `useSend: ${domain.name} is verified`
+      ? `Madmail: ${domain.name} foi verificado`
       : previousStatus === DomainStatus.SUCCESS
-        ? `useSend: ${domain.name} verification status changed`
-        : `useSend: ${domain.name} verification failed`;
+        ? `Madmail: status de verificação de ${domain.name} mudou`
+        : `Madmail: falha na verificação de ${domain.name}`;
 
   const domainUrl = `${env.NEXTAUTH_URL}/domains/${domain.id}`;
   const html = await renderDomainVerificationStatusEmail({
@@ -284,17 +306,17 @@ async function sendDomainStatusNotification({
   });
   const statusMessage =
     domain.status === DomainStatus.SUCCESS
-      ? `Your domain ${domain.name} is now verified, and you can start sending emails.`
-      : `Your domain ${domain.name} could not be verified because the DNS records are not set up correctly yet. Please review your DNS settings and try again.`;
+      ? `Seu domínio ${domain.name} foi verificado e você já pode começar a enviar e-mails.`
+      : `Não foi possível verificar seu domínio ${domain.name} porque os registros DNS ainda não estão configurados corretamente. Revise suas configurações de DNS e tente novamente.`;
   const textLines = [
-    "Hey,",
+    "Olá,",
     null,
     statusMessage,
     null,
-    `Open domain settings: ${domainUrl}`,
+    `Abrir configurações do domínio: ${domainUrl}`,
     null,
-    "Thanks,",
-    "useSend Team",
+    "Atenciosamente,",
+    "Time Madmail",
   ].filter((value): value is string => Boolean(value));
 
   await Promise.all(
@@ -342,7 +364,7 @@ export async function validateDomainFromEmail(email: string, teamId: number) {
   if (!fromDomain) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "From email is invalid",
+      message: "O e-mail de remetente é inválido",
     });
   }
 
@@ -353,14 +375,14 @@ export async function validateDomainFromEmail(email: string, teamId: number) {
   if (!domain) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: `Domain: ${fromDomain} of from email is wrong. Use the domain verified by useSend`,
+      message: `Domínio: ${fromDomain} do e-mail de remetente está incorreto. Use o domínio verificado pelo Madmail`,
     });
   }
 
   if (domain.status !== "SUCCESS") {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: `Domain: ${fromDomain} is not verified`,
+      message: `Domínio: ${fromDomain} não está verificado`,
     });
   }
 
@@ -384,7 +406,7 @@ export async function validateApiKeyDomainAccess(
   if (apiKey.domainId !== domain.id) {
     throw new UnsendApiError({
       code: "FORBIDDEN",
-      message: `API key does not have access to domain: ${domain.name}`,
+      message: `A API key não tem acesso ao domínio: ${domain.name}`,
     });
   }
 
@@ -460,7 +482,7 @@ export async function getDomain(id: number, teamId: number) {
   if (!domain) {
     throw new UnsendApiError({
       code: "NOT_FOUND",
-      message: "Domain not found",
+      message: "Domínio não encontrado",
     });
   }
 
@@ -482,7 +504,7 @@ export async function refreshDomainVerification(
   if (!domain) {
     throw new UnsendApiError({
       code: "NOT_FOUND",
-      message: "Domain not found",
+      message: "Domínio não encontrado",
     });
   }
 
@@ -601,7 +623,11 @@ export async function refreshDomainVerification(
 
 export async function updateDomain(
   id: number,
-  data: { clickTracking?: boolean; openTracking?: boolean },
+  data: {
+    clickTracking?: boolean;
+    openTracking?: boolean;
+    tlsEnforced?: boolean;
+  },
 ) {
   const updated = await db.domain.update({
     where: { id },
@@ -619,7 +645,7 @@ export async function deleteDomain(id: number) {
   });
 
   if (!domain) {
-    throw new Error("Domain not found");
+    throw new Error("Domínio não encontrado");
   }
 
   const deleted = await ses.deleteDomain(

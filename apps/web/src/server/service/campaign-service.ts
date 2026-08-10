@@ -155,7 +155,7 @@ async function renderCampaignHtmlForContact({
   }
 
   if (!campaign.html) {
-    throw new Error("No HTML content for campaign");
+    throw new Error("A campanha não tem conteúdo HTML");
   }
 
   let html = replaceUnsubscribePlaceholders(campaign.html, unsubscribeUrl);
@@ -196,7 +196,7 @@ export async function createCampaignFromApi({
   if (!content && !html) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Either content or html must be provided",
+      message: "É necessário fornecer o conteúdo ou o HTML",
     });
   }
 
@@ -207,7 +207,7 @@ export async function createCampaignFromApi({
       logger.error({ err: error }, "Invalid campaign content JSON from API");
       throw new UnsendApiError({
         code: "BAD_REQUEST",
-        message: "Invalid content JSON",
+        message: "JSON de conteúdo inválido",
       });
     }
   }
@@ -220,7 +220,7 @@ export async function createCampaignFromApi({
   if (!contactBook) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Contact book not found",
+      message: "Lista de contatos não encontrada",
     });
   }
 
@@ -235,7 +235,7 @@ export async function createCampaignFromApi({
     if (!apiKey || apiKey.teamId !== teamId) {
       throw new UnsendApiError({
         code: "FORBIDDEN",
-        message: "Invalid API key",
+        message: "API key inválida",
       });
     }
 
@@ -255,7 +255,7 @@ export async function createCampaignFromApi({
   if (!unsubPlaceholderFound) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Campaign must include an unsubscribe link before sending",
+      message: "A campanha precisa incluir um link de descadastro antes de enviar",
     });
   }
 
@@ -325,7 +325,7 @@ export async function getCampaignForTeam({
   if (!campaign) {
     throw new UnsendApiError({
       code: "NOT_FOUND",
-      message: "Campaign not found",
+      message: "Campanha não encontrada",
     });
   }
 
@@ -338,7 +338,7 @@ export async function sendCampaign(id: string) {
   });
 
   if (!campaign) {
-    throw new Error("Campaign not found");
+    throw new Error("Campanha não encontrada");
   }
 
   const prepared = await prepareCampaignHtml(campaign);
@@ -346,11 +346,11 @@ export async function sendCampaign(id: string) {
   const html = prepared.html;
 
   if (!campaign.contactBookId) {
-    throw new Error("No contact book found for campaign");
+    throw new Error("Nenhuma lista de contatos encontrada para a campanha");
   }
 
   if (!html) {
-    throw new Error("No HTML content for campaign");
+    throw new Error("A campanha não tem conteúdo HTML");
   }
 
   const unsubPlaceholderFound = campaignHasUnsubscribePlaceholder(
@@ -359,7 +359,7 @@ export async function sendCampaign(id: string) {
   );
 
   if (!unsubPlaceholderFound) {
-    throw new Error("Campaign must include an unsubscribe link before sending");
+    throw new Error("A campanha precisa incluir um link de descadastro antes de enviar");
   }
 
   // Count subscribed contacts for total, don't load all into memory
@@ -402,7 +402,7 @@ export async function scheduleCampaign({
   if (!campaign) {
     throw new UnsendApiError({
       code: "NOT_FOUND",
-      message: "Campaign not found",
+      message: "Campanha não encontrada",
     });
   }
 
@@ -421,14 +421,14 @@ export async function scheduleCampaign({
   if (!campaign.contactBookId) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "No contact book found for campaign",
+      message: "Nenhuma lista de contatos encontrada para a campanha",
     });
   }
 
   if (!html) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "No HTML content for campaign",
+      message: "A campanha não tem conteúdo HTML",
     });
   }
 
@@ -439,7 +439,7 @@ export async function scheduleCampaign({
   if (!unsubPlaceholderFound) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Campaign must include an unsubscribe link before scheduling",
+      message: "A campanha precisa incluir um link de descadastro antes de agendar",
     });
   }
 
@@ -451,7 +451,7 @@ export async function scheduleCampaign({
   if (total === 0) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "No subscribed contacts to send",
+      message: "Nenhum contato inscrito para enviar",
     });
   }
 
@@ -492,7 +492,7 @@ export async function pauseCampaign({
   if (!campaign) {
     throw new UnsendApiError({
       code: "NOT_FOUND",
-      message: "Campaign not found",
+      message: "Campanha não encontrada",
     });
   }
 
@@ -518,7 +518,7 @@ export async function resumeCampaign({
   if (!campaign) {
     throw new UnsendApiError({
       code: "NOT_FOUND",
-      message: "Campaign not found",
+      message: "Campanha não encontrada",
     });
   }
 
@@ -705,7 +705,7 @@ export async function deleteCampaign(id: string, teamId: number) {
   if (!existing) {
     throw new UnsendApiError({
       code: "NOT_FOUND",
-      message: "Campaign not found",
+      message: "Campanha não encontrada",
     });
   }
 
@@ -1015,7 +1015,7 @@ export async function updateCampaignAnalytics(
   });
 
   if (!campaign) {
-    throw new Error("Campaign not found");
+    throw new Error("Campanha não encontrada");
   }
 
   const updateData: Record<string, any> = {};

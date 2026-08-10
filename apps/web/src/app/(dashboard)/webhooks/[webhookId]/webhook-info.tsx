@@ -43,21 +43,21 @@ export function WebhookInfo({ webhook }: { webhook: Webhook }) {
     (domainsQuery.data ?? []).map((domain) => [domain.id, domain.name]),
   );
   const selectedDomainLabels = (webhook.domainIds ?? []).map(
-    (domainId) => domainNameById.get(domainId) ?? `Domain #${domainId}`,
+    (domainId) => domainNameById.get(domainId) ?? `Domínio #${domainId}`,
   );
 
   const handleCopySecret = () => {
     navigator.clipboard.writeText(webhook.secret);
-    toast.success("Secret copied to clipboard");
+    toast.success("Secret copiado para a área de transferência");
   };
 
   return (
     <div className="flex items-start gap-6 justify-between mt-5 mb-10">
       <div className="flex flex-col gap-1">
-        <span className="text-sm text-muted-foreground">Events</span>
+        <span className="text-sm text-muted-foreground">Eventos</span>
         <div className="flex items-center gap-1 flex-wrap font-mono text-sm">
           {webhook.eventTypes.length === 0 ? (
-            <span className="text-sm">All events</span>
+            <span className="text-sm">Todos os eventos</span>
           ) : (
             <>
               {webhook.eventTypes.slice(0, 2).map((event) => (
@@ -67,7 +67,7 @@ export function WebhookInfo({ webhook }: { webhook: Webhook }) {
               ))}
               {webhook.eventTypes.length > 2 && (
                 <span className="text-xs text-muted-foreground">
-                  +{webhook.eventTypes.length - 2} more
+                  +{webhook.eventTypes.length - 2} mais
                 </span>
               )}
             </>
@@ -75,10 +75,10 @@ export function WebhookInfo({ webhook }: { webhook: Webhook }) {
         </div>
       </div>
       <div className="flex flex-col gap-1">
-        <span className="text-sm text-muted-foreground">Domains</span>
+        <span className="text-sm text-muted-foreground">Domínios</span>
         <div className="flex items-center gap-1 flex-wrap text-sm">
           {(webhook.domainIds ?? []).length === 0 ? (
-            <span className="text-sm">All domains</span>
+            <span className="text-sm">Todos os domínios</span>
           ) : (
             <>
               {selectedDomainLabels.slice(0, 2).map((domainName, index) => (
@@ -88,7 +88,7 @@ export function WebhookInfo({ webhook }: { webhook: Webhook }) {
               ))}
               {(webhook.domainIds ?? []).length > 2 && (
                 <span className="text-xs text-muted-foreground">
-                  +{(webhook.domainIds ?? []).length - 2} more
+                  +{(webhook.domainIds ?? []).length - 2} mais
                 </span>
               )}
             </>
@@ -103,7 +103,7 @@ export function WebhookInfo({ webhook }: { webhook: Webhook }) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <span className="text-sm text-muted-foreground">Created</span>
+        <span className="text-sm text-muted-foreground">Criado</span>
         <span className="text-sm">
           {formatDistanceToNow(webhook.createdAt, { addSuffix: true })}
         </span>
@@ -111,7 +111,9 @@ export function WebhookInfo({ webhook }: { webhook: Webhook }) {
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Signing Secret</span>
+          <span className="text-sm text-muted-foreground">
+            Secret de assinatura
+          </span>
           <div className="flex gap-1">
             <Button
               variant="ghost"

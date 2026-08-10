@@ -15,7 +15,7 @@ export const getTeamFromToken = async (c: Context) => {
   if (!authHeader) {
     throw new UnsendApiError({
       code: "UNAUTHORIZED",
-      message: "No Authorization header provided",
+      message: "Nenhum Authorization header fornecido",
     });
   }
 
@@ -24,7 +24,7 @@ export const getTeamFromToken = async (c: Context) => {
   if (!token) {
     throw new UnsendApiError({
       code: "UNAUTHORIZED",
-      message: "No Authorization header provided",
+      message: "Nenhum Authorization header fornecido",
     });
   }
 
@@ -34,12 +34,13 @@ export const getTeamFromToken = async (c: Context) => {
     if (!mcp || !mcp.team) {
       throw new UnsendApiError({
         code: "FORBIDDEN",
-        message: "Invalid MCP token",
+        message: "MCP token inválido",
       });
     }
     return {
       ...mcp.team,
       apiKeyId: 0,
+      apiKeyName: mcp.mcpKey?.name ?? "MCP",
       apiKey: { domainId: null },
       mcpScopes: mcp.scopes,
     };
@@ -50,7 +51,7 @@ export const getTeamFromToken = async (c: Context) => {
   if (!teamAndApiKey) {
     throw new UnsendApiError({
       code: "FORBIDDEN",
-      message: "Invalid API token",
+      message: "API token inválido",
     });
   }
 
@@ -59,7 +60,7 @@ export const getTeamFromToken = async (c: Context) => {
   if (!team) {
     throw new UnsendApiError({
       code: "FORBIDDEN",
-      message: "Invalid API token",
+      message: "API token inválido",
     });
   }
 
@@ -77,5 +78,10 @@ export const getTeamFromToken = async (c: Context) => {
       logger.error({ err }, "Failed to update lastUsed on API key")
     );
 
-  return { ...team, apiKeyId: apiKey.id, apiKey: { domainId: apiKey.domainId } };
+  return {
+    ...team,
+    apiKeyId: apiKey.id,
+    apiKeyName: apiKey.name,
+    apiKey: { domainId: apiKey.domainId },
+  };
 };

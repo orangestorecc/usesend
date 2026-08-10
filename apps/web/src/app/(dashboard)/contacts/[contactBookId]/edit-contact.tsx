@@ -33,7 +33,7 @@ import {
 } from "~/lib/contact-properties";
 
 const contactSchema = z.object({
-  email: z.string().email({ message: "Invalid email address" }),
+  email: z.string().email({ message: "E-mail inválido" }),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   properties: z.record(z.string()).optional(),
@@ -112,7 +112,7 @@ export const EditContact: React.FC<{
         onSuccess: async () => {
           utils.contacts.contacts.invalidate();
           setOpen(false);
-          toast.success("Contact updated successfully");
+          toast.success("Contato atualizado com sucesso");
         },
         onError: async (error) => {
           toast.error(error.message);
@@ -133,7 +133,7 @@ export const EditContact: React.FC<{
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Contact</DialogTitle>
+          <DialogTitle>Editar contato</DialogTitle>
         </DialogHeader>
         <div className="py-2">
           <Form {...contactForm}>
@@ -146,7 +146,7 @@ export const EditContact: React.FC<{
                 name="email"
                 render={({ field, formState }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>E-mail</FormLabel>
                     <FormControl>
                       <Input placeholder="email@example.com" {...field} />
                     </FormControl>
@@ -159,9 +159,9 @@ export const EditContact: React.FC<{
                 name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input placeholder="First Name" {...field} />
+                      <Input placeholder="Nome" {...field} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -171,9 +171,9 @@ export const EditContact: React.FC<{
                 name="lastName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Name</FormLabel>
+                    <FormLabel>Sobrenome</FormLabel>
                     <FormControl>
-                      <Input placeholder="Last Name" {...field} />
+                      <Input placeholder="Sobrenome" {...field} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -184,7 +184,7 @@ export const EditContact: React.FC<{
                 render={({ field }) => (
                   <FormItem className="fle flex-row gap-2">
                     <div>
-                      <FormLabel>Subscribed</FormLabel>
+                      <FormLabel>Inscrito</FormLabel>
                     </div>
                     <FormControl>
                       <Switch
@@ -224,7 +224,9 @@ export const EditContact: React.FC<{
                   type="submit"
                   disabled={updateContactMutation.isPending}
                 >
-                  {updateContactMutation.isPending ? "Updating..." : "Update"}
+                  {updateContactMutation.isPending
+                    ? "Atualizando..."
+                    : "Atualizar"}
                 </Button>
               </div>
             </form>

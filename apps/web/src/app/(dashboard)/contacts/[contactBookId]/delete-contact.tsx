@@ -16,10 +16,10 @@ export const DeleteContact: React.FC<{
 
   const contactSchema = z
     .object({
-      confirmation: z.string().email("Please enter a valid email address"),
+      confirmation: z.string().email("Digite um e-mail válido"),
     })
     .refine((data) => data.confirmation === contact.email, {
-      message: "Email does not match",
+      message: "O e-mail não corresponde",
       path: ["confirmation"],
     });
 
@@ -32,10 +32,10 @@ export const DeleteContact: React.FC<{
       {
         onSuccess: () => {
           utils.contacts.contacts.invalidate();
-          toast.success(`Contact deleted`);
+          toast.success(`Contato excluído`);
         },
         onError: (e) => {
-          toast.error(`Contact not deleted: ${e.message}`);
+          toast.error(`Contato não excluído: ${e.message}`);
         },
       },
     );
@@ -43,7 +43,7 @@ export const DeleteContact: React.FC<{
 
   return (
     <DeleteResource
-      title="Delete Contact"
+      title="Excluir contato"
       resourceName={contact.email || ""}
       schema={contactSchema}
       isLoading={deleteContactMutation.isPending}
@@ -53,7 +53,7 @@ export const DeleteContact: React.FC<{
           <Trash2 className="h-4 w-4 text-red/80" />
         </Button>
       }
-      confirmLabel="Delete Contact"
+      confirmLabel="Excluir contato"
     />
   );
 };

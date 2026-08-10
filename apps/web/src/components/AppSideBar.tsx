@@ -18,6 +18,7 @@ import {
   GaugeIcon,
   UserRoundX,
   Webhook,
+  ScrollText,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -41,7 +42,6 @@ import { isCloud, isSelfHosted } from "~/utils/common";
 import { usePathname } from "next/navigation";
 import { Badge } from "@usesend/ui/src/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@usesend/ui/src/avatar";
-import Image from "next/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,12 +57,12 @@ import { env } from "~/env";
 // General items
 const generalItems = [
   {
-    title: "Analytics",
+    title: "Análises",
     url: "/dashboard",
     icon: BarChart3,
   },
   {
-    title: "Emails",
+    title: "E-mails",
     url: "/emails",
     icon: Mail,
   },
@@ -72,7 +72,7 @@ const generalItems = [
     icon: LayoutTemplate,
   },
   {
-    title: "Suppressions",
+    title: "Supressões",
     url: "/suppressions",
     icon: UserRoundX,
   },
@@ -81,12 +81,12 @@ const generalItems = [
 // Marketing items
 const marketingItems = [
   {
-    title: "Contacts",
+    title: "Contatos",
     url: "/contacts",
     icon: BookUser,
   },
   {
-    title: "Campaigns",
+    title: "Campanhas",
     url: "/campaigns",
     icon: Volume2,
   },
@@ -95,7 +95,7 @@ const marketingItems = [
 // Settings items
 const settingsItems = [
   {
-    title: "Domains",
+    title: "Domínios",
     url: "/domains",
     icon: Globe,
   },
@@ -105,12 +105,17 @@ const settingsItems = [
     icon: Webhook,
   },
   {
-    title: "Developer settings",
+    title: "Integrações",
     url: "/dev-settings",
     icon: Code,
   },
   {
-    title: "Settings",
+    title: "Logs",
+    url: "/logs",
+    icon: ScrollText,
+  },
+  {
+    title: "Configurações",
     url: "/settings",
     icon: Cog,
   },
@@ -134,10 +139,20 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader>
         <SidebarGroupLabel>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold text-foreground font-mono">
-              useSend
-            </span>
+          <div className="flex items-center gap-2 px-1">
+            {/* Logotipo (wordmark) — variantes por tema. Assets em /public/brand. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/madmail-wordmark-light.svg"
+              alt="Madmail"
+              className="h-6 w-auto dark:hidden"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/madmail-wordmark-dark.svg"
+              alt="Madmail"
+              className="hidden h-6 w-auto dark:block"
+            />
             <Badge variant="outline">Beta</Badge>
           </div>
         </SidebarGroupLabel>
@@ -145,7 +160,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>
-            <span>General</span>
+            <span>Geral</span>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -198,7 +213,7 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>
-            <span>Settings</span>
+            <span>Configurações</span>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -255,10 +270,10 @@ export function AppSidebar() {
               </SidebarMenuItem>
             ) : null}
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Docs">
+              <SidebarMenuButton asChild tooltip="Documentação">
                 <Link href="https://docs.usesend.com" target="_blank">
                   <BookOpenText />
-                  <span>Docs</span>
+                  <span>Documentação</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -355,13 +370,13 @@ export function NavUser({
               <DropdownMenuItem asChild>
                 <Link href="/settings/team">
                   <UsersIcon />
-                  Team
+                  Time
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings">
                   <GaugeIcon />
-                  Usage
+                  Uso
                 </Link>
               </DropdownMenuItem>
               <div className="px-2 py-0.5">
@@ -371,7 +386,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()}>
               <LogOutIcon />
-              Log out
+              Sair
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -403,7 +418,7 @@ function VersionInfo() {
   return (
     <div className="px-2 py-2 text-xs text-muted-foreground">
       <div className="flex items-center justify-between">
-        <span>Version</span>
+        <span>Versão</span>
         <span className="font-mono">{displayVersion}</span>
       </div>
     </div>

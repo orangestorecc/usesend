@@ -13,21 +13,37 @@ export default function AdminLayout({
       <h1 className="text-lg font-bold">Admin</h1>
       <div className="mt-4 flex gap-4">
         <SettingsNavButton href="/admin">
-          SES Configurations
+          Configurações SES
+        </SettingsNavButton>
+        <SettingsNavButton href="/admin/design-system">
+          Design System
+        </SettingsNavButton>
+        <SettingsNavButton href="/admin/brand">
+          Brand
         </SettingsNavButton>
         {isCloud() ? (
           <SettingsNavButton href="/admin/teams">
-            Teams
+            Clientes
           </SettingsNavButton>
         ) : null}
         {isCloud() ? (
           <SettingsNavButton href="/admin/email-analytics">
-            Email analytics
+            Análise de e-mails
           </SettingsNavButton>
         ) : null}
         {isCloud() ? (
           <SettingsNavButton href="/admin/waitlist">
-            Waitlist
+            Lista de espera
+          </SettingsNavButton>
+        ) : null}
+        {isCloud() ? (
+          <SettingsNavButton href="/admin/planos">
+            Planos
+          </SettingsNavButton>
+        ) : null}
+        {isCloud() ? (
+          <SettingsNavButton href="/admin/payments">
+            Pagamentos
           </SettingsNavButton>
         ) : null}
       </div>

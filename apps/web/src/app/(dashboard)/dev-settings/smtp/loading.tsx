@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@uses
         <CardHeader>
           <CardTitle>SMTP</CardTitle>
           <CardDescription>
-            Send emails using SMTP instead of the REST API. See documentation for
-            more information.
+            Envie e-mails usando SMTP em vez da API REST. Consulte a documentação
+            para mais informações.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -16,21 +16,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@uses
               <div className="ml-1 border bg-primary/10 rounded-lg mt-1 p-2 w-full h-10 animate-pulse" />
             </div>
             <div>
-              <label>Port:</label>
+              <label>Porta:</label>
               <div className="ml-1 rounded-lg mt-1 p-2 w-full bg-primary/10 h-10 animate-pulse" />
               <p className="ml-1 mt-1 text-zinc-500 text-sm">
-                For encrypted/TLS connections use{" "}
+                Para conexões criptografadas/TLS use{" "}
                 <strong className="font-mono">2465</strong>,{" "}
                 <strong className="font-mono">587</strong> or{" "}
                 <strong className="font-mono">2587</strong>
               </p>
             </div>
             <div>
-              <label>User:</label>
+              <label>Usuário:</label>
               <div className="ml-1 rounded-lg mt-1 p-2 w-full bg-primary/10 h-10 animate-pulse" />
             </div>
             <div>
-              <label>Password:</label>
+              <label>Senha:</label>
               <div className="ml-1 rounded-lg mt-1 p-2 w-full bg-primary/10 h-10 animate-pulse" />
             </div>
           </div>

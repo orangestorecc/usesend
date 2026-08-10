@@ -8,7 +8,10 @@ import { api } from "~/trpc/react";
 import React from "react";
 import { StatusIndicator } from "./status-indicator";
 import { DomainStatusBadge } from "./domain-badge";
-import Spinner from "@usesend/ui/src/spinner";
+import { Badge } from "@usesend/ui/src/badge";
+import { Globe, Inbox } from "lucide-react";
+import { EmptyState } from "~/components/EmptyState";
+import { CardsSkeleton } from "~/components/skeletons";
 
 export default function DomainsList() {
   const domainsQuery = api.domain.domains.useQuery();
@@ -17,18 +20,17 @@ export default function DomainsList() {
     <div className="mt-10">
       <div className="flex flex-col gap-6">
         {domainsQuery.isLoading ? (
-          <div className="flex justify-center mt-10">
-            <Spinner
-              className="w-6 h-6 mx-auto"
-              innerSvgClass="stroke-primary"
-            />
-          </div>
+          <CardsSkeleton count={3} />
         ) : domainsQuery.data?.length ? (
           domainsQuery.data?.map((domain) => (
             <DomainItem key={domain.id} domain={domain} />
           ))
         ) : (
-          <div className="text-center mt-20">No domains Added</div>
+          <EmptyState
+            icon={Globe}
+            title="Nenhum domínio adicionado"
+            description="Adicione e verifique um domínio para começar a enviar e-mails."
+          />
         )}
       </div>
     </div>
@@ -80,12 +82,20 @@ const DomainItem: React.FC<{ domain: Domain }> = ({ domain }) => {
             >
               {domain.name}
             </Link>
-            <DomainStatusBadge status={domain.status} />
+            <div className="flex items-center gap-2">
+              <DomainStatusBadge status={domain.status} />
+              {domain.receivingEnabled ? (
+                <Badge variant="outline" className="gap-1">
+                  <Inbox className="h-3 w-3" />
+                  Recebendo
+                </Badge>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex flex-col gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">Created at</p>
+              <p className="text-sm text-muted-foreground">Criado em</p>
               <p className="text-sm">
                 {formatDistanceToNow(new Date(domain.createdAt), {
                   addSuffix: true,
@@ -93,14 +103,14 @@ const DomainItem: React.FC<{ domain: Domain }> = ({ domain }) => {
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Region</p>
+              <p className="text-sm text-muted-foreground">Região</p>
 
               <p className="text-sm flex items-center gap-2">{domain.region}</p>
             </div>
           </div>
           <div className="flex flex-col gap-6">
             <div className="flex gap-2 items-center">
-              <p className="text-sm">Click tracking</p>
+              <p className="text-sm">Rastreamento de cliques</p>
               <Switch
                 checked={clickTracking}
                 onCheckedChange={handleClickTrackingChange}
@@ -108,7 +118,7 @@ const DomainItem: React.FC<{ domain: Domain }> = ({ domain }) => {
               />
             </div>
             <div className="flex gap-2 items-center">
-              <p className="text-sm">Open tracking</p>
+              <p className="text-sm">Rastreamento de aberturas</p>
               <Switch
                 checked={openTracking}
                 onCheckedChange={handleOpenTrackingChange}

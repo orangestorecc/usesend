@@ -20,7 +20,7 @@ export default function ReSubscribe({
 
   const reSubscribe = api.campaign.reSubscribeContact.useMutation({
     onSuccess: () => {
-      toast.success("You have been subscribed again");
+      toast.success("Você foi inscrito novamente");
       setSubscribed(true);
     },
     onError: (e) => {
@@ -31,12 +31,12 @@ export default function ReSubscribe({
   return (
     <div className="max-w-xl w-full space-y-8 p-10 border shadow rounded-xl">
       <h2 className=" text-center text-xl font-extrabold ">
-        {subscribed ? "You have subscribed again" : "You have unsubscribed"}
+        {subscribed ? "Você se inscreveu novamente" : "Você cancelou a inscrição"}
       </h2>
       <div>
         {subscribed
-          ? "You have been added to our mailing list and will receive all emails at"
-          : "You have been removed from our mailing list and won't receive any emails at"}{" "}
+          ? "Você foi adicionado à nossa lista de e-mails e receberá todos os e-mails em"
+          : "Você foi removido da nossa lista de e-mails e não receberá nenhum e-mail em"}{" "}
         <span className="font-bold">{contact.email}</span>.
       </div>
 
@@ -52,7 +52,7 @@ export default function ReSubscribe({
             {reSubscribe.isPending ? (
               <Spinner className="w-4 h-4" />
             ) : (
-              "Subscribe Again"
+              "Inscrever novamente"
             )}
           </Button>
         ) : null}

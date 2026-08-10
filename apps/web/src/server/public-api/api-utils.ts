@@ -8,7 +8,7 @@ export const getContactBook = async (c: Context, teamId: number) => {
   if (!contactBookId) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "contactBookId is mandatory",
+      message: "contactBookId é obrigatório",
     });
   }
 
@@ -19,7 +19,7 @@ export const getContactBook = async (c: Context, teamId: number) => {
   if (!contactBook) {
     throw new UnsendApiError({
       code: "NOT_FOUND",
-      message: "Contact book not found for this team",
+      message: "Lista de contatos não encontrada para este time",
     });
   }
 
@@ -30,7 +30,7 @@ export const checkIsValidEmailId = async (emailId: string, teamId: number) => {
   const email = await db.email.findUnique({ where: { id: emailId, teamId } });
 
   if (!email) {
-    throw new UnsendApiError({ code: "NOT_FOUND", message: "Email not found" });
+    throw new UnsendApiError({ code: "NOT_FOUND", message: "E-mail não encontrado" });
   }
 };
 
@@ -51,7 +51,7 @@ export const checkIsValidEmailIdWithDomainRestriction = async (
   const email = await db.email.findUnique({ where: whereClause });
 
   if (!email) {
-    throw new UnsendApiError({ code: "NOT_FOUND", message: "Email not found" });
+    throw new UnsendApiError({ code: "NOT_FOUND", message: "E-mail não encontrado" });
   }
 
   return email;

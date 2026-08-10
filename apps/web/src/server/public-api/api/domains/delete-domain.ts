@@ -63,7 +63,7 @@ function deleteDomain(app: PublicAPIApp) {
     if (team.apiKey.domainId && team.apiKey.domainId !== domainId) {
       throw new UnsendApiError({
         code: "FORBIDDEN",
-        message: "API key doesn't have access to this domain",
+        message: "A API key não tem acesso a este domínio",
       });
     }
 
@@ -77,7 +77,7 @@ function deleteDomain(app: PublicAPIApp) {
     if (!domain) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Domain not found",
+        message: "Domínio não encontrado",
       });
     }
 

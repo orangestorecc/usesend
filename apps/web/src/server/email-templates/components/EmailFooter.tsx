@@ -7,7 +7,7 @@ interface EmailFooterProps {
 }
 
 export function EmailFooter({
-  companyName = "useSend",
+  companyName = "Madmail",
   supportUrl = "mailto:hey@usesend.com",
 }: EmailFooterProps) {
   return (
@@ -26,7 +26,7 @@ export function EmailFooter({
           lineHeight: "1.5",
         }}
       >
-        This email was sent by {companyName}. If you have any questions, please{" "}
+        Este e-mail foi enviado por {companyName}. Se você tiver alguma dúvida,{" "}
         <a
           href={supportUrl}
           style={{
@@ -34,7 +34,7 @@ export function EmailFooter({
             textDecoration: "underline",
           }}
         >
-          contact our support team
+          fale com nosso time de suporte
         </a>
         .
       </Text>

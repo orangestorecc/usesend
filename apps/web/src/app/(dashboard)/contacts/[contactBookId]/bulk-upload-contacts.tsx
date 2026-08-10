@@ -61,7 +61,7 @@ export default function BulkUploadContacts({
     (controlledOpen === undefined ? (
       <Button variant="outline">
         <Upload className="h-4 w-4 mr-1" />
-        Upload Contacts
+        Enviar contatos
       </Button>
     ) : null);
 
@@ -287,7 +287,7 @@ export default function BulkUploadContacts({
   const processFile = (file: File) => {
     // Validate file type
     if (!file.name.endsWith(".txt") && !file.name.endsWith(".csv")) {
-      setError("Please upload a .txt or .csv file");
+      setError("Envie um arquivo .txt ou .csv");
       return;
     }
 
@@ -335,7 +335,7 @@ export default function BulkUploadContacts({
     setProcessing(true);
 
     if (!inputText.trim()) {
-      setError("Please enter contact information or upload a file");
+      setError("Digite as informações dos contatos ou envie um arquivo");
       setProcessing(false);
       return;
     }
@@ -343,7 +343,7 @@ export default function BulkUploadContacts({
     const parsedContacts = parseContacts(inputText);
 
     if (parsedContacts.length === 0) {
-      setError("No valid contacts found");
+      setError("Nenhum contato válido encontrado");
       setProcessing(false);
       return;
     }
@@ -351,20 +351,20 @@ export default function BulkUploadContacts({
     const validContacts = parsedContacts.filter((c) => c.isValid);
 
     if (validContacts.length === 0) {
-      setError("No valid email addresses found");
+      setError("Nenhum e-mail válido encontrado");
       setProcessing(false);
       return;
     }
 
     if (validContacts.length > 50000) {
-      setError("Maximum 50,000 contacts allowed per upload");
+      setError("Máximo de 50.000 contatos permitidos por envio");
       setProcessing(false);
       return;
     }
 
     if (validContacts.length !== parsedContacts.length) {
       const invalidCount = parsedContacts.length - validContacts.length;
-      setError(`${invalidCount} invalid entries will be skipped`);
+      setError(`${invalidCount} entradas inválidas serão ignoradas`);
       // Continue processing with valid contacts
     }
 
@@ -418,10 +418,10 @@ export default function BulkUploadContacts({
       ) : null}
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Bulk Upload Contacts</DialogTitle>
+          <DialogTitle>Enviar contatos em massa</DialogTitle>
           <DialogDescription className="text-sm">
-            Upload multiple contacts at once. Cannot change from unsubscribed to
-            subscribed via upload
+            Envie vários contatos de uma vez. Não é possível mudar de cancelado
+            para inscrito pelo envio
           </DialogDescription>
         </DialogHeader>
 
@@ -430,26 +430,26 @@ export default function BulkUploadContacts({
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="file">
                 <Upload className="h-4 w-4 mr-2" />
-                File Upload
+                Envio de arquivo
               </TabsTrigger>
               <TabsTrigger value="text">
                 <FileText className="h-4 w-4 mr-2" />
-                Text Input
+                Entrada de texto
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="text" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="contacts">Contacts</Label>
+                <Label htmlFor="contacts">Contatos</Label>
                 <Textarea
                   id="contacts"
-                  placeholder={`Enter contacts, one per line:
+                  placeholder={`Digite os contatos, um por linha:
 
 john@example.com,John,Doe,Yes
 jane@example.com,Jane,Smith,No
 bob@example.com
 
-Format: email,firstName,lastName,subscribed (all fields except email are optional)`}
+Formato: email,firstName,lastName,subscribed (todos os campos exceto email são opcionais)`}
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   className="min-h-[150px] font-mono text-sm"
@@ -460,7 +460,7 @@ Format: email,firstName,lastName,subscribed (all fields except email are optiona
 
             <TabsContent value="file" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="file">Upload File</Label>
+                <Label htmlFor="file">Enviar arquivo</Label>
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
                     isDragOver
@@ -492,17 +492,17 @@ Format: email,firstName,lastName,subscribed (all fields except email are optiona
                         onClick={() => document.getElementById("file")?.click()}
                         disabled={processing}
                       >
-                        Choose File
+                        Escolher arquivo
                       </Button>
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                       {isDragOver
-                        ? "Drop your file here"
-                        : "Upload a .txt or .csv file or drag and drop here"}
+                        ? "Solte seu arquivo aqui"
+                        : "Envie um arquivo .txt ou .csv ou arraste e solte aqui"}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Format: email,firstName,lastName,subscribed (+ optional
-                      custom columns)
+                      Formato: email,firstName,lastName,subscribed (+ colunas
+                      personalizadas opcionais)
                     </p>
                   </div>
                 </div>
@@ -514,17 +514,17 @@ Format: email,firstName,lastName,subscribed (all fields except email are optiona
           {previewContacts.length > 0 && (
             <div className="space-y-2">
               <Label>
-                Preview (showing {previewContacts.length} of{" "}
+                Pré-visualização (exibindo {previewContacts.length} de{" "}
                 {parsedContacts.length})
               </Label>
               <div className="border rounded-lg max-h-[250px] overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30">
-                      <TableHead>Email</TableHead>
-                      <TableHead>First Name</TableHead>
-                      <TableHead>Last Name</TableHead>
-                      <TableHead>Subscribed</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Sobrenome</TableHead>
+                      <TableHead>Inscrito</TableHead>
                       <TableHead className="w-[80px]">Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -547,24 +547,24 @@ Format: email,firstName,lastName,subscribed (all fields except email are optiona
                         <TableCell className="text-sm">
                           {contact.subscribed === undefined ? (
                             <span className="text-muted-foreground">
-                              Default
+                              Padrão
                             </span>
                           ) : contact.subscribed ? (
-                            <span className="text-green">Yes</span>
+                            <span className="text-green">Sim</span>
                           ) : (
-                            <span className="text-red">No</span>
+                            <span className="text-red">Não</span>
                           )}
                         </TableCell>
                         <TableCell>
                           {contact.isValid ? (
                             <div className="flex items-center text-green">
                               <Check className="h-4 w-4 mr-1" />
-                              <span className="text-xs">Valid</span>
+                              <span className="text-xs">Válido</span>
                             </div>
                           ) : (
                             <div className="flex items-center text-red">
                               <X className="h-4 w-4 mr-1" />
-                              <span className="text-xs">Invalid</span>
+                              <span className="text-xs">Inválido</span>
                             </div>
                           )}
                         </TableCell>
@@ -582,10 +582,10 @@ Format: email,firstName,lastName,subscribed (all fields except email are optiona
               <div className="flex gap-4">
                 <span>Total: {parsedContacts.length}</span>
                 <span className="text-green">
-                  Valid: {validContacts.length}
+                  Válidos: {validContacts.length}
                 </span>
                 {invalidCount > 0 && (
-                  <span className="text-red">Invalid: {invalidCount}</span>
+                  <span className="text-red">Inválidos: {invalidCount}</span>
                 )}
               </div>
             </div>
@@ -604,15 +604,15 @@ Format: email,firstName,lastName,subscribed (all fields except email are optiona
               onClick={handleClose}
               disabled={processing}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button
               type="submit"
               disabled={processing || validContacts.length === 0}
             >
               {processing
-                ? "Uploading..."
-                : `Upload ${validContacts.length} Contacts`}
+                ? "Enviando..."
+                : `Enviar ${validContacts.length} contatos`}
             </Button>
           </DialogFooter>
         </form>

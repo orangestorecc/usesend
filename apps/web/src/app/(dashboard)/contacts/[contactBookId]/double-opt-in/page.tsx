@@ -18,7 +18,7 @@ import {
 import { api } from "~/trpc/react";
 
 const DOUBLE_OPT_IN_URL_REQUIRED_MESSAGE =
-  "Double opt-in email content must include {{doubleOptInUrl}}.";
+  "O conteúdo do e-mail de double opt-in deve incluir {{doubleOptInUrl}}.";
 
 function parseEditorContent(content: string | null | undefined) {
   if (!content) {
@@ -58,13 +58,15 @@ export default function DoubleOptInEditorPage({
   if (error) {
     return (
       <div className="flex justify-center items-center h-full">
-        <p className="text-red">Failed to load double opt-in settings</p>
+        <p className="text-red">
+          Falha ao carregar as configurações de double opt-in
+        </p>
       </div>
     );
   }
 
   if (!contactBook) {
-    return <div>Contact book not found</div>;
+    return <div>Lista de contatos não encontrada</div>;
   }
 
   return <DoubleOptInEditor contactBook={contactBook} />;
@@ -130,7 +132,7 @@ function DoubleOptInEditor({
             </Link>
             <div>
               <div className="text-sm text-muted-foreground">
-                Double opt-in email
+                E-mail de double opt-in
               </div>
               <div className="text-base font-medium">{contactBook.name}</div>
             </div>
@@ -143,15 +145,15 @@ function DoubleOptInEditor({
               <div className="h-2 w-2 bg-green rounded-full" />
             )}
             {formatDistanceToNow(contactBook.updatedAt) === "less than a minute"
-              ? "just now"
-              : `${formatDistanceToNow(contactBook.updatedAt)} ago`}
+              ? "agora mesmo"
+              : `há ${formatDistanceToNow(contactBook.updatedAt)}`}
           </div>
         </div>
 
         <div className="flex flex-col mt-4 mb-4 p-4 w-full sm:w-[700px] mx-auto z-50 border rounded-lg shadow">
           <div className="flex items-center gap-4">
             <label className="block text-sm w-[80px] text-muted-foreground">
-              Subject
+              Assunto
             </label>
             <Input
               type="text"
@@ -193,7 +195,7 @@ function DoubleOptInEditor({
           </div>
           <div className="flex items-center gap-4 mt-4">
             <label className="block text-sm w-[80px] text-muted-foreground">
-              From
+              De
             </label>
             <Input
               type="text"
@@ -224,13 +226,13 @@ function DoubleOptInEditor({
                   },
                 );
               }}
-              placeholder="Friendly name<hello@example.com>"
+              placeholder="Nome amigável<hello@example.com>"
               className="mt-1 py-1 text-sm block w-full outline-none border-b border-transparent focus:border-border bg-transparent"
             />
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            Use the variable <code>{"{{doubleOptInUrl}}"}</code> for the
-            confirmation link.
+            Use a variável <code>{"{{doubleOptInUrl}}"}</code> para o link de
+            confirmação.
           </p>
         </div>
 

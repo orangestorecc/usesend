@@ -166,7 +166,7 @@ export class WebhookService {
     });
 
     if (!call) {
-      throw new Error("Webhook call not found");
+      throw new Error("Chamada de webhook não encontrada");
     }
 
     await db.webhookCall.update({
@@ -196,7 +196,7 @@ export class WebhookService {
     });
 
     if (!webhook) {
-      throw new Error("Webhook not found");
+      throw new Error("Webhook não encontrado");
     }
 
     const payload = {
@@ -240,7 +240,7 @@ export class WebhookService {
     if (!webhook) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Webhook not found",
+        message: "Webhook não encontrado",
       });
     }
 
@@ -311,7 +311,7 @@ export class WebhookService {
     if (!webhook) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Webhook not found",
+        message: "Webhook não encontrado",
       });
     }
 
@@ -374,7 +374,7 @@ export class WebhookService {
     if (matchingDomains.length !== domainIds.length) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "One or more domains were not found",
+        message: "Um ou mais domínios não foram encontrados",
       });
     }
   }
@@ -391,7 +391,7 @@ export class WebhookService {
     if (!webhook) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Webhook not found",
+        message: "Webhook não encontrado",
       });
     }
 
@@ -415,7 +415,7 @@ export class WebhookService {
     if (!webhook) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Webhook not found",
+        message: "Webhook não encontrado",
       });
     }
 
@@ -469,7 +469,7 @@ export class WebhookService {
     if (!call) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Webhook call not found",
+        message: "Chamada de webhook não encontrada",
       });
     }
 

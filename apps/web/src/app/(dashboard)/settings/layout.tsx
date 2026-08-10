@@ -15,17 +15,20 @@ export default function ApiKeysPage({
 
   return (
     <div>
-      <h1 className="font-bold text-lg">Settings</h1>
+      <h1 className="font-bold text-lg">Configurações</h1>
       <div className="flex gap-4 mt-4">
         {isCloud() ? (
-          <SettingsNavButton href="/settings">Usage</SettingsNavButton>
+          <SettingsNavButton href="/settings">Uso</SettingsNavButton>
         ) : null}
         {currentIsAdmin && isCloud() ? (
           <SettingsNavButton href="/settings/billing">
-            Billing
+            Faturamento
           </SettingsNavButton>
         ) : null}
-        <SettingsNavButton href="/settings/team">Team</SettingsNavButton>
+        <SettingsNavButton href="/settings/team">Time</SettingsNavButton>
+        <SettingsNavButton href="/settings/unsubscribe-page">
+          Página de descadastramento
+        </SettingsNavButton>
       </div>
       <div className="mt-8">{children}</div>
     </div>

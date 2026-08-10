@@ -188,6 +188,8 @@ model Domain {
   region        String       @default("us-east-1")
   clickTracking Boolean      @default(false)
   openTracking  Boolean      @default(false)
+  receivingEnabled Boolean   @default(false)
+  tlsEnforced   Boolean      @default(false)
   publicKey     String
   dkimSelector  String?      @default("usesend")
   dkimStatus    String?
@@ -539,4 +541,237 @@ model McpKey {
   team         Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
+}
+
+// Cliente OAuth registrado dinamicamente (RFC 7591) por uma ferramenta de IA
+// (Claude, ChatGPT, Cursor, etc) para conectar ao MCP.
+model OAuthClient {
+  id           String   @id @default(cuid())
+  clientId     String   @unique
+  clientName   String?
+  redirectUris String[]
+  createdAt    DateTime @default(now())
+}
+
+// Integração com plataforma externa (ex: e-commerce OrangeStore) que puxa
+// clientes periodicamente e insere como contatos.
+model PlatformIntegration {
+  id               String    @id @default(cuid())
+  teamId           Int
+  provider         String    @default("orangestore")
+  name             String
+  baseUrl          String
+  apiKeyEnc        String
+  contactBookId    String
+  intervalMinutes  Int       @default(15)
+  subscribeMode    String    @default("newsletter") // newsletter | all | none
+  enabled          Boolean   @default(true)
+  cursorModifiedAt DateTime?
+  lastSyncedAt     DateTime?
+  lastSyncStatus   String? // ok | error | running
+  lastSyncError    String?
+  lastSyncCount    Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([teamId])
+}
+
+// E-mail recebido (inbound) via SES Receipt Rule + S3.
+model InboundEmail {
+  id         String   @id @default(cuid())
+  teamId     Int
+  domainId   Int?
+  s3Key      String   @unique
+  messageId  String?
+  fromEmail  String
+  fromName   String?
+  to         String[]
+  subject    String?
+  textBody   String?
+  htmlBody   String?
+  read       Boolean  @default(false)
+  receivedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([teamId, createdAt])
+}
+
+// Código promocional para o checkout (gerenciado pelo admin da plataforma).
+model PromoCode {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  percentOff     Int? // desconto percentual (1-100)
+  amountOffCents Int? // OU desconto fixo em centavos
+  active         Boolean   @default(true)
+  maxRedemptions Int?
+  redemptions    Int       @default(0)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+// Catálogo de planos exibido na página Planos e na modal de upgrade
+// (gerenciado pelo admin; seed a partir dos defaults do código).
+model PlanCatalogEntry {
+  id        String   @id @default(cuid())
+  product   String // transactional | marketing
+  key       String
+  name      String
+  priceBRL  Int? // null = personalizado (Enterprise)
+  volume    String
+  extra     String?
+  features  Json // [{ label: string, ok: boolean }]
+  cta       String   @default("Fazer upgrade")
+  highlight Boolean  @default(false)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([product, key])
+}
+
+// Forma de pagamento salva do cliente (token da Rede p/ recorrência de cartão).
+model PaymentMethod {
+  id         String   @id @default(cuid())
+  teamId     Int
+  type       String // card | pix | boleto
+  provider   String // rede | inter
+  cardToken  String? // token do cofre da Rede (reuso na recorrência)
+  brand      String?
+  last4      String?
+  expMonth   Int?
+  expYear    Int?
+  holderName String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([teamId])
+}
+
+// Cobrança individual (checkout ou recorrência).
+model Charge {
+  id               String    @id @default(cuid())
+  teamId           Int
+  subscriptionId   String?
+  invoiceId        String?
+  method           String // card | pix | boleto
+  provider         String // rede | inter
+  amountCents      Int
+  currency         String    @default("BRL")
+  status           String    @default("pending") // pending | paid | failed | canceled
+  providerChargeId String?
+  pixQrCode        String? // copia-e-cola
+  pixQrImage       String? // base64
+  boletoUrl        String?
+  boletoBarcode    String?
+  planKey          String?
+  product          String?
+  promoCode        String?
+  failReason       String?
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([teamId, createdAt])
+  @@index([providerChargeId])
+}
+
+// Config global de gateway de pagamento (controlada pelo admin da plataforma).
+model PaymentGatewayConfig {
+  id        String   @id @default(cuid())
+  provider  String   @unique // inter | rede
+  enabled   Boolean  @default(false)
+  configEnc String? // JSON de credenciais criptografado (AES-256-GCM)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Customização da página pública de descadastramento (por time).
+model UnsubscribePageSettings {
+  id               String   @id @default(cuid())
+  teamId           Int      @unique
+  logoUrl          String?
+  bgColor          String   @default("#05050A")
+  textColor        String   @default("#EDEEF0")
+  accentColor      String   @default("#363A3F")
+  hideBranding     Boolean  @default(false)
+  prefsTitle       String   @default("Deseja cancelar a inscrição?")
+  prefsSubtitle    String   @default("Confirme suas preferências de e-mail:")
+  unsubButtonLabel String   @default("Cancelar inscrição")
+  successTitle     String   @default("Suas preferências de e-mail foram atualizadas.")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// Dados de faturamento e fiscais do time (responsável financeiro p/ NF).
+model BillingProfile {
+  id            String   @id @default(cuid())
+  teamId        Int      @unique
+  billingEmails String[]
+  whatsapp      String?
+  personType    String   @default("PJ") // PF | PJ
+  document      String? // CPF ou CNPJ
+  name          String? // nome completo (PF) ou razão social (PJ)
+  tradeName     String? // nome fantasia (PJ)
+  country       String   @default("BR")
+  postalCode    String? // CEP
+  addressLine1  String?
+  addressLine2  String?
+  district      String? // bairro
+  city          String?
+  state         String? // UF
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Faturas do time (geradas quando o checkout/gateway estiver ligado).
+model Invoice {
+  id          String    @id @default(cuid())
+  teamId      Int
+  number      String
+  amountCents Int
+  currency    String    @default("BRL")
+  status      String    @default("open") // open | paid | void
+  description String?
+  issuedAt    DateTime  @default(now())
+  dueAt       DateTime?
+  paidAt      DateTime?
+  pdfUrl      String?
+  createdAt   DateTime  @default(now())
+
+  @@index([teamId, createdAt])
+}
+
+// Log de requisições da API pública (/v1). Estilo Resend: endpoint, status, método.
+model ApiRequestLog {
+  id         String   @id @default(cuid())
+  teamId     Int
+  apiKeyId   Int?
+  apiKeyName String?
+  method     String
+  endpoint   String // normalizado, ex: "/emails"
+  path       String // caminho bruto
+  statusCode Int
+  source     String   @default("http") // agente detectado: mcp | go | curl | http
+  userAgent  String?
+  durationMs Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([teamId, createdAt])
+}
+
+// Código de autorização OAuth (PKCE), efêmero, trocado por um access token (msk_).
+model OAuthAuthCode {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  clientId      String
+  redirectUri   String
+  codeChallenge String
+  scope         String?
+  userId        Int
+  teamId        Int
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([clientId])
 }

@@ -26,11 +26,15 @@ export function UsageWarningEmail({
   logoUrl,
 }: UsageWarningEmailProps) {
   const percent = limit > 0 ? Math.round((used / limit) * 100) : 80;
-  const preview = `You've used ${percent}% of your ${period} email limit`;
+  const periodLabel = period === "monthly" ? "mensal" : "diário";
+  const preview = `Você já usou ${percent}% do seu limite ${periodLabel} de e-mails`;
 
   return (
     <EmailLayout preview={preview}>
-      <EmailHeader logoUrl={logoUrl} title="You're nearing your email limit" />
+      <EmailHeader
+        logoUrl={logoUrl}
+        title="Você está chegando ao seu limite de e-mails"
+      />
 
       <Container style={{ padding: "20px 0", textAlign: "left" as const }}>
         <Text
@@ -42,7 +46,7 @@ export function UsageWarningEmail({
             textAlign: "left" as const,
           }}
         >
-          Hi {teamName} team,
+          Olá, time {teamName},
         </Text>
 
         <Text
@@ -54,11 +58,11 @@ export function UsageWarningEmail({
             textAlign: "left" as const,
           }}
         >
-          You've used{" "}
-          <strong style={{ color: "#000" }}>{used.toLocaleString()}</strong> of
-          your{" "}
+          Você já usou{" "}
+          <strong style={{ color: "#000" }}>{used.toLocaleString()}</strong> do
+          seu limite {periodLabel} de{" "}
           <strong style={{ color: "#000" }}>{limit.toLocaleString()}</strong>{" "}
-          {period} email limit.
+          e-mails.
         </Text>
 
         <Container
@@ -78,13 +82,13 @@ export function UsageWarningEmail({
               textAlign: "left" as const,
             }}
           >
-            Heads up: you're at approximately {percent}% of your limit.
+            Atenção: você está em aproximadamente {percent}% do seu limite.
           </Text>
         </Container>
 
         <Container style={{ margin: "0 0 32px 0", textAlign: "left" as const }}>
           <EmailButton href={manageUrl}>
-            {isPaidPlan ? "Verify team" : "Upgrade"}
+            {isPaidPlan ? "Verificar time" : "Fazer upgrade"}
           </EmailButton>
         </Container>
 
@@ -97,10 +101,10 @@ export function UsageWarningEmail({
             textAlign: "left" as const,
           }}
         >
-          Consider{" "}
+          Considere{" "}
           {isPaidPlan
-            ? "verifying your team by replying to this email"
-            : "upgrading your plan"}
+            ? "verificar seu time respondendo a este e-mail"
+            : "fazer upgrade do seu plano"}
         </Text>
       </Container>
 

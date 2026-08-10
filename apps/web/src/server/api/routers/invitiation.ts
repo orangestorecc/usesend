@@ -53,7 +53,7 @@ export const invitationRouter = createTRPCRouter({
       if (!invite) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Invite not found",
+          message: "Convite não encontrado",
         });
       }
 

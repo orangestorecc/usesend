@@ -37,7 +37,7 @@ function getDomain(app: PublicAPIApp) {
     if (team.apiKey.domainId && team.apiKey.domainId !== id) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Domain not found",
+        message: "Domínio não encontrado",
       });
     }
 

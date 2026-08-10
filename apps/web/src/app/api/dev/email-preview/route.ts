@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       html = await renderOtpEmail({
         otpCode: "ABC123",
         loginUrl: "https://app.usesend.com/login?token=abc123",
-        hostName: "useSend",
+        hostName: "Madmail",
       });
     } else if (type === "invite") {
       html = await renderTeamInviteEmail({

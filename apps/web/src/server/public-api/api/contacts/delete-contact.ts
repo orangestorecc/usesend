@@ -53,7 +53,7 @@ function deleteContactHandler(app: PublicAPIApp) {
     if (!deletedContact) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Contact not found",
+        message: "Contato não encontrado",
       });
     }
 

@@ -2,9 +2,11 @@ import { Editor, Extension, Range, ReactRenderer } from "@tiptap/react";
 import Suggestion, { SuggestionOptions } from "@tiptap/suggestion";
 import { cn } from "@usesend/ui/lib/utils";
 import {
+  Code2Icon,
   CodeIcon,
   DivideIcon,
   EraserIcon,
+  MoveVerticalIcon,
   Heading1Icon,
   Heading2Icon,
   Heading3Icon,
@@ -38,6 +40,8 @@ interface CommandItemProps {
   title: string;
   description: string;
   icon: ReactNode;
+  section?: string;
+  shortcut?: string;
 }
 
 export type SlashCommandItem = {
@@ -46,6 +50,10 @@ export type SlashCommandItem = {
   searchTerms: string[];
   icon: ReactNode;
   command: (options: CommandProps) => void;
+  /** Seção de agrupamento no menu (Texto, Mídia, Layout, Utilitário). */
+  section?: string;
+  /** Atalho markdown exibido à direita (ex: #, ##, -, >). */
+  shortcut?: string;
 };
 
 export const SlashCommand = Extension.create({
@@ -81,9 +89,10 @@ export const SlashCommand = Extension.create({
 
 const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
   {
-    title: "Text",
-    description: "Just start typing with plain text.",
-    searchTerms: ["p", "paragraph"],
+    title: "Texto",
+    description: "Comece a digitar com texto simples.",
+    searchTerms: ["p", "paragraph", "texto"],
+    section: "Texto",
     icon: <TextIcon className="h-4 w-4" />,
     command: ({ editor, range }) => {
       editor
@@ -95,9 +104,11 @@ const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
     },
   },
   {
-    title: "Heading 1",
-    description: "Big section heading.",
-    searchTerms: ["title", "big", "large"],
+    title: "Título 1",
+    description: "Título de seção grande.",
+    searchTerms: ["title", "big", "large", "titulo", "h1"],
+    section: "Texto",
+    shortcut: "#",
     icon: <Heading1Icon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor
@@ -109,9 +120,11 @@ const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
     },
   },
   {
-    title: "Heading 2",
-    description: "Medium section heading.",
-    searchTerms: ["subtitle", "medium"],
+    title: "Título 2",
+    description: "Título de seção médio.",
+    searchTerms: ["subtitle", "medium", "subtitulo", "h2"],
+    section: "Texto",
+    shortcut: "##",
     icon: <Heading2Icon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor
@@ -123,9 +136,11 @@ const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
     },
   },
   {
-    title: "Heading 3",
-    description: "Small section heading.",
-    searchTerms: ["subtitle", "small"],
+    title: "Título 3",
+    description: "Título de seção pequeno.",
+    searchTerms: ["subtitle", "small", "h3"],
+    section: "Texto",
+    shortcut: "###",
     icon: <Heading3Icon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor
@@ -137,27 +152,53 @@ const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
     },
   },
   {
-    title: "Bullet List",
-    description: "Create a simple bullet list.",
-    searchTerms: ["unordered", "point"],
+    title: "Lista com marcadores",
+    description: "Crie uma lista com marcadores simples.",
+    searchTerms: ["unordered", "point", "lista", "bullet"],
+    section: "Texto",
+    shortcut: "-",
     icon: <ListIcon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor.chain().focus().deleteRange(range).toggleBulletList().run();
     },
   },
   {
-    title: "Numbered List",
-    description: "Create a list with numbering.",
-    searchTerms: ["ordered"],
+    title: "Lista numerada",
+    description: "Crie uma lista com numeração.",
+    searchTerms: ["ordered", "numerada"],
+    section: "Texto",
+    shortcut: "1.",
     icon: <ListOrderedIcon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor.chain().focus().deleteRange(range).toggleOrderedList().run();
     },
   },
   {
-    title: "Image",
-    description: "Full width image",
-    searchTerms: ["image"],
+    title: "Citação",
+    description: "Adicione uma citação.",
+    searchTerms: ["quote", "blockquote", "citacao"],
+    section: "Texto",
+    shortcut: ">",
+    icon: <TextQuoteIcon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+    },
+  },
+  {
+    title: "Bloco de código",
+    description: "Adicione código.",
+    searchTerms: ["code", "codigo"],
+    section: "Texto",
+    icon: <CodeIcon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+    },
+  },
+  {
+    title: "Imagem",
+    description: "Imagem em largura total",
+    searchTerms: ["image", "imagem"],
+    section: "Mídia",
     icon: <ImageIcon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       if (uploadImage) {
@@ -191,7 +232,7 @@ const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
         };
         input.click();
       } else {
-        const imageUrl = prompt("Image URL: ") || "";
+        const imageUrl = prompt("URL da imagem: ") || "";
 
         if (!imageUrl) {
           return;
@@ -203,72 +244,81 @@ const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
     },
   },
   {
-    title: "Hard Break",
-    description: "Add a break between lines.",
-    searchTerms: ["break", "line"],
-    icon: <DivideIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).setHardBreak().run();
-    },
-  },
-  {
-    title: "Blockquote",
-    description: "Add blockquote.",
-    searchTerms: ["quote", "blockquote"],
-    icon: <TextQuoteIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).toggleBlockquote().run();
-    },
-  },
-  {
-    title: "Button",
-    description: "Add code.",
-    searchTerms: ["button"],
+    title: "Botão",
+    description: "Adicione um botão.",
+    searchTerms: ["button", "botao"],
+    section: "Layout",
     icon: <RectangleEllipsisIcon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor.chain().focus().deleteRange(range).setButton().run();
     },
   },
   {
-    title: "Code Block",
-    description: "Add code.",
-    searchTerms: ["code"],
-    icon: <CodeIcon className="h-4 w-4" />,
-    command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
-    },
-  },
-  {
-    title: "Horizontal Rule",
-    description: "Add a horizontal rule.",
-    searchTerms: ["horizontal", "rule"],
+    title: "Divisor",
+    description: "Adicione um divisor.",
+    searchTerms: ["horizontal", "rule", "divisor"],
+    section: "Layout",
     icon: <SquareSplitVerticalIcon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor.chain().focus().deleteRange(range).setHorizontalRule().run();
     },
   },
   {
-    title: "Clear Line",
-    description: "Clear the current line.",
-    searchTerms: ["clear", "line"],
-    icon: <EraserIcon className="h-4 w-4" />,
+    title: "Espaçador",
+    description: "Adicione um espaço vertical.",
+    searchTerms: ["spacer", "espaco", "gap"],
+    section: "Layout",
+    icon: <MoveVerticalIcon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
-      editor.chain().focus().selectParentNode().deleteSelection().run();
+      editor.chain().focus().deleteRange(range).setSpacer().run();
     },
   },
   {
-    title: "Variable",
-    description: "Add a variable.",
-    searchTerms: ["variable"],
+    title: "Quebra de linha",
+    description: "Adicione uma quebra entre linhas.",
+    searchTerms: ["break", "line", "quebra"],
+    section: "Layout",
+    icon: <DivideIcon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setHardBreak().run();
+    },
+  },
+  {
+    title: "Variável",
+    description: "Adicione uma variável.",
+    searchTerms: ["variable", "variavel"],
+    section: "Utilitário",
+    shortcut: "{{",
     icon: <VariableIcon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor.chain().focus().deleteRange(range).insertContent("{{").run();
     },
   },
   {
-    title: "Unsubscribe Footer",
-    description: "Add an unsubscribe link.",
-    searchTerms: ["unsubscribe"],
+    title: "HTML",
+    description: "Insira um bloco de HTML personalizado.",
+    searchTerms: ["html", "code", "custom"],
+    section: "Utilitário",
+    icon: <Code2Icon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().deleteRange(range).setHtmlBlock().run();
+    },
+  },
+  {
+    title: "Limpar linha",
+    description: "Limpe a linha atual.",
+    searchTerms: ["clear", "line", "limpar"],
+    section: "Utilitário",
+    icon: <EraserIcon className="h-4 w-4" />,
+    command: ({ editor, range }: CommandProps) => {
+      editor.chain().focus().selectParentNode().deleteSelection().run();
+    },
+  },
+  {
+    title: "Rodapé de cancelamento",
+    description: "Adicione um link de cancelamento de inscrição.",
+    searchTerms: ["unsubscribe", "cancelamento"],
+    section: "Utilitário",
     icon: <UserXIcon className="h-4 w-4" />,
     command: ({ editor, range }: CommandProps) => {
       editor
@@ -277,7 +327,7 @@ const DEFAULT_SLASH_COMMANDS = (uploadImage?: UploadFn): SlashCommandItem[] => [
         .deleteRange(range)
         .setHorizontalRule()
         .insertContent(
-          `<unsub data-unsend-component='unsubscribe-footer'><p>You are receiving this email because you opted in via our site.<br/><br/><a href="{{usesend_unsubscribe_url}}">Unsubscribe from the list</a></p><br><br><p>Company name,<br/>00 street name<br/>City, State 000000</p></unsub>`
+          `<unsub data-unsend-component='unsubscribe-footer'><p>Você está recebendo este e-mail porque se inscreveu através do nosso site.<br/><br/><a href="{{usesend_unsubscribe_url}}">Cancelar inscrição da lista</a></p><br><br><p>Nome da empresa,<br/>00 nome da rua<br/>Cidade, Estado 000000</p></unsub>`
         )
         .run();
     },
@@ -362,32 +412,41 @@ const CommandList = ({
   }, [selectedIndex]);
 
   return items.length > 0 ? (
-    <div className="z-50 w-52 rounded-md border border-gray-200 bg-white shadow-md transition-all">
+    <div className="z-50 w-64 rounded-lg border border-gray-200 bg-white shadow-md transition-all">
       <div
         id="slash-command"
         ref={commandListContainer}
-        className="no-scrollbar h-auto max-h-[330px] overflow-y-auto scroll-smooth px-1 py-2"
+        className="no-scrollbar h-auto max-h-[330px] overflow-y-auto scroll-smooth px-1 py-1.5"
       >
         {items.map((item: CommandItemProps, index: number) => {
+          const prevSection = items[index - 1]?.section;
+          const showHeader = item.section && item.section !== prevSection;
           return (
-            <button
-              className={cn(
-                "flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm text-gray-900 hover:bg-gray-100 hover:text-gray-900",
-                index === selectedIndex
-                  ? "bg-gray-100 text-gray-900"
-                  : "bg-transparent"
-              )}
-              key={index}
-              onClick={() => selectItem(index)}
-              type="button"
-            >
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center">
-                {item.icon}
-              </div>
-              <div>
-                <p className="font-medium">{item.title}</p>
-              </div>
-            </button>
+            <div key={index}>
+              {showHeader ? (
+                <div className="px-2 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-orange-500/90">
+                  {item.section}
+                </div>
+              ) : null}
+              <button
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-gray-900 hover:bg-gray-100",
+                  index === selectedIndex ? "bg-gray-100" : "bg-transparent"
+                )}
+                onClick={() => selectItem(index)}
+                type="button"
+              >
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center text-gray-600">
+                  {item.icon}
+                </div>
+                <span className="flex-1 font-medium">{item.title}</span>
+                {item.shortcut ? (
+                  <kbd className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-500">
+                    {item.shortcut}
+                  </kbd>
+                ) : null}
+              </button>
+            </div>
           );
         })}
       </div>

@@ -10,6 +10,9 @@ import { motion } from "framer-motion";
 import { useUrlState } from "~/hooks/useUrlState";
 import { Input } from "@usesend/ui/src/input";
 import { useDebouncedCallback } from "use-debounce";
+import { BookUser } from "lucide-react";
+import { Skeleton } from "@usesend/ui/src/skeleton";
+import { EmptyState } from "~/components/EmptyState";
 
 export default function ContactBooksList() {
   const [search, setSearch] = useUrlState("search");
@@ -26,11 +29,34 @@ export default function ContactBooksList() {
   return (
     <div className="mt-10">
       <Input
-        placeholder="Search contact book"
+        placeholder="Buscar lista de contatos"
         className="w-[300px] mr-4 mb-4"
         defaultValue={search ?? ""}
         onChange={(e) => debouncedSearch(e.target.value)}
       />
+      {contactBooksQuery.isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="border rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-40 rounded-md" />
+                <Skeleton className="h-4 w-16 rounded-md" />
+              </div>
+              <Skeleton className="mt-6 h-3 w-24 rounded-md" />
+            </div>
+          ))}
+        </div>
+      ) : !contactBooksQuery.data?.length ? (
+        <EmptyState
+          icon={BookUser}
+          title={search ? "Nenhuma lista encontrada" : "Nenhuma lista de contatos"}
+          description={
+            search
+              ? "Tente ajustar sua busca."
+              : "Crie sua primeira lista para organizar seus contatos."
+          }
+        />
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 ">
         {contactBooksQuery.data?.map((contactBook) => (
           <motion.div
@@ -53,7 +79,7 @@ export default function ContactBooksList() {
                     <span className="font-mono">
                       {contactBook._count.contacts}
                     </span>{" "}
-                    contacts
+                    contatos
                   </div>
                 </div>
               </Link>
@@ -76,6 +102,7 @@ export default function ContactBooksList() {
           </motion.div>
         ))}
       </div>
+      )}
     </div>
   );
 }

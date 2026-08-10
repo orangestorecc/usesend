@@ -136,7 +136,7 @@ export function handleError(err: Error, c: Context): Response {
     {
       error: {
         code: "INTERNAL_SERVER_ERROR",
-        message: "something unexpected happened",
+        message: "algo inesperado aconteceu",
       },
     },
     { status: 500 }

@@ -24,7 +24,7 @@ export const ResendTeamInvite: React.FC<{
       },
       {
         onSuccess: async () => {
-          toast.success(`Invite resent to ${invite.email}`);
+          toast.success(`Convite reenviado para ${invite.email}`);
         },
         onError: async (error) => {
           toast.error(error.message);
@@ -42,7 +42,7 @@ export const ResendTeamInvite: React.FC<{
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Resend invite</p>
+          <p>Reenviar convite</p>
         </TooltipContent>
       </Tooltip>
 
@@ -56,14 +56,14 @@ export const ResendTeamInvite: React.FC<{
                 navigator.clipboard.writeText(
                   `${location.origin}/join-team?inviteId=${invite.id}`
                 );
-                toast.success(`Invite link copied to clipboard`);
+                toast.success(`Link do convite copiado para a área de transferência`);
               }}
             >
               <Copy className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Copy invite link</p>
+            <p>Copiar link do convite</p>
           </TooltipContent>
         </Tooltip>
       ) : null}

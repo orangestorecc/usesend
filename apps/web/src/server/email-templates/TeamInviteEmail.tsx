@@ -22,8 +22,8 @@ export function TeamInviteEmail({
   role = "member",
 }: TeamInviteEmailProps) {
   return (
-    <EmailLayout preview={`You've been invited to join ${teamName} on useSend`}>
-      <EmailHeader logoUrl={logoUrl} title="You're invited!" />
+    <EmailLayout preview={`Você foi convidado para entrar em ${teamName} no Madmail`}>
+      <EmailHeader logoUrl={logoUrl} title="Você foi convidado!" />
 
       <Container style={{ padding: "20px 0", textAlign: "left" as const }}>
         <Text
@@ -35,7 +35,7 @@ export function TeamInviteEmail({
             textAlign: "left" as const,
           }}
         >
-          Hi there,
+          Olá,
         </Text>
 
         <Text
@@ -48,20 +48,20 @@ export function TeamInviteEmail({
           }}
         >
           {inviterName
-            ? `${inviterName} has invited you to join `
-            : "You have been invited to join "}
-          <strong style={{ color: "#000000" }}>{teamName}</strong> on useSend
+            ? `${inviterName} convidou você para entrar em `
+            : "Você foi convidado para entrar em "}
+          <strong style={{ color: "#000000" }}>{teamName}</strong> no Madmail
           {role && role !== "member" && (
             <span>
               {" "}
-              as a <strong style={{ color: "#000000" }}>{role}</strong>
+              como <strong style={{ color: "#000000" }}>{role}</strong>
             </span>
           )}
           .
         </Text>
 
         <Container style={{ margin: "0 0 32px 0", textAlign: "left" as const }}>
-          <EmailButton href={inviteUrl}>Accept invitation</EmailButton>
+          <EmailButton href={inviteUrl}>Aceitar convite</EmailButton>
         </Container>
 
         <Text
@@ -73,8 +73,8 @@ export function TeamInviteEmail({
             textAlign: "left" as const,
           }}
         >
-          If you weren't expecting this invitation or don't want to join this
-          team, you can safely ignore this email.
+          Se você não esperava este convite ou não quer entrar neste time, pode
+          ignorar este e-mail com segurança.
         </Text>
       </Container>
 

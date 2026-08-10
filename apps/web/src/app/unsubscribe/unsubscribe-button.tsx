@@ -1,20 +1,30 @@
 "use client";
 
-import { Button } from "@usesend/ui/src/button";
 import { useFormStatus } from "react-dom";
 
-export default function UnsubscribeButton() {
+export default function UnsubscribeButton({
+  label,
+  accentColor,
+  textColor,
+}: {
+  label?: string;
+  accentColor?: string;
+  textColor?: string;
+}) {
   const { pending } = useFormStatus();
 
   return (
-    <Button
+    <button
       type="submit"
-      variant="destructive"
-      className="min-h-11 w-full touch-manipulation"
       disabled={pending}
       aria-disabled={pending}
+      className="min-h-11 w-full touch-manipulation rounded-lg px-4 py-3 text-sm font-medium transition-opacity disabled:opacity-60"
+      style={{
+        background: accentColor ?? "#363A3F",
+        color: textColor ?? "#EDEEF0",
+      }}
     >
-      {pending ? "Unsubscribing…" : "Confirm unsubscribe"}
-    </Button>
+      {pending ? "Cancelando inscrição…" : (label ?? "Cancelar inscrição")}
+    </button>
   );
 }

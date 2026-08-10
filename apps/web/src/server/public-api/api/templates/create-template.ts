@@ -51,7 +51,7 @@ export default function createTemplate(app: PublicAPIApp) {
       } catch (e) {
         throw new UnsendApiError({
           code: "BAD_REQUEST",
-          message: "Invalid content JSON for template rendering",
+          message: "JSON de conteúdo inválido para renderização do template",
         });
       }
     }

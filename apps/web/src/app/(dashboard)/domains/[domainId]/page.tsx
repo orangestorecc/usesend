@@ -19,16 +19,30 @@ import {
   TableHeader,
   TableRow,
 } from "@usesend/ui/src/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@usesend/ui/src/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@usesend/ui/src/select";
 import { TextWithCopyButton } from "@usesend/ui/src/text-with-copy";
-import React, { use } from "react";
 import { Switch } from "@usesend/ui/src/switch";
-import DeleteDomain from "./delete-domain";
-import SendTestMail from "./send-test-mail";
 import { Button } from "@usesend/ui/src/button";
+import React, { use } from "react";
 import Link from "next/link";
 import { toast } from "@usesend/ui/src/toaster";
+import DeleteDomain from "./delete-domain";
+import SendTestMail from "./send-test-mail";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "~/server/api/root";
+import type { DomainDnsRecord } from "~/types/domain";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 type DomainResponse = NonNullable<RouterOutputs["domain"]["getDomain"]>;
@@ -41,9 +55,7 @@ export default function DomainItemPage({
   const { domainId } = use(params);
 
   const domainQuery = api.domain.getDomain.useQuery(
-    {
-      id: Number(domainId),
-    },
+    { id: Number(domainId) },
     {
       refetchInterval: (q) => (q?.state.data?.isVerifying ? 10000 : false),
       refetchIntervalInBackground: true,
@@ -55,201 +67,331 @@ export default function DomainItemPage({
   const handleVerify = () => {
     verifyQuery.mutate(
       { id: Number(domainId) },
-      {
-        onSettled: () => {
-          domainQuery.refetch();
-        },
-      },
+      { onSettled: () => domainQuery.refetch() },
     );
   };
 
+  if (domainQuery.isLoading || !domainQuery.data) {
+    return <p>Carregando...</p>;
+  }
+
+  const domain = domainQuery.data;
+
   return (
-    <div>
-      {domainQuery.isLoading ? (
-        <p>Loading...</p>
-      ) : (
-        <div className="flex flex-col gap-8">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center  gap-4">
-              {/* <div className="flex items-center gap-4">
-              <H1>{domainQuery.data?.name}</H1>
-            </div> */}
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link href="/domains" className="text-lg">
-                        Domains
-                      </Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="text-lg" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="text-lg ">
-                      {domainQuery.data?.name}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/domains" className="text-lg">
+                    Domínios
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="text-lg" />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-lg">
+                  {domain.name}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <DomainStatusBadge status={domain.status} />
+        </div>
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={handleVerify}>
+            {domain.isVerifying
+              ? "Verificando..."
+              : domain.status === DomainStatus.SUCCESS
+                ? "Verificar novamente"
+                : "Verificar domínio"}
+          </Button>
+          <SendTestMail domain={domain} />
+        </div>
+      </div>
 
-              <div className="">
-                <DomainStatusBadge
-                  status={domainQuery.data?.status || DomainStatus.NOT_STARTED}
-                />
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <div>
-                <Button variant="outline" onClick={handleVerify}>
-                  {domainQuery.data?.isVerifying
-                    ? "Verifying..."
-                    : domainQuery.data?.status === DomainStatus.SUCCESS
-                      ? "Verify again"
-                      : "Verify domain"}
-                </Button>
-              </div>
-              {domainQuery.data ? (
-                <SendTestMail domain={domainQuery.data} />
-              ) : null}
-            </div>
-          </div>
+      <Tabs defaultValue="records">
+        <TabsList>
+          <TabsTrigger value="records">Registros</TabsTrigger>
+          <TabsTrigger value="config">Configuração</TabsTrigger>
+        </TabsList>
 
-          <div className=" border rounded-lg p-4 shadow">
-            <p className="font-semibold text-xl">DNS records</p>
-            <Table className="mt-2">
-              <TableHeader className="">
-                <TableRow className="">
-                  <TableHead className="rounded-tl-xl">Type</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Content</TableHead>
-                  <TableHead className="">TTL</TableHead>
-                  <TableHead className="">Priority</TableHead>
-                  <TableHead className="rounded-tr-xl">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(domainQuery.data?.dnsRecords ?? []).map((record) => {
-                  const key = `${record.type}-${record.name}`;
-                  const valueClassName = record.name.includes("_domainkey")
-                    ? "w-[200px] overflow-hidden text-ellipsis"
-                    : "w-[200px] overflow-hidden text-ellipsis text-nowrap";
+        <TabsContent value="records" className="mt-6">
+          <RecordsView domain={domain} />
+        </TabsContent>
 
-                  return (
-                    <TableRow key={key}>
-                      <TableCell className="">{record.type}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2 items-center">
-                          {record.recommended ? (
-                            <span className="text-sm text-muted-foreground">
-                              (recommended)
-                            </span>
-                          ) : null}
-                          <TextWithCopyButton value={record.name} />
-                        </div>
-                      </TableCell>
-                      <TableCell className="">
-                        <TextWithCopyButton
-                          value={record.value}
-                          className={valueClassName}
-                        />
-                      </TableCell>
-                      <TableCell className="">{record.ttl}</TableCell>
-                      <TableCell className="">{record.priority ?? ""}</TableCell>
-                      <TableCell className="">
-                        <DnsVerificationStatus status={record.status} />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-          {domainQuery.data ? (
-            <DomainSettings domain={domainQuery.data} />
+        <TabsContent value="config" className="mt-6">
+          <ConfigView domain={domain} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/* --------------------------- Registros (Records) --------------------------- */
+
+function RecordsView({ domain }: { domain: DomainResponse }) {
+  const records = domain.dnsRecords ?? [];
+  const verification = records.filter((r) => r.group === "verification");
+  const sending = records.filter((r) => r.group === "sending");
+  const receiving = records.filter((r) => r.group === "receiving");
+
+  return (
+    <div className="flex flex-col gap-6 rounded-lg border p-6 shadow-sm">
+      <p className="text-xl font-semibold">Registros DNS</p>
+
+      <RecordGroup title="Verificação do domínio" subtitle="DKIM" records={verification} />
+      <RecordGroup title="Habilitar envio" subtitle="SPF" records={sending} />
+      <ReceivingGroup domain={domain} records={receiving} />
+    </div>
+  );
+}
+
+function RecordGroup({
+  title,
+  subtitle,
+  records,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  records: DomainDnsRecord[];
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="border-t pt-6 first:border-t-0 first:pt-0">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="font-semibold">{title}</div>
+          {subtitle ? (
+            <div className="text-sm text-muted-foreground">{subtitle}</div>
           ) : null}
         </div>
+        {action}
+      </div>
+      {records.length ? <DnsRecordsTable records={records} /> : null}
+    </div>
+  );
+}
+
+function ReceivingGroup({
+  domain,
+  records,
+}: {
+  domain: DomainResponse;
+  records: DomainDnsRecord[];
+}) {
+  const utils = api.useUtils();
+  const [receiving, setReceiving] = React.useState(domain.receivingEnabled);
+  const mutation = api.domain.setReceiving.useMutation();
+
+  function toggle() {
+    const next = !receiving;
+    setReceiving(next);
+    mutation.mutate(
+      { id: domain.id, enabled: next },
+      {
+        onSuccess: () => {
+          utils.domain.invalidate();
+          toast.success(
+            next
+              ? "Recebimento ativado. Adicione o registro MX abaixo no seu DNS."
+              : "Recebimento desativado.",
+          );
+        },
+        onError: (e) => {
+          setReceiving(!next);
+          toast.error(e.message);
+        },
+      },
+    );
+  }
+
+  return (
+    <div className="border-t pt-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="font-semibold">Habilitar recebimento</div>
+          <div className="text-sm text-muted-foreground">
+            Receba e-mails enviados para este domínio (chegam em E-mails →
+            Recebidos).
+          </div>
+        </div>
+        <Switch
+          checked={receiving}
+          onCheckedChange={toggle}
+          disabled={mutation.isPending}
+          className="data-[state=checked]:bg-success"
+        />
+      </div>
+      {receiving && records.length ? (
+        <DnsRecordsTable records={records} />
+      ) : receiving ? null : (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Ative para receber e-mails neste domínio.
+        </p>
       )}
     </div>
   );
 }
 
-const DomainSettings: React.FC<{ domain: DomainResponse }> = ({ domain }) => {
+function DnsRecordsTable({ records }: { records: DomainDnsRecord[] }) {
+  return (
+    <Table className="mt-3">
+      <TableHeader>
+        <TableRow>
+          <TableHead className="rounded-tl-xl">Tipo</TableHead>
+          <TableHead>Nome</TableHead>
+          <TableHead>Conteúdo</TableHead>
+          <TableHead>TTL</TableHead>
+          <TableHead>Prioridade</TableHead>
+          <TableHead className="rounded-tr-xl">Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {records.map((record) => {
+          const key = `${record.type}-${record.name}-${record.value.slice(0, 8)}`;
+          const valueClassName = record.name.includes("_domainkey")
+            ? "w-[200px] overflow-hidden text-ellipsis"
+            : "w-[200px] overflow-hidden text-ellipsis text-nowrap";
+          return (
+            <TableRow key={key}>
+              <TableCell>{record.type}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  {record.recommended ? (
+                    <span className="text-sm text-muted-foreground">
+                      (recomendado)
+                    </span>
+                  ) : null}
+                  <TextWithCopyButton value={record.name} />
+                </div>
+              </TableCell>
+              <TableCell>
+                <TextWithCopyButton
+                  value={record.value}
+                  className={valueClassName}
+                />
+              </TableCell>
+              <TableCell>{record.ttl}</TableCell>
+              <TableCell>{record.priority ?? ""}</TableCell>
+              <TableCell>
+                <DnsVerificationStatus status={record.status} />
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
+/* --------------------------- Configuração (Config) ------------------------- */
+
+function ConfigView({ domain }: { domain: DomainResponse }) {
   const updateDomain = api.domain.updateDomain.useMutation();
   const utils = api.useUtils();
 
-  const [clickTracking, setClickTracking] = React.useState(
-    domain.clickTracking,
-  );
+  const [clickTracking, setClickTracking] = React.useState(domain.clickTracking);
   const [openTracking, setOpenTracking] = React.useState(domain.openTracking);
+  const [tls, setTls] = React.useState(domain.tlsEnforced ? "enforced" : "opportunistic");
 
-  function handleClickTrackingChange() {
-    setClickTracking(!clickTracking);
-    updateDomain.mutate(
-      { id: domain.id, clickTracking: !clickTracking },
-      {
-        onSuccess: () => {
-          utils.domain.invalidate();
-          toast.success("Click tracking updated");
-        },
+  const save = (data: Parameters<typeof updateDomain.mutate>[0], msg: string) =>
+    updateDomain.mutate(data, {
+      onSuccess: () => {
+        utils.domain.invalidate();
+        toast.success(msg);
       },
-    );
-  }
+    });
 
-  function handleOpenTrackingChange() {
-    setOpenTracking(!openTracking);
-    updateDomain.mutate(
-      { id: domain.id, openTracking: !openTracking },
-      {
-        onSuccess: () => {
-          utils.domain.invalidate();
-          toast.success("Open tracking updated");
-        },
-      },
-    );
-  }
   return (
-    <div className="rounded-lg shadow p-4 border flex flex-col gap-6">
-      <p className="font-semibold text-xl">Settings</p>
+    <div className="flex flex-col gap-6 rounded-lg border p-6 shadow-sm">
+      <p className="text-xl font-semibold">Configuração</p>
+
       <div className="flex flex-col gap-1">
-        <div className="font-semibold">Click tracking</div>
-        <p className=" text-muted-foreground text-sm">
-          Track any links in your emails content.{" "}
+        <div className="font-semibold">Rastreamento de cliques</div>
+        <p className="text-sm text-muted-foreground">
+          Rastreie qualquer link no conteúdo dos seus e-mails. Ao clicar, o
+          destinatário é redirecionado imediatamente ao destino original.
         </p>
         <Switch
           checked={clickTracking}
-          onCheckedChange={handleClickTrackingChange}
+          onCheckedChange={() => {
+            const v = !clickTracking;
+            setClickTracking(v);
+            save(
+              { id: domain.id, clickTracking: v },
+              "Rastreamento de cliques atualizado",
+            );
+          }}
           className="data-[state=checked]:bg-success"
         />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <div className="font-semibold">Open tracking</div>
-        <p className=" text-muted-foreground text-sm">
-          Unsend adds a tracking pixel to every email you send. This allows you
-          to see how many people open your emails. This will affect the delivery
-          rate of your emails.
+      <div className="flex flex-col gap-1 border-t pt-6">
+        <div className="font-semibold">Rastreamento de aberturas</div>
+        <p className="text-sm text-muted-foreground">
+          Um pixel transparente 1×1 é inserido em cada e-mail para saber quantas
+          pessoas abrem. Pode gerar resultados imprecisos e afetar a entrega.
         </p>
         <Switch
           checked={openTracking}
-          onCheckedChange={handleOpenTrackingChange}
+          onCheckedChange={() => {
+            const v = !openTracking;
+            setOpenTracking(v);
+            save(
+              { id: domain.id, openTracking: v },
+              "Rastreamento de aberturas atualizado",
+            );
+          }}
           className="data-[state=checked]:bg-success"
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <p className="font-semibold text-lg text-destructive">Danger</p>
+      <div className="flex flex-col gap-2 border-t pt-6">
+        <div className="font-semibold">TLS (Transport Layer Security)</div>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          &quot;Oportunista&quot; tenta sempre uma conexão segura com o servidor
+          de destino; se não conseguir, envia sem criptografia.
+          &quot;Obrigatório&quot; exige que a comunicação use TLS de qualquer
+          forma.
+        </p>
+        <Select
+          value={tls}
+          onValueChange={(v) => {
+            setTls(v);
+            save(
+              { id: domain.id, tlsEnforced: v === "enforced" },
+              "Política TLS atualizada",
+            );
+          }}
+        >
+          <SelectTrigger className="w-[220px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="opportunistic">Oportunista</SelectItem>
+            <SelectItem value="enforced">Obrigatório</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        <p className="text-destructive text-sm font-semibold">
-          Deleting a domain will stop sending emails with this domain.
+      <div className="flex flex-col gap-2 border-t pt-6">
+        <p className="text-lg font-semibold text-destructive">Perigo</p>
+        <p className="text-sm font-semibold text-destructive">
+          Excluir um domínio interromperá o envio e o recebimento de e-mails com
+          este domínio.
         </p>
         <DeleteDomain domain={domain} />
       </div>
     </div>
   );
-};
+}
 
 const DnsVerificationStatus: React.FC<{ status: DomainStatus }> = ({ status }) => {
-  let badgeColor = "bg-gray/10 text-gray border-gray/10"; // Default color
+  let badgeColor = "bg-gray/10 text-gray border-gray/10";
   switch (status) {
     case DomainStatus.SUCCESS:
       badgeColor = "bg-green/15 text-green border border-green/25";
@@ -264,10 +406,9 @@ const DnsVerificationStatus: React.FC<{ status: DomainStatus }> = ({ status }) =
     default:
       badgeColor = "bg-gray/10 text-gray border border-gray/20";
   }
-
   return (
     <div
-      className={` text-xs text-center min-w-[70px] capitalize rounded-md py-1 justify-center flex items-center ${badgeColor}`}
+      className={`flex min-w-[70px] items-center justify-center rounded-md py-1 text-center text-xs capitalize ${badgeColor}`}
     >
       {status.split("_").join(" ").toLowerCase()}
     </div>

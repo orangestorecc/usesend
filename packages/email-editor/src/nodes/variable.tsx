@@ -72,7 +72,7 @@ export const VariableList = forwardRef((props: any, ref) => {
         ))
       ) : (
         <button className="flex w-full space-x-2 rounded-md bg-white px-2 py-1 text-left text-sm text-gray-900 hover:bg-gray-100">
-          No result
+          Nenhum resultado
         </button>
       )}
       {props.helperText ? (
@@ -217,7 +217,7 @@ export function VariableComponent(props: NodeViewProps) {
         >
           <form onSubmit={handleSubmit} className="flex gap-2 items-center">
             <Input
-              placeholder="Fallback value"
+              placeholder="Valor padrão"
               value={fallbackValue}
               onChange={(e) => {
                 setFallbackValue(e.target.value);
@@ -229,7 +229,7 @@ export function VariableComponent(props: NodeViewProps) {
             </Button>
           </form>
           <div className="text-sm text-muted-foreground">
-            Fallback value will be used if the variable value is empty.
+            O valor padrão será usado se o valor da variável estiver vazio.
           </div>
         </PopoverContent>
       </Popover>

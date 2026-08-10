@@ -21,9 +21,9 @@ export default async function WaitListPage() {
             <Rocket className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="text-2xl font-semibold">You're on the waitlist</h1>
+            <h1 className="text-2xl font-semibold">Você está na lista de espera</h1>
             <p className="text-sm text-muted-foreground">
-              Share a bit more context so we can prioritize your access.
+              Compartilhe um pouco mais de contexto para que possamos priorizar seu acesso.
             </p>
           </div>
         </div>

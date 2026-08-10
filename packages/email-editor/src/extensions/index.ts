@@ -17,6 +17,8 @@ import { VariableExtension } from "./VariableExtension";
 import { getVariableSuggestions } from "../nodes/variable";
 import { UnsubscribeFooterExtension } from "./UnsubsubscribeExtension";
 import { ResizableImageExtension, UploadFn } from "./ImageExtension";
+import { SpacerExtension } from "./SpacerExtension";
+import { HtmlExtension } from "./HtmlExtension";
 
 export function extensions({
   variables,
@@ -88,6 +90,8 @@ export function extensions({
     }),
     UnsubscribeFooterExtension,
     ResizableImageExtension.configure({ uploadImage }),
+    SpacerExtension,
+    HtmlExtension,
   ];
 
   return extensions;

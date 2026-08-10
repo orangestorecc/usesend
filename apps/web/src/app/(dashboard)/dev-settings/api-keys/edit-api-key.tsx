@@ -33,8 +33,8 @@ import { toast } from "@usesend/ui/src/toaster";
 
 const editApiKeySchema = z.object({
   name: z
-    .string({ required_error: "Name is required" })
-    .min(1, { message: "Name is required" }),
+    .string({ required_error: "O nome é obrigatório" })
+    .min(1, { message: "O nome é obrigatório" }),
   domainId: z.string().optional(),
 });
 
@@ -90,7 +90,7 @@ export function EditApiKeyDialog({
       {
         onSuccess: () => {
           utils.apiKey.invalidate();
-          toast.success("API key updated");
+          toast.success("Chave de API atualizada");
           onOpenChange(false);
         },
         onError: (error) => {
@@ -104,7 +104,7 @@ export function EditApiKeyDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit API key</DialogTitle>
+          <DialogTitle>Editar chave de API</DialogTitle>
         </DialogHeader>
         <div className="py-2">
           <Form {...form}>
@@ -117,15 +117,16 @@ export function EditApiKeyDialog({
                 name="name"
                 render={({ field, formState }) => (
                   <FormItem>
-                    <FormLabel>API key name</FormLabel>
+                    <FormLabel>Nome da chave de API</FormLabel>
                     <FormControl>
-                      <Input placeholder="prod key" {...field} />
+                      <Input placeholder="chave de produção" {...field} />
                     </FormControl>
                     {formState.errors.name ? (
                       <FormMessage />
                     ) : (
                       <FormDescription>
-                        Use a name to easily identify this API key.
+                        Use um nome para identificar facilmente esta chave de
+                        API.
                       </FormDescription>
                     )}
                   </FormItem>
@@ -136,18 +137,18 @@ export function EditApiKeyDialog({
                 name="domainId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Domain access</FormLabel>
+                    <FormLabel>Acesso a domínios</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select domain access" />
+                          <SelectValue placeholder="Selecione o acesso a domínios" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="all">All Domains</SelectItem>
+                        <SelectItem value="all">Todos os domínios</SelectItem>
                         {domainsQuery.data?.map(
                           (domain: { id: number; name: string }) => (
                             <SelectItem
@@ -161,7 +162,8 @@ export function EditApiKeyDialog({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Choose which domain this API key can send emails from.
+                      Escolha de qual domínio esta chave de API pode enviar
+                      e-mails.
                     </FormDescription>
                   </FormItem>
                 )}
@@ -172,7 +174,7 @@ export function EditApiKeyDialog({
                   type="submit"
                   disabled={updateApiKey.isPending}
                 >
-                  {updateApiKey.isPending ? "Saving..." : "Save changes"}
+                  {updateApiKey.isPending ? "Salvando..." : "Salvar alterações"}
                 </Button>
               </div>
             </form>

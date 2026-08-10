@@ -69,7 +69,7 @@ export function WebhookCallsTable({
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-row items-center justify-between mb-4">
-        <h2 className="text-base font-medium">Delivery Logs</h2>
+        <h2 className="text-base font-medium">Logs de entrega</h2>
         <Select
           value={statusFilter}
           onValueChange={(value) =>
@@ -77,20 +77,20 @@ export function WebhookCallsTable({
           }
         >
           <SelectTrigger className="w-[150px] h-8 text-xs">
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All</SelectItem>
+            <SelectItem value="ALL">Todos</SelectItem>
             <SelectItem value={WebhookCallStatus.DELIVERED}>
-              Delivered
+              Entregue
             </SelectItem>
-            <SelectItem value={WebhookCallStatus.FAILED}>Failed</SelectItem>
-            <SelectItem value={WebhookCallStatus.PENDING}>Pending</SelectItem>
+            <SelectItem value={WebhookCallStatus.FAILED}>Falhou</SelectItem>
+            <SelectItem value={WebhookCallStatus.PENDING}>Pendente</SelectItem>
             <SelectItem value={WebhookCallStatus.IN_PROGRESS}>
-              In Progress
+              Em andamento
             </SelectItem>
             <SelectItem value={WebhookCallStatus.DISCARDED}>
-              Discarded
+              Descartado
             </SelectItem>
           </SelectContent>
         </Select>
@@ -100,8 +100,8 @@ export function WebhookCallsTable({
           <TableHeader className="sticky top-0 z-10">
             <TableRow className="bg-muted dark:bg-muted/70">
               <TableHead className="h-9 rounded-tl-xl">Status</TableHead>
-              <TableHead className="h-9">Event Type</TableHead>
-              <TableHead className="h-9 rounded-tr-xl">Time</TableHead>
+              <TableHead className="h-9">Tipo de evento</TableHead>
+              <TableHead className="h-9 rounded-tr-xl">Horário</TableHead>
             </TableRow>
           </TableHeader>
         </Table>
@@ -121,7 +121,7 @@ export function WebhookCallsTable({
                 <TableRow className="h-32 hover:bg-transparent">
                   <TableCell colSpan={3} className="py-4 text-center">
                     <p className="text-muted-foreground text-sm">
-                      No webhook calls yet
+                      Nenhuma chamada de webhook ainda
                     </p>
                   </TableCell>
                 </TableRow>
@@ -162,10 +162,10 @@ export function WebhookCallsTable({
           onClick={handlePrevPage}
           disabled={cursors.length === 0}
         >
-          Previous
+          Anterior
         </Button>
         <Button size="sm" onClick={handleNextPage} disabled={!nextCursor}>
-          Next
+          Próxima
         </Button>
       </div>
     </div>

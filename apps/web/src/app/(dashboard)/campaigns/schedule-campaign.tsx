@@ -80,11 +80,11 @@ export const ScheduleCampaign: React.FC<{
           setSelectedDate(null);
           setIsConfirmNow(false);
           setError(null);
-          toast.success("Campaign scheduled");
+          toast.success("Campanha agendada");
           onScheduled?.();
         },
         onError: (error) => {
-          setError(error.message || "Failed to schedule campaign");
+          setError(error.message || "Falha ao agendar a campanha");
         },
       },
     );
@@ -93,7 +93,7 @@ export const ScheduleCampaign: React.FC<{
   const onDialogSchedule = () => {
     const parsed = selectedDate ?? chrono.parseDate(scheduleInput);
     if (!parsed) {
-      setError("Invalid date and time");
+      setError("Data e hora inválidas");
       return;
     }
 
@@ -160,21 +160,21 @@ export const ScheduleCampaign: React.FC<{
         }}
       >
         <DialogTrigger asChild>
-          <Button variant="default">Schedule Campaign</Button>
+          <Button variant="default">Agendar campanha</Button>
         </DialogTrigger>
         <DialogContent ref={dialogContentRef}>
           <DialogHeader>
-            <DialogTitle>Schedule Campaign</DialogTitle>
+            <DialogTitle>Agendar campanha</DialogTitle>
           </DialogHeader>
           <div className="py-2 space-y-8">
             <div>
               <label htmlFor="scheduledAt" className="block mb-2">
-                Schedule at
+                Agendar para
               </label>
               <div className="relative">
                 <Input
                   id="scheduledAt"
-                  placeholder="e.g., tomorrow 9am, next monday 10:30"
+                  placeholder="ex.: amanhã 9h, próxima segunda 10:30"
                   value={scheduleInput}
                   onChange={(e) => onScheduleInputChange(e.target.value)}
                 />
@@ -183,7 +183,7 @@ export const ScheduleCampaign: React.FC<{
                     <button
                       type="button"
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-                      aria-label="Open date picker"
+                      aria-label="Abrir seletor de data"
                     >
                       <CalendarIcon className="h-4 w-4" />
                     </button>
@@ -194,7 +194,7 @@ export const ScheduleCampaign: React.FC<{
                     container={dialogContentRef.current}
                   >
                     <label className="block text-sm mb-2">
-                      Pick date & time
+                      Escolher data e hora
                     </label>
                     <div className="flex gap-4 items-start">
                       <Calendar
@@ -246,7 +246,7 @@ export const ScheduleCampaign: React.FC<{
                     {format(selectedDate, "MMMM do, h:mm a")}
                   </span>
                 ) : (
-                  <span className="">No date selected</span>
+                  <span className="">Nenhuma data selecionada</span>
                 )}
               </div>
             </div>
@@ -261,7 +261,7 @@ export const ScheduleCampaign: React.FC<{
               {isConfirmNow ? (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                    Are you sure you want to send this campaign now?
+                    Tem certeza de que deseja enviar esta campanha agora?
                   </span>
                   <Button
                     size="sm"
@@ -270,14 +270,14 @@ export const ScheduleCampaign: React.FC<{
                     }}
                     disabled={scheduleMutation.isPending}
                   >
-                    Yes
+                    Sim
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setIsConfirmNow(false)}
                   >
-                    Cancel
+                    Cancelar
                   </Button>
                 </div>
               ) : (
@@ -289,7 +289,7 @@ export const ScheduleCampaign: React.FC<{
                     }}
                     disabled={scheduleMutation.isPending}
                   >
-                    Send Now
+                    Enviar agora
                   </Button>
                   <Button
                     className="w-[130px]"
@@ -299,7 +299,7 @@ export const ScheduleCampaign: React.FC<{
                     isLoading={scheduleMutation.isPending}
                     showSpinner={true}
                   >
-                    {scheduleMutation.isPending ? "Scheduling" : "Schedule"}
+                    {scheduleMutation.isPending ? "Agendando" : "Agendar"}
                   </Button>
                 </>
               )}

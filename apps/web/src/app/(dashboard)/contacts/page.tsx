@@ -8,7 +8,7 @@ export default function ContactsPage() {
   return (
     <div>
       <div className="flex justify-between items-center">
-        <H1>Contact books</H1>
+        <H1>Listas de contatos</H1>
         <AddContactBook />
       </div>
       <ContactBooksList />

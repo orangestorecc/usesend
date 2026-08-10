@@ -20,7 +20,7 @@ async function checkIfValidEmail(emailId: string) {
   if (!email || !email.domainId) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Email not found",
+      message: "E-mail não encontrado",
     });
   }
 
@@ -31,7 +31,7 @@ async function checkIfValidEmail(emailId: string) {
   if (!domain) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Email not found",
+      message: "E-mail não encontrado",
     });
   }
 
@@ -88,7 +88,7 @@ export async function sendEmail(
     if (!apiKey) {
       throw new UnsendApiError({
         code: "BAD_REQUEST",
-        message: "Invalid API key",
+        message: "API key inválida",
       });
     }
 
@@ -229,7 +229,7 @@ export async function sendEmail(
     if (!email) {
       throw new UnsendApiError({
         code: "BAD_REQUEST",
-        message: '"inReplyTo" is invalid',
+        message: '"inReplyTo" é inválido',
       });
     }
   }
@@ -237,7 +237,7 @@ export async function sendEmail(
   if (!text && !html) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Either text or html is required",
+      message: "É necessário informar text ou html",
     });
   }
 
@@ -314,7 +314,7 @@ export async function updateEmail(
   if (email.latestStatus !== "SCHEDULED") {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Email already processed",
+      message: "E-mail já processado",
     });
   }
 
@@ -339,7 +339,7 @@ export async function cancelEmail(emailId: string) {
   if (email.latestStatus !== "SCHEDULED") {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Email already processed",
+      message: "E-mail já processado",
     });
   }
 
@@ -376,14 +376,14 @@ export async function sendBulkEmails(
   if (emailContents.length === 0) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "No emails provided for bulk send",
+      message: "Nenhum e-mail informado para envio em lote",
     });
   }
 
   if (emailContents.length > 100) {
     throw new UnsendApiError({
       code: "BAD_REQUEST",
-      message: "Cannot send more than 100 emails in a single bulk request",
+      message: "Não é possível enviar mais de 100 e-mails em uma única requisição em lote",
     });
   }
 
@@ -692,7 +692,7 @@ export async function sendBulkEmails(
       if (!text && !html) {
         throw new UnsendApiError({
           code: "BAD_REQUEST",
-          message: `Either text or html is required for email to ${to}`,
+          message: `É necessário informar text ou html para o e-mail destinado a ${to}`,
         });
       }
 
@@ -750,7 +750,7 @@ export async function sendBulkEmails(
   if (queueJobs.length === 0) {
     throw new UnsendApiError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to create any email records",
+      message: "Falha ao criar os registros de e-mail",
     });
   }
 

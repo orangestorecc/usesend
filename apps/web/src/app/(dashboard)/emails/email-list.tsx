@@ -31,7 +31,8 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@usesend/ui/src/select";
-import Spinner from "@usesend/ui/src/spinner";
+import { EmptyState } from "~/components/EmptyState";
+import { TableRowsSkeleton } from "~/components/skeletons";
 import {
   Tooltip,
   TooltipContent,
@@ -123,13 +124,13 @@ export default function EmailsList() {
       };
 
       const header = [
-        "To",
+        "Para",
         "Status",
-        "Subject",
-        "Sent At",
-        "Bounce Type",
-        "Bounce Subtype",
-        "Bounce Reason",
+        "Assunto",
+        "Enviado em",
+        "Tipo de retorno",
+        "Subtipo de retorno",
+        "Motivo do retorno",
       ].join(",");
       const rows = resp.data.map((e) =>
         [
@@ -166,7 +167,7 @@ export default function EmailsList() {
     <div className="mt-10 flex flex-col gap-4">
       <div className="flex flex-col  sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0">
         <Input
-          placeholder="Search by subject or email"
+          placeholder="Buscar por assunto ou e-mail"
           className="w-full sm:w-[350px] sm:mr-4"
           defaultValue={search ?? ""}
           onChange={(e) => debouncedSearch(e.target.value)}
@@ -180,10 +181,10 @@ export default function EmailsList() {
               {apiKey
                 ? apiKeysQuery?.find((apikey) => apikey.id === Number(apiKey))
                     ?.name
-                : "All API Keys"}
+                : "Todas as API keys"}
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="All API Keys">All API Keys</SelectItem>
+              <SelectItem value="All API Keys">Todas as API keys</SelectItem>
               {apiKeysQuery &&
                 apiKeysQuery.map((apikey) => (
                   <SelectItem key={apikey.id} value={apikey.id.toString()}>
@@ -199,11 +200,11 @@ export default function EmailsList() {
             <SelectTrigger className="w-full sm:w-[180px]">
               {domain
                 ? domainsQuery?.find((d) => d.id === Number(domain))?.name
-                : "All Domains"}
+                : "Todos os domínios"}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All Domains" className=" capitalize">
-                All Domains
+                Todos os domínios
               </SelectItem>
               {domainsQuery &&
                 domainsQuery.map((domain) => (
@@ -220,11 +221,13 @@ export default function EmailsList() {
             }
           >
             <SelectTrigger className="w-full sm:w-[180px] capitalize">
-              {status ? status.toLowerCase().replace("_", " ") : "All statuses"}
+              {status
+                ? status.toLowerCase().replace("_", " ")
+                : "Todos os status"}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All statuses" className=" capitalize">
-                All statuses
+                Todos os status
               </SelectItem>
               {Object.values([
                 "SENT",
@@ -251,7 +254,7 @@ export default function EmailsList() {
             className="w-full sm:w-auto"
           >
             <Download className="h-4 w-4 mr-2" />
-            Export
+            Exportar
           </Button>
         </div>
       </div>
@@ -259,24 +262,17 @@ export default function EmailsList() {
         <Table className="">
           <TableHeader className="">
             <TableRow className=" bg-muted dark:bg-muted/70">
-              <TableHead className="rounded-tl-xl">To</TableHead>
+              <TableHead className="rounded-tl-xl">Para</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Subject</TableHead>
+              <TableHead>Assunto</TableHead>
               <TableHead className="text-right rounded-tr-xl">
-                Sent at
+                Enviado em
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {emailsQuery.isLoading ? (
-              <TableRow className="h-32">
-                <TableCell colSpan={4} className="text-center py-4">
-                  <Spinner
-                    className="w-6 h-6 mx-auto"
-                    innerSvgClass="stroke-primary"
-                  />
-                </TableCell>
-              </TableRow>
+              <TableRowsSkeleton rows={8} cols={4} />
             ) : emailsQuery.data?.emails.length ? (
               emailsQuery.data?.emails.map((email) => (
                 <TableRow
@@ -300,7 +296,7 @@ export default function EmailsList() {
                             />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Scheduled at{" "}
+                            Agendado para{" "}
                             {formatDate(
                               email.scheduledAt,
                               "MMM dd'th', hh:mm a",
@@ -326,9 +322,14 @@ export default function EmailsList() {
                 </TableRow>
               ))
             ) : (
-              <TableRow className="h-32">
-                <TableCell colSpan={4} className="text-center py-4">
-                  No emails found
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={4} className="p-0">
+                  <EmptyState
+                    icon={Mail}
+                    title="Nenhum e-mail encontrado"
+                    description="Os e-mails enviados aparecerão aqui."
+                    className="border-0 bg-transparent"
+                  />
                 </TableCell>
               </TableRow>
             )}
@@ -340,9 +341,9 @@ export default function EmailsList() {
           onOpenChange={handleSheetChange}
         >
           <DynamicSheetContentWithNoSSR className="sm:max-w-3xl overflow-y-auto no-scrollbar">
-            <SheetTitle className="sr-only">Email Details</SheetTitle>
+            <SheetTitle className="sr-only">Detalhes do e-mail</SheetTitle>
             <SheetDescription className="sr-only">
-              Detailed view of the selected email.
+              Visão detalhada do e-mail selecionado.
             </SheetDescription>
             {selectedEmail ? <EmailDetails emailId={selectedEmail} /> : null}
           </DynamicSheetContentWithNoSSR>
@@ -354,14 +355,14 @@ export default function EmailsList() {
           onClick={() => setPage((pageNumber - 1).toString())}
           disabled={pageNumber === 1}
         >
-          Previous
+          Anterior
         </Button>
         <Button
           size="sm"
           onClick={() => setPage((pageNumber + 1).toString())}
           disabled={emailsQuery.data?.emails.length !== DEFAULT_QUERY_LIMIT}
         >
-          Next
+          Próximo
         </Button>
       </div>
     </div>

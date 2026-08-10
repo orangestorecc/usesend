@@ -43,13 +43,13 @@ export default function EditTemplatePage({
   if (error) {
     return (
       <div className="flex justify-center items-center h-full">
-        <p className="text-red-500">Failed to load template</p>
+        <p className="text-red-500">Falha ao carregar o template</p>
       </div>
     );
   }
 
   if (!template) {
-    return <div>Template not found</div>;
+    return <div>Template não encontrado</div>;
   }
 
   return <TemplateEditor template={template} />;
@@ -92,7 +92,7 @@ function TemplateEditor({
   const handleFileChange = async (file: File) => {
     if (file.size > IMAGE_SIZE_LIMIT) {
       throw new Error(
-        `File should be less than ${IMAGE_SIZE_LIMIT / 1024 / 1024}MB`,
+        `O arquivo deve ter menos de ${IMAGE_SIZE_LIMIT / 1024 / 1024}MB`,
       );
     }
 
@@ -110,7 +110,7 @@ function TemplateEditor({
     });
 
     if (!response.ok) {
-      throw new Error("Failed to upload file");
+      throw new Error("Falha ao enviar o arquivo");
     }
 
     return imageUrl;
@@ -140,7 +140,7 @@ function TemplateEditor({
                   },
                   {
                     onError: (e) => {
-                      toast.error(`${e.message}. Reverting changes.`);
+                      toast.error(`${e.message}. Revertendo alterações.`);
                       setName(template.name);
                     },
                   },
@@ -157,8 +157,8 @@ function TemplateEditor({
                 <div className="h-2 w-2 bg-green rounded-full" />
               )}
               {formatDistanceToNow(template.updatedAt) === "less than a minute"
-                ? "just now"
-                : `${formatDistanceToNow(template.updatedAt)} ago`}
+                ? "agora mesmo"
+                : `há ${formatDistanceToNow(template.updatedAt)}`}
             </div>
           </div>
         </div>
@@ -166,7 +166,7 @@ function TemplateEditor({
         <div className="flex flex-col mt-4 mb-4 p-4 w-full sm:w-[700px] mx-auto z-50">
           <div className="flex items-center gap-4">
             <label className="block text-sm  w-[80px] text-muted-foreground">
-              Subject
+              Assunto
             </label>
             <input
               type="text"
@@ -185,7 +185,7 @@ function TemplateEditor({
                   },
                   {
                     onError: (e) => {
-                      toast.error(`${e.message}. Reverting changes.`);
+                      toast.error(`${e.message}. Revertendo alterações.`);
                       setSubject(template.subject);
                     },
                   },

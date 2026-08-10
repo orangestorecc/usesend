@@ -24,10 +24,10 @@ export const DeleteContactBook: React.FC<{
     .object({
       confirmation: z
         .string()
-        .min(1, "Please type the contact book name to confirm"),
+        .min(1, "Digite o nome da lista de contatos para confirmar"),
     })
     .refine((data) => data.confirmation === contactBook.name, {
-      message: "Contact book name does not match",
+      message: "O nome da lista de contatos não corresponde",
       path: ["confirmation"],
     });
 
@@ -42,7 +42,7 @@ export const DeleteContactBook: React.FC<{
         onSuccess: async () => {
           utils.contacts.getContactBooks.invalidate();
           await onSuccess?.();
-          toast.success(`Contact book deleted`);
+          toast.success(`Lista de contatos excluída`);
         },
       },
     );
@@ -58,7 +58,7 @@ export const DeleteContactBook: React.FC<{
 
   return (
     <DeleteResource
-      title="Delete Contact Book"
+      title="Excluir lista de contatos"
       resourceName={contactBook.name || ""}
       schema={contactBookSchema}
       isLoading={deleteContactBookMutation.isPending}
@@ -66,7 +66,7 @@ export const DeleteContactBook: React.FC<{
       open={open}
       onOpenChange={onOpenChange}
       trigger={dialogTrigger}
-      confirmLabel="Delete Contact Book"
+      confirmLabel="Excluir lista de contatos"
     />
   );
 };

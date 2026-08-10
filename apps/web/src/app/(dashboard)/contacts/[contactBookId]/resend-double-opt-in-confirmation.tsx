@@ -52,16 +52,16 @@ export function ResendDoubleOptInConfirmation({
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Resend confirmation email</p>
+          <p>Reenviar e-mail de confirmação</p>
         </TooltipContent>
       </Tooltip>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Resend Confirmation Email</DialogTitle>
+            <DialogTitle>Reenviar e-mail de confirmação</DialogTitle>
             <DialogDescription>
-              Send a new double opt-in confirmation email to{" "}
+              Enviar um novo e-mail de confirmação de double opt-in para{" "}
               <strong>{email}</strong>?
             </DialogDescription>
           </DialogHeader>
@@ -71,7 +71,7 @@ export function ResendDoubleOptInConfirmation({
               onClick={() => setOpen(false)}
               disabled={resendMutation.isPending}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button
               onClick={() => {
@@ -83,7 +83,7 @@ export function ResendDoubleOptInConfirmation({
                   {
                     onSuccess: async () => {
                       await utils.contacts.contacts.invalidate();
-                      toast.success(`Confirmation email resent to ${email}`);
+                      toast.success(`E-mail de confirmação reenviado para ${email}`);
                       setOpen(false);
                     },
                     onError: (error) => {
@@ -94,7 +94,7 @@ export function ResendDoubleOptInConfirmation({
               }}
               disabled={resendMutation.isPending}
             >
-              {resendMutation.isPending ? "Resending..." : "Resend"}
+              {resendMutation.isPending ? "Reenviando..." : "Reenviar"}
             </Button>
           </DialogFooter>
         </DialogContent>

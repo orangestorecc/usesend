@@ -1,0 +1,9 @@
+<svg width="460" height="120" viewBox="0 0 460 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Madmail">
+  <!-- Wordmark for dark backgrounds: white "MAD" block + near-white "MAIL" -->
+  <style>
+    .mm-w{ font-family:"Inter","Helvetica Neue",Arial,sans-serif; font-weight:700; font-size:84px; letter-spacing:-3.8px; }
+  </style>
+  <rect x="6" y="6" width="196" height="108" rx="10" fill="#FAFAFA"/>
+  <text class="mm-w" x="104" y="61" fill="#000000" text-anchor="middle" dominant-baseline="central">MAD</text>
+  <text class="mm-w" x="216" y="61" fill="#FAFAFA" text-anchor="start" dominant-baseline="central">MAIL</text>
+</svg>

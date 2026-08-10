@@ -30,14 +30,14 @@ import { GENERIC_AUTH_ERROR_MESSAGE, getAuthErrorMessage } from "./auth-error";
 
 const emailSchema = z.object({
   email: z
-    .string({ required_error: "Email is required" })
-    .email({ message: "Invalid email" }),
+    .string({ required_error: "O e-mail é obrigatório" })
+    .email({ message: "E-mail inválido" }),
 });
 
 const otpSchema = z.object({
   otp: z
-    .string({ required_error: "OTP is required" })
-    .length(5, { message: "Invalid OTP" }),
+    .string({ required_error: "O OTP é obrigatório" })
+    .length(5, { message: "OTP inválido" }),
 });
 
 const providerSvgs = {
@@ -154,23 +154,23 @@ export default function LoginPage({
     <main className="h-screen flex justify-center items-center">
       <div className="flex flex-col gap-6">
         <Image
-          src={"/logo-squircle.png"}
-          alt="useSend"
-          width={50}
-          height={50}
-          className="mx-auto"
+          src={"/brand/madmail-symbol.png"}
+          alt="Madmail"
+          width={52}
+          height={52}
+          className="mx-auto rounded-[12px]"
         />
         <div>
           <p className="text-2xl text-center font-semibold">
-            {isSignup ? "Create new account" : "Sign into useSend"}
+            {isSignup ? "Criar nova conta" : "Entrar no Madmail"}
           </p>
           <p className="text-center mt-2 text-sm text-muted-foreground">
-            {isSignup ? "Already have an account?" : "New to useSend?"}
+            {isSignup ? "Já tem uma conta?" : "Novo no Madmail?"}
             <Link
               href={isSignup ? "/login" : "/signup"}
               className=" text-foreground hover:underline ml-1"
             >
-              {isSignup ? "Sign in" : "Create new account"}
+              {isSignup ? "Entrar" : "Criar nova conta"}
             </Link>
           </p>
         </div>
@@ -200,7 +200,7 @@ export default function LoginPage({
                     providerSvgs[provider.id as keyof typeof providerSvgs]
                   )}
                   <span className="ml-4">
-                    {isSignup ? "Sign up with" : "Continue with"}{" "}
+                    {isSignup ? "Criar conta com" : "Continuar com"}{" "}
                     {provider.name}
                   </span>
                 </Button>
@@ -210,14 +210,14 @@ export default function LoginPage({
             <>
               <div className=" flex w-[350px]  items-center justify-between gap-2">
                 <p className=" z-10 ml-[175px] -translate-x-1/2 bg-background px-4 text-sm">
-                  or
+                  ou
                 </p>
                 <div className="absolute h-[1px] w-[350px]  bg-gradient-to-l from-zinc-300 via-zinc-800 to-zinc-300"></div>
               </div>
               {emailStatus === "success" ? (
                 <>
                   <p className=" w-[350px] text-center text-sm">
-                    We have sent an email with the OTP. Please check your inbox
+                    Enviamos um e-mail com o OTP. Verifique sua caixa de entrada
                   </p>
                   <Form {...otpForm}>
                     <form
@@ -268,7 +268,7 @@ export default function LoginPage({
                       />
 
                       <Button size="lg" className=" mt-9 w-[350px]">
-                        Submit
+                        Enviar
                       </Button>
                     </form>
                   </Form>
@@ -287,7 +287,7 @@ export default function LoginPage({
                           <FormItem>
                             <FormControl>
                               <Input
-                                placeholder="Enter your email"
+                                placeholder="Digite seu e-mail"
                                 className=" w-[350px]"
                                 type="email"
                                 {...field}
@@ -304,8 +304,8 @@ export default function LoginPage({
                         disabled={emailStatus === "sending"}
                       >
                         {emailStatus === "sending"
-                          ? "Sending..."
-                          : "Continue with email"}
+                          ? "Enviando..."
+                          : "Continuar com e-mail"}
                       </Button>
                     </form>
                   </Form>

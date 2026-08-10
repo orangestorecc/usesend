@@ -46,7 +46,7 @@ export const CancelEmail: React.FC<{
   async function onEmailCancel(values: z.infer<typeof cancelSchema>) {
     if (values.confirmation !== "cancel") {
       cancelForm.setError("confirmation", {
-        message: "Confirmation does not match",
+        message: "A confirmação não corresponde",
       });
       return;
     }
@@ -59,10 +59,10 @@ export const CancelEmail: React.FC<{
         onSuccess: () => {
           utils.email.getEmail.invalidate({ id: emailId });
           setOpen(false);
-          toast.success(`Email cancelled`);
+          toast.success(`E-mail cancelado`);
         },
         onError: (e) => {
-          toast.error(`Error cancelling email: ${e.message}`);
+          toast.error(`Erro ao cancelar o e-mail: ${e.message}`);
         },
       },
     );
@@ -82,10 +82,10 @@ export const CancelEmail: React.FC<{
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Cancel Email</DialogTitle>
+          <DialogTitle>Cancelar e-mail</DialogTitle>
           <DialogDescription>
-            Are you sure you want to cancel this email? This action cannot be
-            undone.
+            Tem certeza de que deseja cancelar este e-mail? Esta ação não pode
+            ser desfeita.
           </DialogDescription>
         </DialogHeader>
         <div className="py-2">
@@ -99,7 +99,7 @@ export const CancelEmail: React.FC<{
                 name="confirmation"
                 render={({ field, formState }) => (
                   <FormItem>
-                    <FormLabel>Type "cancel" to confirm</FormLabel>
+                    <FormLabel>Digite "cancel" para confirmar</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -122,8 +122,8 @@ export const CancelEmail: React.FC<{
                   }
                 >
                   {cancelEmailMutation.isPending
-                    ? "Cancelling..."
-                    : "Cancel Email"}
+                    ? "Cancelando..."
+                    : "Cancelar e-mail"}
                 </Button>
               </div>
             </form>

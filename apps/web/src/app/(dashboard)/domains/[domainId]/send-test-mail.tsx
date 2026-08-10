@@ -24,10 +24,10 @@ export const SendTestMail: React.FC<{ domain: DomainWithDnsRecords }> = ({
       {
         onSuccess: () => {
           utils.domain.domains.invalidate();
-          toast.success(`Test email sent`);
+          toast.success(`E-mail de teste enviado`);
         },
         onError: (err) => {
-          toast.error(err.message || "Failed to send test email");
+          toast.error(err.message || "Falha ao enviar o e-mail de teste");
         },
       },
     );
@@ -40,8 +40,8 @@ export const SendTestMail: React.FC<{ domain: DomainWithDnsRecords }> = ({
     >
       <SendHorizonal className="h-4 w-4 mr-2" />
       {sendTestEmailFromDomainMutation.isPending
-        ? "Sending email..."
-        : "Send test email"}
+        ? "Enviando e-mail..."
+        : "Enviar e-mail de teste"}
     </Button>
   );
 };

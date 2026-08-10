@@ -3,7 +3,6 @@
 import { api } from "~/trpc/react";
 import { useUrlState } from "~/hooks/useUrlState";
 import { Button } from "@usesend/ui/src/button";
-import Spinner from "@usesend/ui/src/spinner";
 import { CampaignStatus } from "@prisma/client";
 import {
   Select,
@@ -12,9 +11,19 @@ import {
   SelectItem,
 } from "@usesend/ui/src/select";
 import { Input } from "@usesend/ui/src/input";
-import { Search } from "lucide-react";
+import { Megaphone, Search } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import CampaignCard from "./campaign-card";
+import { EmptyState } from "~/components/EmptyState";
+import { CardsSkeleton } from "~/components/skeletons";
+
+const STATUS_LABELS: Record<string, string> = {
+  [CampaignStatus.DRAFT]: "Rascunho",
+  [CampaignStatus.SCHEDULED]: "Agendada",
+  [CampaignStatus.RUNNING]: "Em execução",
+  [CampaignStatus.PAUSED]: "Pausada",
+  [CampaignStatus.SENT]: "Enviada",
+};
 
 export default function CampaignList() {
   const [page, setPage] = useUrlState("page", "1");
@@ -60,7 +69,7 @@ export default function CampaignList() {
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search campaigns..."
+            placeholder="Buscar campanhas..."
             value={searchTerm || ""}
             onChange={(e) => onSearch(e.target.value)}
             className="pl-10"
@@ -73,29 +82,29 @@ export default function CampaignList() {
           onValueChange={(val) => setStatus(val === "all" ? null : val)}
         >
           <SelectTrigger className="w-[180px] capitalize">
-            {status ? status.toLowerCase() : "All statuses"}
+            {status ? (STATUS_LABELS[status] ?? status) : "Todos os status"}
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all" className=" capitalize">
-              All statuses
+              Todos os status
             </SelectItem>
             <SelectItem value={CampaignStatus.DRAFT} className=" capitalize">
-              Draft
+              Rascunho
             </SelectItem>
             <SelectItem
               value={CampaignStatus.SCHEDULED}
               className=" capitalize"
             >
-              Scheduled
+              Agendada
             </SelectItem>
             <SelectItem value={CampaignStatus.RUNNING} className=" capitalize">
-              Running
+              Em execução
             </SelectItem>
             <SelectItem value={CampaignStatus.PAUSED} className=" capitalize">
-              Paused
+              Pausada
             </SelectItem>
             <SelectItem value={CampaignStatus.SENT} className=" capitalize">
-              Sent
+              Enviada
             </SelectItem>
           </SelectContent>
         </Select>
@@ -103,22 +112,21 @@ export default function CampaignList() {
       {/* Campaign cards */}
       <div className="flex flex-col gap-8">
         {campaignsQuery.isLoading ? (
-          <div className="flex justify-center py-12">
-            <Spinner className="w-6 h-6" innerSvgClass="stroke-primary" />
-          </div>
+          <CardsSkeleton count={4} />
         ) : campaignsQuery.data?.campaigns.length ? (
           campaignsQuery.data?.campaigns.map((campaign) => (
             <CampaignCard key={campaign.id} campaign={campaign} />
           ))
         ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            No campaigns found
-            {(search || status) && (
-              <div className="text-sm mt-2">
-                Try adjusting your search or filters
-              </div>
-            )}
-          </div>
+          <EmptyState
+            icon={Megaphone}
+            title="Nenhuma campanha encontrada"
+            description={
+              search || status
+                ? "Tente ajustar sua busca ou filtros."
+                : "Crie sua primeira campanha para começar a enviar."
+            }
+          />
         )}
       </div>
       <div className="flex gap-4 justify-end">
@@ -127,14 +135,14 @@ export default function CampaignList() {
           onClick={() => setPage((pageNumber - 1).toString())}
           disabled={pageNumber === 1}
         >
-          Previous
+          Anterior
         </Button>
         <Button
           size="sm"
           onClick={() => setPage((pageNumber + 1).toString())}
           disabled={pageNumber >= (campaignsQuery.data?.totalPage ?? 0)}
         >
-          Next
+          Próximo
         </Button>
       </div>
     </div>

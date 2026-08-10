@@ -609,6 +609,17 @@ export class EmailRenderer {
     return <br />;
   }
 
+  private html(node: JSONContent, _?: NodeOptions): React.ReactNode {
+    const { attrs } = node;
+    const rawHtml = (attrs?.html as string) || "";
+
+    return (
+      <Container style={{ maxWidth: "100%" }}>
+        <div dangerouslySetInnerHTML={{ __html: rawHtml }} />
+      </Container>
+    );
+  }
+
   private logo(node: JSONContent, options?: NodeOptions): React.ReactNode {
     const { attrs } = node;
     const {
@@ -678,7 +689,7 @@ export class EmailRenderer {
           borderColor,
           borderWidth: `${borderWidth}px`,
         }}
-        title={title || alt || "Image"}
+        title={title || alt || "Imagem"}
       />
     );
 

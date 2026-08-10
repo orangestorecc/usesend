@@ -65,7 +65,7 @@ export default function CampaignDetailsPage({
   }
 
   if (!campaign) {
-    return <div>Campaign not found</div>;
+    return <div>Campanha não encontrada</div>;
   }
 
   const deliveredCount = campaign.delivered ?? 0;
@@ -79,21 +79,25 @@ export default function CampaignDetailsPage({
   const statisticsRows = [
     {
       status: "delivered",
+      label: "Entregues",
       count: deliveredCount,
       percentage: deliveredDenominator > 0 ? 100 : 0,
     },
     {
       status: "unsubscribed",
+      label: "Cancelados",
       count: unsubscribedCount,
       percentage: percentageOfDelivered(unsubscribedCount),
     },
     {
       status: "clicked",
+      label: "Cliques",
       count: clickedCount,
       percentage: percentageOfDelivered(clickedCount),
     },
     {
       status: "opened",
+      label: "Aberturas",
       count: openedCount,
       percentage: percentageOfDelivered(openedCount),
     },
@@ -110,7 +114,7 @@ export default function CampaignDetailsPage({
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
                 <Link href="/campaigns" className="text-lg">
-                  Campaigns
+                  Campanhas
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
@@ -127,7 +131,7 @@ export default function CampaignDetailsPage({
         </Breadcrumb>
         {campaign.status === "SCHEDULED" ? (
           <Link href={`/campaigns/${campaign.id}/edit`}>
-            <Button>Edit</Button>
+            <Button>Editar</Button>
           </Link>
         ) : (
           <TogglePauseCampaign campaign={campaign} mode="full" />
@@ -139,15 +143,15 @@ export default function CampaignDetailsPage({
           <Card>
             <CardHeader className="space-y-4">
               <div className="flex flex-col gap-1">
-                <CardTitle className="text-sm font-mono">Statistics</CardTitle>
+                <CardTitle className="text-sm font-mono">Estatísticas</CardTitle>
                 {total > 0 ? (
                   <div className="text-sm text-muted-foreground font-mono">
-                    {processed.toLocaleString()} of {total.toLocaleString()}{" "}
-                    processed
+                    {processed.toLocaleString()} de {total.toLocaleString()}{" "}
+                    processados
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground">
-                    No recipients processed yet
+                    Nenhum destinatário processado ainda
                   </div>
                 )}
               </div>
@@ -165,14 +169,14 @@ export default function CampaignDetailsPage({
                   <div className="flex items-center gap-3">
                     <CampaignStatusIndicator status={row.status} />
                     <div>
-                      <div className="text-sm capitalize">{row.status}</div>
+                      <div className="text-sm capitalize">{row.label}</div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-xl font-mono">{row.count}</div>
                     {row.status !== "delivered" ? (
                       <div className="text-xs text-muted-foreground">
-                        {row.percentage.toFixed(1)}% of delivered
+                        {row.percentage.toFixed(1)}% dos entregues
                       </div>
                     ) : null}
                   </div>
@@ -183,7 +187,9 @@ export default function CampaignDetailsPage({
 
           <Card>
             <CardHeader className="flex gap-2">
-              <CardTitle className="text-sm font-mono">Live activity</CardTitle>
+              <CardTitle className="text-sm font-mono">
+                Atividade ao vivo
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex h-[300px] flex-col">
@@ -194,7 +200,7 @@ export default function CampaignDetailsPage({
                 ) : !latestEmails || latestEmails.length === 0 ? (
                   <div className="flex flex-1 items-center justify-center">
                     <div className="rounded   text-sm text-muted-foreground">
-                      No recent user actions yet.
+                      Nenhuma ação recente de usuário ainda.
                     </div>
                   </div>
                 ) : (
@@ -205,7 +211,7 @@ export default function CampaignDetailsPage({
                         const primaryRecipient =
                           recipients.length > 0
                             ? recipients[0]
-                            : "Unknown recipient";
+                            : "Destinatário desconhecido";
                         const timestamp =
                           email.latestStatus === "SCHEDULED" &&
                           email.scheduledAt
@@ -248,20 +254,20 @@ export default function CampaignDetailsPage({
 
       {campaign.html && (
         <div className=" rounded-lg  mt-16">
-          <H2 className="mb-4">Email</H2>
+          <H2 className="mb-4">E-mail</H2>
 
           <div className="p-2 rounded-lg border shadow  flex flex-col gap-4 w-full">
             <div className="flex flex-col gap-3 px-4 py-1">
               <div className=" flex text-sm">
-                <div className="w-[70px] text-muted-foreground">Subject</div>
+                <div className="w-[70px] text-muted-foreground">Assunto</div>
                 <div> {campaign.subject}</div>
               </div>
               <div className="flex  text-sm">
-                <div className="w-[70px] text-muted-foreground">From</div>
+                <div className="w-[70px] text-muted-foreground">De</div>
                 <div> {campaign.from}</div>
               </div>
               <div className="flex  text-sm items-center">
-                <div className="w-[70px] text-muted-foreground">Contact</div>
+                <div className="w-[70px] text-muted-foreground">Contato</div>
                 <Link
                   href={`/contacts/${campaign.contactBookId}`}
                   target="_blank"
@@ -278,7 +284,7 @@ export default function CampaignDetailsPage({
                 className="w-full min-h-[600px]"
                 srcDoc={campaign.html ?? ""}
                 sandbox="allow-same-origin"
-                title="Campaign email preview"
+                title="Pré-visualização do e-mail da campanha"
               />
             </div>
           </div>

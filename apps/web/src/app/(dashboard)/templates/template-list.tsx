@@ -11,7 +11,9 @@ import {
 import { api } from "~/trpc/react";
 import { useUrlState } from "~/hooks/useUrlState";
 import { Button } from "@usesend/ui/src/button";
-import Spinner from "@usesend/ui/src/spinner";
+import { LayoutTemplate } from "lucide-react";
+import { EmptyState } from "~/components/EmptyState";
+import { TableRowsSkeleton } from "~/components/skeletons";
 import { formatDistanceToNow } from "date-fns";
 // import DeleteCampaign from "./delete-campaign";
 import Link from "next/link";
@@ -36,22 +38,15 @@ export default function TemplateList() {
         <Table className="">
           <TableHeader className="">
             <TableRow className=" bg-muted/30">
-              <TableHead className="rounded-tl-xl">Name</TableHead>
+              <TableHead className="rounded-tl-xl">Nome</TableHead>
               <TableHead className="">ID</TableHead>
-              <TableHead className="">Created At</TableHead>
-              <TableHead className="rounded-tr-xl">Actions</TableHead>
+              <TableHead className="">Criado em</TableHead>
+              <TableHead className="rounded-tr-xl">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {templateQuery.isLoading ? (
-              <TableRow className="h-32">
-                <TableCell colSpan={4} className="text-center py-4">
-                  <Spinner
-                    className="w-6 h-6 mx-auto"
-                    innerSvgClass="stroke-primary"
-                  />
-                </TableCell>
-              </TableRow>
+              <TableRowsSkeleton rows={6} cols={4} />
             ) : templateQuery.data?.templates.length ? (
               templateQuery.data?.templates.map((template) => (
                 <TableRow key={template.id} className="">
@@ -83,9 +78,14 @@ export default function TemplateList() {
                 </TableRow>
               ))
             ) : (
-              <TableRow className="h-32">
-                <TableCell colSpan={4} className="text-center py-4">
-                  No templates found
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={4} className="p-0">
+                  <EmptyState
+                    icon={LayoutTemplate}
+                    title="Nenhum template encontrado"
+                    description="Crie um template para reutilizar em campanhas e e-mails."
+                    className="border-0 bg-transparent"
+                  />
                 </TableCell>
               </TableRow>
             )}
@@ -98,14 +98,14 @@ export default function TemplateList() {
           onClick={() => setPage((pageNumber - 1).toString())}
           disabled={pageNumber === 1}
         >
-          Previous
+          Anterior
         </Button>
         <Button
           size="sm"
           onClick={() => setPage((pageNumber + 1).toString())}
           disabled={pageNumber >= (templateQuery.data?.totalPage ?? 0)}
         >
-          Next
+          Próximo
         </Button>
       </div>
     </div>

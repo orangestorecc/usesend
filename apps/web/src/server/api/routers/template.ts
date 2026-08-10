@@ -118,7 +118,7 @@ export const templateRouter = createTRPCRouter({
     if (!template) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Template not found",
+        message: "Template não encontrado",
       });
     }
 

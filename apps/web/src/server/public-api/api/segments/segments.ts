@@ -30,7 +30,7 @@ const segmentSchema = z.object({
 async function requireSegment(teamId: number, segmentId: string) {
   const seg = await db.segment.findFirst({ where: { id: segmentId, teamId } });
   if (!seg) {
-    throw new UnsendApiError({ code: "NOT_FOUND", message: "Segment not found" });
+    throw new UnsendApiError({ code: "NOT_FOUND", message: "Segmento não encontrado" });
   }
   return seg;
 }

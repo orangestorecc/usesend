@@ -21,11 +21,11 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
     return (
       <div className="h-full flex flex-col">
         <div className="flex flex-row items-center justify-between mb-4">
-          <h2 className="text-base font-medium">Call Details</h2>
+          <h2 className="text-base font-medium">Detalhes da chamada</h2>
         </div>
         <div className="flex-1 rounded-xl border shadow p-6 flex items-center justify-center">
           <p className="text-muted-foreground text-sm">
-            Loading call details...
+            Carregando detalhes da chamada...
           </p>
         </div>
       </div>
@@ -39,7 +39,7 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
         onSuccess: async () => {
           await utils.webhook.listCalls.invalidate();
           await utils.webhook.getCall.invalidate();
-          toast.success("Webhook call queued for retry");
+          toast.success("Chamada de webhook enfileirada para nova tentativa");
         },
         onError: (error) => {
           toast.error(error.message);
@@ -83,7 +83,7 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
             className="h-8"
           >
             <RefreshCw className="h-3.5 w-3.5 mr-2" />
-            Retry
+            Tentar novamente
           </Button>
         )}
       </div>
@@ -100,14 +100,14 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
 
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              Event Type
+              Tipo de evento
             </span>
             <span className="text-sm font-mono">{call.type}</span>
           </div>
 
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              Timestamp
+              Data e hora
             </span>
             <span className="text-sm font-mono">
               {formatDate(call.createdAt, "MMM dd, yyyy HH:mm:ss")}
@@ -116,7 +116,7 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
 
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              Attempt
+              Tentativa
             </span>
             <span className="text-sm font-mono">{call.attempt}</span>
           </div>
@@ -124,7 +124,7 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
           {call.responseStatus && (
             <div className="flex flex-col gap-1">
               <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                Response Status
+                Status da resposta
               </span>
               <span className="text-sm font-mono">{call.responseStatus}</span>
             </div>
@@ -133,7 +133,7 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
           {call.responseTimeMs != null && (
             <div className="flex flex-col gap-1">
               <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                Duration
+                Duração
               </span>
               <span className="text-sm font-mono">{call.responseTimeMs}ms</span>
             </div>
@@ -143,7 +143,7 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
         {call.lastError && (
           <div className="flex flex-col gap-2">
             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider text-red-500">
-              Error
+              Erro
             </span>
             <div className="text-xs bg-red-500/10 border border-red-500/20 rounded-md p-3 font-mono text-red-600 dark:text-red-400">
               {call.lastError}
@@ -152,7 +152,7 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
         )}
 
         <div className="flex flex-col gap-3">
-          <h4 className="font-medium text-sm">Request Payload</h4>
+          <h4 className="font-medium text-sm">Payload da requisição</h4>
           <CodeDisplay
             code={JSON.stringify(fullPayload, null, 2)}
             language="json"
@@ -162,7 +162,7 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
         {call.responseText && (
           <>
             <div className="flex flex-col gap-3">
-              <h4 className="font-medium text-sm">Response Body</h4>
+              <h4 className="font-medium text-sm">Corpo da resposta</h4>
               <CodeDisplay code={call.responseText} />
             </div>
           </>

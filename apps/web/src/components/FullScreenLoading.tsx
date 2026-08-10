@@ -6,11 +6,11 @@ export const FullScreenLoading = () => {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <Image
-        src={"/logo-squircle.png"}
-        alt="useSend"
+        src={"/brand/madmail-symbol.png"}
+        alt="Madmail"
         width={45}
         height={45}
-        className="mx-auto"
+        className="mx-auto rounded-[10px] animate-pulse"
       />
     </div>
   );

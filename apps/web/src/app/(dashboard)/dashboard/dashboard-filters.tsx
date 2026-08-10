@@ -14,6 +14,8 @@ interface DashboardFiltersProps {
   setDays: (days: string) => void;
   domain: string | null;
   setDomain: (domain: string | null) => void;
+  campaign: string | null;
+  setCampaign: (campaign: string | null) => void;
 }
 
 export default function DashboardFilters({
@@ -21,15 +23,40 @@ export default function DashboardFilters({
   setDays,
   domain,
   setDomain,
+  campaign,
+  setCampaign,
 }: DashboardFiltersProps) {
   const { data: domainsQuery } = api.domain.domains.useQuery();
+  const { data: campaignsQuery } = api.dashboard.campaignsForFilter.useQuery();
 
   const handleDomain = (val: string) => {
     setDomain(val === "All Domains" ? null : val);
   };
 
+  const handleCampaign = (val: string) => {
+    setCampaign(val === "All Campaigns" ? null : val);
+  };
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <Select
+        value={campaign ?? "All Campaigns"}
+        onValueChange={(val) => handleCampaign(val)}
+      >
+        <SelectTrigger className="w-full sm:w-[180px]">
+          {campaign
+            ? campaignsQuery?.find((c) => c.id === campaign)?.name
+            : "Todas as campanhas"}
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="All Campaigns">Todas as campanhas</SelectItem>
+          {campaignsQuery?.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Select
         value={domain ?? "All Domains"}
         onValueChange={(val) => handleDomain(val)}
@@ -37,11 +64,11 @@ export default function DashboardFilters({
         <SelectTrigger className="w-full sm:w-[180px]">
           {domain
             ? domainsQuery?.find((d) => d.id === Number(domain))?.name
-            : "All Domains"}
+            : "Todos os domínios"}
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="All Domains" className="capitalize">
-            All Domains
+            Todos os domínios
           </SelectItem>
           {domainsQuery &&
             domainsQuery.map((domain) => (
@@ -54,10 +81,10 @@ export default function DashboardFilters({
       <Tabs value={days || "30"} onValueChange={(value) => setDays(value)}>
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="7" className="flex-1 sm:flex-none">
-            7 Days
+            7 dias
           </TabsTrigger>
           <TabsTrigger value="30" className="flex-1 sm:flex-none">
-            30 Days
+            30 dias
           </TabsTrigger>
         </TabsList>
       </Tabs>

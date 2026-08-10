@@ -27,9 +27,9 @@ import type { inferRouterOutputs } from "@trpc/server";
 
 const searchSchema = z.object({
   email: z
-    .string({ required_error: "Email is required" })
+    .string({ required_error: "O e-mail é obrigatório" })
     .trim()
-    .email("Enter a valid email address"),
+    .email("Informe um endereço de e-mail válido"),
 });
 
 type SearchInput = z.infer<typeof searchSchema>;
@@ -53,14 +53,14 @@ export default function AdminWaitlistPage() {
       setHasSearched(true);
       if (!data) {
         setUserResult(null);
-        toast.info("No user found for that email");
+        toast.info("Nenhum usuário encontrado para esse e-mail");
         return;
       }
 
       setUserResult(data);
     },
     onError: (error) => {
-      toast.error(error.message ?? "Unable to search for user");
+      toast.error(error.message ?? "Não foi possível buscar o usuário");
     },
   });
 
@@ -69,21 +69,21 @@ export default function AdminWaitlistPage() {
       setUserResult(updated);
       toast.success(
         updated.isWaitlisted
-          ? "User marked as waitlisted"
-          : "User removed from waitlist",
+          ? "Usuário marcado na lista de espera"
+          : "Usuário removido da lista de espera",
       );
     },
     onError: (error) => {
-      toast.error(error.message ?? "Unable to update waitlist flag");
+      toast.error(error.message ?? "Não foi possível atualizar o status da lista de espera");
     },
   });
 
   const rejectWaitlist = api.admin.rejectWaitlistUser.useMutation({
     onSuccess: () => {
-      toast.success("Rejection email sent");
+      toast.success("E-mail de recusa enviado");
     },
     onError: (error) => {
-      toast.error(error.message ?? "Unable to send rejection email");
+      toast.error(error.message ?? "Não foi possível enviar o e-mail de recusa");
     },
   });
 
@@ -106,7 +106,7 @@ export default function AdminWaitlistPage() {
   if (!isCloud()) {
     return (
       <div className="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">
-        Waitlist tooling is available only in the cloud deployment.
+As ferramentas de lista de espera estão disponíveis apenas na implantação em nuvem.
       </div>
     );
   }
@@ -121,7 +121,7 @@ export default function AdminWaitlistPage() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>User email</FormLabel>
+                  <FormLabel>E-mail do usuário</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="user@example.com"
@@ -137,10 +137,10 @@ export default function AdminWaitlistPage() {
             <Button type="submit" disabled={findUser.isPending}>
               {findUser.isPending ? (
                 <>
-                  <Spinner className="mr-2 h-4 w-4" /> Searching...
+                  <Spinner className="mr-2 h-4 w-4" /> Buscando...
                 </>
               ) : (
-                "Lookup user"
+                "Buscar usuário"
               )}
             </Button>
           </form>
@@ -149,7 +149,7 @@ export default function AdminWaitlistPage() {
 
       {findUser.isPending ? null : hasSearched && !userResult ? (
         <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          No user matched that email. Try another search.
+          Nenhum usuário corresponde a esse e-mail. Tente outra pesquisa.
         </div>
       ) : null}
 
@@ -157,21 +157,21 @@ export default function AdminWaitlistPage() {
         <div className="space-y-4 rounded-lg border p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm text-muted-foreground">Email</p>
+              <p className="text-sm text-muted-foreground">E-mail</p>
               <p className="text-base font-medium">{userResult.email}</p>
             </div>
             <Badge variant={userResult.isWaitlisted ? "destructive" : "outline"}>
-              {userResult.isWaitlisted ? "Waitlisted" : "Active"}
+              {userResult.isWaitlisted ? "Na lista de espera" : "Ativo"}
             </Badge>
           </div>
 
           <div className="grid gap-2 text-sm sm:grid-cols-2">
             <div>
-              <p className="text-muted-foreground">Name</p>
+              <p className="text-muted-foreground">Nome</p>
               <p>{userResult.name ?? "—"}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Joined</p>
+              <p className="text-muted-foreground">Entrou</p>
               <p>
                 {formatDistanceToNow(new Date(userResult.createdAt), {
                   addSuffix: true,
@@ -183,9 +183,9 @@ export default function AdminWaitlistPage() {
           <div className="space-y-4 border-t pt-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium">Waitlist access</p>
+                <p className="text-sm font-medium">Acesso à lista de espera</p>
                 <p className="text-sm text-muted-foreground">
-                  Toggle to control whether the user remains on the waitlist.
+                  Alterne para controlar se o usuário permanece na lista de espera.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -202,9 +202,9 @@ export default function AdminWaitlistPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium">Reject waitlist request</p>
+                <p className="text-sm font-medium">Recusar solicitação da lista de espera</p>
                 <p className="text-sm text-muted-foreground">
-                  Send the applicant a rejection email without changing their waitlist status.
+                  Envie ao solicitante um e-mail de recusa sem alterar o status da lista de espera.
                 </p>
               </div>
               <Button
@@ -215,10 +215,10 @@ export default function AdminWaitlistPage() {
               >
                 {rejectWaitlist.isPending ? (
                   <>
-                    <Spinner className="mr-2 h-4 w-4" /> Sending...
+                    <Spinner className="mr-2 h-4 w-4" /> Enviando...
                   </>
                 ) : (
-                  "Send rejection email"
+                  "Enviar e-mail de recusa"
                 )}
               </Button>
             </div>

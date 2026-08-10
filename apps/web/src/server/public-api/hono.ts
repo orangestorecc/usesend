@@ -10,12 +10,14 @@ import { UnsendApiError } from "./api-error";
 import { Team, ApiKey } from "@prisma/client";
 import { logger } from "../logger/log";
 import type { McpScopes } from "../service/mcp-key-service";
+import { logApiRequest } from "../service/api-log-service";
 
 // Define AppEnv for Hono context
 export type AppEnv = {
   Variables: {
     team: Team & {
       apiKeyId: number;
+      apiKeyName?: string;
       apiKey: { domainId: number | null };
       mcpScopes?: McpScopes;
     };
@@ -53,6 +55,32 @@ export function getApp() {
 
   app.onError(handleError);
 
+  // Log de requisições (wrapper externo — captura status final e duração).
+  app.use("*", async (c: Context<AppEnv>, next: Next) => {
+    const start = Date.now();
+    await next();
+    const path = c.req.path;
+    if (
+      !path.startsWith("/api/v1") ||
+      path.startsWith("/api/v1/doc") ||
+      path.startsWith("/api/v1/ui")
+    ) {
+      return;
+    }
+    const team = c.var.team;
+    logApiRequest({
+      teamId: team?.id,
+      apiKeyId: team?.apiKeyId,
+      apiKeyName: team?.apiKeyName,
+      method: c.req.method,
+      path,
+      statusCode: c.res.status,
+      userAgent: c.req.header("User-Agent"),
+      isMcp: Boolean(team?.mcpScopes),
+      durationMs: Date.now() - start,
+    });
+  });
+
   // Auth and Team Middleware (runs before rate limiter)
   app.use("*", async (c: Context<AppEnv>, next: Next) => {
     if (
@@ -73,7 +101,7 @@ export function getApp() {
       logger.error({ err: error }, "Error in getTeamFromToken middleware");
       throw new UnsendApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Authentication failed",
+        message: "Falha na autenticação",
       });
     }
     await next();
@@ -149,7 +177,7 @@ export function getApp() {
       );
       throw new UnsendApiError({
         code: "RATE_LIMITED",
-        message: `Rate limit exceeded. Try again in ${ttl > 0 ? ttl : RATE_LIMIT_WINDOW_SECONDS} seconds.`,
+        message: `Limite de requisições excedido. Tente novamente em ${ttl > 0 ? ttl : RATE_LIMIT_WINDOW_SECONDS} segundos.`,
       });
     }
 
@@ -161,7 +189,7 @@ export function getApp() {
     openapi: "3.0.0",
     info: {
       version: "1.0.0",
-      title: "useSend API",
+      title: "Madmail API",
     },
     servers: [{ url: `${env.NEXTAUTH_URL}/api` }],
   }));

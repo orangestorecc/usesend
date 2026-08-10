@@ -24,12 +24,12 @@ export default function AddSesConfiguration() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-1" />
-          Add SES configuration
+          Adicionar configuração SES
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add a new SES configuration</DialogTitle>
+          <DialogTitle>Adicionar uma nova configuração SES</DialogTitle>
         </DialogHeader>
         <div className="py-2">
           <AddSesSettingsForm onSuccess={() => setOpen(false)} />

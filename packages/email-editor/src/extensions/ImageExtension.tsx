@@ -77,12 +77,12 @@ export const ResizableImageExtension =
                 );
 
                 if (!this.options.uploadImage) {
-                  toast.error("Upload image is not supported");
+                  toast.error("O envio de imagem não é suportado");
                   return true;
                 }
 
                 if (!image) {
-                  toast.error("Only image is supported");
+                  toast.error("Apenas imagens são suportadas");
                   return true;
                 }
 
@@ -172,7 +172,7 @@ export const ResizableImageExtension =
                     }
 
                     URL.revokeObjectURL(placeholder);
-                    toast.error(error?.message || "Error uploading image");
+                    toast.error(error?.message || "Erro ao enviar a imagem");
                     console.error("Error uploading image:", error);
                   });
 

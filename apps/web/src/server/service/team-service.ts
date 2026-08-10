@@ -47,7 +47,7 @@ export class TeamService {
     }
     const fresh = await TeamService.refreshTeamCache(teamId);
     if (!fresh) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+      throw new TRPCError({ code: "NOT_FOUND", message: "Time não encontrado" });
     }
     return fresh;
   }
@@ -75,7 +75,7 @@ export class TeamService {
       const _team = await db.team.findFirst();
       if (_team) {
         throw new TRPCError({
-          message: "Can't have multiple teams in self hosted version",
+          message: "Não é possível ter múltiplos times na versão self-hosted",
           code: "UNAUTHORIZED",
         });
       }
@@ -158,7 +158,7 @@ export class TeamService {
     if (!email) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Email is required",
+        message: "O e-mail é obrigatório",
       });
     }
 
@@ -166,7 +166,7 @@ export class TeamService {
     if (isLimitReached) {
       throw new UnsendApiError({
         code: "FORBIDDEN",
-        message: "Team invite limit reached",
+        message: "Limite de convites do time atingido",
       });
     }
 
@@ -182,7 +182,7 @@ export class TeamService {
     if (user && user.teamUsers.length > 0) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "User already part of a team",
+        message: "Usuário já faz parte de um time",
       });
     }
 
@@ -218,7 +218,7 @@ export class TeamService {
     if (!teamUser) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Team member not found",
+        message: "Membro do time não encontrado",
       });
     }
 
@@ -233,7 +233,7 @@ export class TeamService {
     if (adminCount === 1 && teamUser.role === "ADMIN") {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Need at least one admin",
+        message: "É necessário pelo menos um administrador",
       });
     }
 
@@ -269,14 +269,14 @@ export class TeamService {
     if (!teamUser) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Team member not found",
+        message: "Membro do time não encontrado",
       });
     }
 
     if (requestorRole !== "ADMIN" && requestorId !== Number(userId)) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "You are not authorized to delete this team member",
+        message: "Você não tem autorização para remover este membro do time",
       });
     }
 
@@ -291,7 +291,7 @@ export class TeamService {
     if (adminCount === 1 && teamUser.role === "ADMIN") {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Need at least one admin",
+        message: "É necessário pelo menos um administrador",
       });
     }
 
@@ -324,7 +324,7 @@ export class TeamService {
     if (!invite) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Invite not found",
+        message: "Convite não encontrado",
       });
     }
 
@@ -348,7 +348,7 @@ export class TeamService {
     if (!invite) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Invite not found",
+        message: "Convite não encontrado",
       });
     }
 
@@ -416,16 +416,16 @@ export class TeamService {
 
     const subject =
       reason === LimitReason.EMAIL_FREE_PLAN_MONTHLY_LIMIT_REACHED
-        ? "useSend: You've reached your monthly email limit"
-        : "useSend: You've reached your daily email limit";
+        ? "Madmail: Você atingiu seu limite mensal de e-mails"
+        : "Madmail: Você atingiu seu limite diário de e-mails";
 
-    const text = `Hi ${team.name} team,\n\nYou've reached your ${
+    const text = `Olá, time ${team.name},\n\nVocê atingiu seu limite ${
       reason === LimitReason.EMAIL_FREE_PLAN_MONTHLY_LIMIT_REACHED
-        ? "monthly"
-        : "daily"
-    } limit of ${limit.toLocaleString()} emails.\n\nSending is temporarily paused until your limit resets or ${
-      isPaidPlan ? "your team is verified" : "your plan is upgraded"
-    }.\n\nManage plan: ${env.NEXTAUTH_URL}/settings`;
+        ? "mensal"
+        : "diário"
+    } de ${limit.toLocaleString()} e-mails.\n\nO envio está temporariamente pausado até o limite ser renovado ou ${
+      isPaidPlan ? "seu time ser verificado" : "seu plano ser atualizado"
+    }.\n\nGerenciar plano: ${env.NEXTAUTH_URL}/settings`;
 
     const teamUsers = await TeamService.getTeamUsers(teamId);
     const recipients = teamUsers
@@ -525,14 +525,16 @@ export class TeamService {
 
     const subject =
       period === "monthly"
-        ? "useSend: You're nearing your monthly email limit"
-        : "useSend: You're nearing your daily email limit";
+        ? "Madmail: Você está perto do seu limite mensal de e-mails"
+        : "Madmail: Você está perto do seu limite diário de e-mails";
 
-    const text = `Hi ${team.name} team,\n\nYou've used ${used.toLocaleString()} of your ${period} limit of ${limit.toLocaleString()} emails.\n\nConsider ${
+    const text = `Olá, time ${team.name},\n\nVocê já usou ${used.toLocaleString()} do seu limite ${
+      period === "monthly" ? "mensal" : "diário"
+    } de ${limit.toLocaleString()} e-mails.\n\nConsidere ${
       isPaidPlan
-        ? "verifying your team by replying to this email"
-        : "upgrading your plan"
-    }.\n\nManage plan: ${env.NEXTAUTH_URL}/settings`;
+        ? "verificar seu time respondendo a este e-mail"
+        : "atualizar seu plano"
+    }.\n\nGerenciar plano: ${env.NEXTAUTH_URL}/settings`;
 
     const teamUsers = await TeamService.getTeamUsers(teamId);
     const recipients = teamUsers

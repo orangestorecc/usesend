@@ -38,11 +38,11 @@ export default function TeamMembersList() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30">
-              <TableHead className="rounded-tl-xl">User</TableHead>
-              <TableHead>Role</TableHead>
+              <TableHead className="rounded-tl-xl">Usuário</TableHead>
+              <TableHead>Função</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="rounded-tr-xl">Actions</TableHead>
+              <TableHead>Entrou</TableHead>
+              <TableHead className="rounded-tr-xl">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -59,7 +59,7 @@ export default function TeamMembersList() {
               teamMembers.map((member) => (
                 <TableRow key={member.userId} className="">
                   <TableCell className="font-medium">
-                    {member.user?.email || "Unknown user"}
+                    {member.user?.email || "Usuário desconhecido"}
                   </TableCell>
                   <TableCell>
                     <div className=" rounded capitalize py-1 text-xs">
@@ -68,7 +68,7 @@ export default function TeamMembersList() {
                   </TableCell>
                   <TableCell>
                     <div className="text-center w-[100px] rounded capitalize py-1 text-xs bg-green/15 text-green border border-green/25">
-                      Active
+                      Ativo
                     </div>
                   </TableCell>
                   <TableCell>
@@ -103,7 +103,7 @@ export default function TeamMembersList() {
             ) : (
               <TableRow className="h-32">
                 <TableCell colSpan={5} className="text-center py-4">
-                  No team members found
+                  Nenhum membro do time encontrado
                 </TableCell>
               </TableRow>
             )}
@@ -123,7 +123,7 @@ export default function TeamMembersList() {
                     </TableCell>
                     <TableCell>
                       <div className="text-center w-[100px] rounded capitalize py-1 text-xs bg-yellow/15 text-yellow border border-yellow/25">
-                        Pending
+                        Pendente
                       </div>
                     </TableCell>
                     <TableCell>

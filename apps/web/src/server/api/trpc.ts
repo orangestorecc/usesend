@@ -131,7 +131,7 @@ export const teamProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   });
 
   if (!teamUser) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+    throw new TRPCError({ code: "NOT_FOUND", message: "Time não encontrado" });
   }
 
   return withLogger(
@@ -155,7 +155,7 @@ export const teamAdminProcedure = teamProcedure.use(async ({ ctx, next }) => {
   if (ctx.teamUser.role !== "ADMIN") {
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "You are not authorized to perform this action",
+      message: "Você não tem autorização para executar esta ação",
     });
   }
 
@@ -169,7 +169,7 @@ export const domainProcedure = teamProcedure
       where: { id: input.id, teamId: ctx.team.id },
     });
     if (!domain) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+      throw new TRPCError({ code: "NOT_FOUND", message: "Domínio não encontrado" });
     }
 
     return next({ ctx: { ...ctx, domain } });
@@ -182,7 +182,7 @@ export const emailProcedure = teamProcedure
       where: { id: input.id, teamId: ctx.team.id },
     });
     if (!email) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Email not found" });
+      throw new TRPCError({ code: "NOT_FOUND", message: "E-mail não encontrado" });
     }
 
     return next({ ctx: { ...ctx, email } });
@@ -195,7 +195,7 @@ export const apiKeyProcedure = teamProcedure
       where: { id: input.id, teamId: ctx.team.id },
     });
     if (!apiKey) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "API key not found" });
+      throw new TRPCError({ code: "NOT_FOUND", message: "API key não encontrada" });
     }
 
     return next({ ctx: { ...ctx, apiKey } });
@@ -214,7 +214,7 @@ export const contactBookProcedure = teamProcedure
     if (!contactBook) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Contact book not found",
+        message: "Lista de contatos não encontrada",
       });
     }
 
@@ -234,7 +234,7 @@ export const campaignProcedure = teamProcedure
     if (!campaign) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Campaign not found",
+        message: "Campanha não encontrada",
       });
     }
 
@@ -254,7 +254,7 @@ export const templateProcedure = teamProcedure
     if (!template) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Template not found",
+        message: "Template não encontrado",
       });
     }
 

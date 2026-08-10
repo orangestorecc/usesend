@@ -7,6 +7,23 @@ interface CampaignStatusBadgeProps {
 export default function CampaignStatusBadge({
   status,
 }: CampaignStatusBadgeProps) {
+  const getStatusLabel = (status: CampaignStatus) => {
+    switch (status) {
+      case CampaignStatus.DRAFT:
+        return "Rascunho";
+      case CampaignStatus.SENT:
+        return "Enviada";
+      case CampaignStatus.RUNNING:
+        return "Em execução";
+      case CampaignStatus.PAUSED:
+        return "Pausada";
+      case CampaignStatus.SCHEDULED:
+        return "Agendada";
+      default:
+        return status;
+    }
+  };
+
   const getStatusColor = (status: CampaignStatus) => {
     switch (status) {
       case CampaignStatus.DRAFT:
@@ -30,7 +47,7 @@ export default function CampaignStatusBadge({
         status,
       )}`}
     >
-      {status.toLowerCase()}
+      {getStatusLabel(status)}
     </div>
   );
 }

@@ -171,7 +171,7 @@ export const contactsRouter = createTRPCRouter({
       if (!updatedContact) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Contact not found",
+          message: "Contato não encontrado",
         });
       }
 
@@ -190,7 +190,7 @@ export const contactsRouter = createTRPCRouter({
       if (!deletedContact) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Contact not found",
+          message: "Contato não encontrado",
         });
       }
 
@@ -224,7 +224,7 @@ export const contactsRouter = createTRPCRouter({
         if (!contact) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Contact not found",
+            message: "Contato não encontrado",
           });
         }
 

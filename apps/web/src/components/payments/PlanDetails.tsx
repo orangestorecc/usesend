@@ -25,13 +25,13 @@ export const PlanDetails = () => {
   return (
     <div>
       <div className="capitalize text-lg">
-        {isEntitled ? planKey.toLowerCase() : "free"}
+        {isEntitled ? planKey.toLowerCase() : "grátis"}
       </div>
       <div className="flex items-center gap-2">
-        <div className="text-muted-foreground text-sm">Current plan</div>
+        <div className="text-muted-foreground text-sm">Plano atual</div>
         {subscriptionQuery.data?.cancelAtPeriodEnd && (
           <Badge variant="secondary">
-            Cancels {format(subscriptionQuery.data.cancelAtPeriodEnd, "MMM dd")}
+            Cancela em {format(subscriptionQuery.data.cancelAtPeriodEnd, "dd/MM")}
           </Badge>
         )}
       </div>

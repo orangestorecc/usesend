@@ -21,6 +21,7 @@ import { useColors } from "./hooks/useColors";
 interface EmailChartProps {
   days: number;
   domain: string | null;
+  campaign?: string | null;
 }
 
 const STACK_ORDER = [
@@ -56,22 +57,27 @@ function createRoundedTopShape(
   };
 }
 
-export default function EmailChart({ days, domain }: EmailChartProps) {
+export default function EmailChart({
+  days,
+  domain,
+  campaign,
+}: EmailChartProps) {
   const [selectedMetrics, setSelectedMetrics] = React.useState<StackKey[]>([]);
   const domainId = domain ? Number(domain) : undefined;
   const statusQuery = api.dashboard.emailTimeSeries.useQuery({
     days: days,
     domain: domainId,
+    campaignId: campaign ?? undefined,
   });
 
   const currentColors = useColors();
 
   const metricMeta: Record<StackKey, { label: string; color: string }> = {
-    delivered: { label: "Delivered", color: currentColors.delivered },
-    bounced: { label: "Bounced", color: currentColors.bounced },
-    complained: { label: "Complained", color: currentColors.complained },
-    opened: { label: "Opened", color: currentColors.opened },
-    clicked: { label: "Clicked", color: currentColors.clicked },
+    delivered: { label: "Entregue", color: currentColors.delivered },
+    bounced: { label: "Retornado", color: currentColors.bounced },
+    complained: { label: "Reclamação", color: currentColors.complained },
+    opened: { label: "Aberto", color: currentColors.opened },
+    clicked: { label: "Clicado", color: currentColors.clicked },
   };
 
   const visibleMetrics: StackKey[] =

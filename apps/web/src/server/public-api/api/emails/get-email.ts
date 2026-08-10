@@ -90,7 +90,7 @@ function send(app: PublicAPIApp) {
     if (!email) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Email not found",
+        message: "E-mail não encontrado",
       });
     }
 

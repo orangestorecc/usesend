@@ -8,7 +8,7 @@ async function testEmailTemplates() {
     const otpHtml = await renderOtpEmail({
       otpCode: 'ABC123',
       loginUrl: 'https://app.usesend.com/login?token=abc123',
-      hostName: 'useSend',
+      hostName: 'Madmail',
     });
     
     console.log('✅ OTP Email rendered successfully');

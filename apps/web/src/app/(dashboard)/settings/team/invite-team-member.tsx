@@ -39,10 +39,10 @@ import { LimitReason } from "~/lib/constants/plans";
 
 const inviteTeamMemberSchema = z.object({
   email: z
-    .string({ required_error: "Email is required" })
-    .email("Invalid email address"),
+    .string({ required_error: "O e-mail é obrigatório" })
+    .email("Endereço de e-mail inválido"),
   role: z.enum(["ADMIN", "MEMBER"], {
-    required_error: "Please select a role",
+    required_error: "Selecione uma função",
   }),
 });
 
@@ -88,11 +88,11 @@ export default function InviteTeamMember() {
           form.reset();
           setOpen(false);
           void utils.team.getTeamInvites.invalidate();
-          toast.success("Invitation sent successfully");
+          toast.success("Convite enviado com sucesso");
         },
         onError: (error) => {
           console.error(error);
-          toast.error(error.message || "Failed to send invitation");
+          toast.error(error.message || "Falha ao enviar o convite");
         },
       },
     );
@@ -118,11 +118,11 @@ export default function InviteTeamMember() {
           );
           form.reset();
           setOpen(false);
-          toast.success("Invitation link copied to clipboard");
+          toast.success("Link do convite copiado para a área de transferência");
         },
         onError: (error) => {
           console.error(error);
-          toast.error(error.message || "Failed to copy invitation link");
+          toast.error(error.message || "Falha ao copiar o link do convite");
         },
       },
     );
@@ -149,12 +149,12 @@ export default function InviteTeamMember() {
       <DialogTrigger asChild>
         <Button size="sm">
           <PlusIcon className="mr-2 h-4 w-4" />
-          Invite Member
+          Convidar membro
         </Button>
       </DialogTrigger>
       <DialogContent className=" max-w-lg">
         <DialogHeader>
-          <DialogTitle>Invite Team Member</DialogTitle>
+          <DialogTitle>Convidar membro do time</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -166,15 +166,15 @@ export default function InviteTeamMember() {
               name="email"
               render={({ field, formState }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input placeholder="colleague@example.com" {...field} />
+                    <Input placeholder="colega@exemplo.com" {...field} />
                   </FormControl>
                   {formState.errors.email ? (
                     <FormMessage />
                   ) : (
                     <FormDescription>
-                      Enter your colleague's email address
+                      Informe o endereço de e-mail do seu colega
                     </FormDescription>
                   )}
                 </FormItem>
@@ -185,7 +185,7 @@ export default function InviteTeamMember() {
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role</FormLabel>
+                  <FormLabel>Função</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
@@ -196,15 +196,15 @@ export default function InviteTeamMember() {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="ADMIN">
-                        <div>Admin</div>
+                        <div>Administrador</div>
                         <div className="text-xs text-muted-foreground">
-                          Manage users, update payments
+                          Gerenciar usuários, atualizar pagamentos
                         </div>
                       </SelectItem>
                       <SelectItem value="MEMBER">
-                        <div>Member</div>
+                        <div>Membro</div>
                         <div className="text-xs text-muted-foreground">
-                          Manage emails, domains and contacts
+                          Gerenciar e-mails, domínios e contatos
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -215,9 +215,9 @@ export default function InviteTeamMember() {
             />
             {isSelfHosted() && domains?.length ? (
               <div className="text-sm text-muted-foreground">
-                Will use{" "}
-                <span className="font-bold">hello@{domains[0]?.name}</span> to
-                send invitation
+                Será usado{" "}
+                <span className="font-bold">hello@{domains[0]?.name}</span> para
+                enviar o convite
               </div>
             ) : null}
             <div className="flex justify-end gap-2 pt-4">
@@ -226,7 +226,7 @@ export default function InviteTeamMember() {
                 variant="outline"
                 onClick={() => setOpen(false)}
               >
-                Cancel
+                Cancelar
               </Button>
               {isSelfHosted() ? (
                 <Button
@@ -235,7 +235,7 @@ export default function InviteTeamMember() {
                   className="w-[150px]"
                   onClick={form.handleSubmit(onCopyLink)}
                 >
-                  Copy Invitation
+                  Copiar convite
                 </Button>
               ) : null}
               {isCloud() || domains?.length ? (
@@ -245,7 +245,7 @@ export default function InviteTeamMember() {
                   isLoading={createInvite.isPending}
                   className="w-[150px]"
                 >
-                  Send Invitation
+                  Enviar convite
                 </Button>
               ) : null}
             </div>

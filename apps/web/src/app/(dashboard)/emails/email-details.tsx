@@ -2,7 +2,6 @@
 
 import { UAParser } from "ua-parser-js";
 import { api } from "~/trpc/react";
-import { Separator } from "@usesend/ui/src/separator";
 import { EmailStatusBadge, EmailStatusIcon } from "./email-status-badge";
 import { formatDate } from "date-fns";
 import { motion } from "framer-motion";
@@ -21,146 +20,304 @@ import {
   DELIVERY_DELAY_ERRORS,
 } from "@usesend/lib/src/constants/ses-errors";
 import CancelEmail from "./cancel-email";
-import { useEffect } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Check, Copy, Mail } from "lucide-react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@usesend/ui/src/tabs";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "~/server/api/root";
+
+type RouterOutputs = inferRouterOutputs<AppRouter>;
+type EmailData = RouterOutputs["email"]["getEmail"];
 
 export default function EmailDetails({ emailId }: { emailId: string }) {
   const emailQuery = api.email.getEmail.useQuery({ id: emailId });
+  const email = emailQuery.data;
+
+  const isScheduled = email?.latestStatus === "SCHEDULED";
+  const to = (email?.to ?? []).join(", ");
+  const replyTo = (email?.replyTo ?? []).join(", ");
+  const cc = (email?.cc ?? []).join(", ");
+  const bcc = (email?.bcc ?? []).join(", ");
 
   return (
     <div className="h-full overflow-auto px-4 no-scrollbar">
-      <div className="flex justify-between items-center">
-        <div className="flex gap-4 items-center">
-          <h1 className="font-bold">{emailQuery.data?.to}</h1>
-          <EmailStatusBadge status={emailQuery.data?.latestStatus ?? "SENT"} />
+      {/* Cabeçalho */}
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border bg-muted/30">
+          <Mail className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            E-mail
+          </div>
+          <h1 className="break-all text-lg font-bold">{to}</h1>
         </div>
       </div>
-      <div className="flex flex-col mt-8 items-start gap-8">
-        <div className="p-2 rounded-lg border  flex flex-col gap-2 w-full shadow">
-          {/* <div className="flex gap-2">
-            <span className="w-[100px] text-muted-foreground text-sm">
-              From
-            </span>
-            <span className="text-sm">{emailQuery.data?.from}</span>
-          </div>
-          <Separator />
-          <div className="flex gap-2">
-            <span className="w-[100px] text-muted-foreground text-sm">To</span>
-            <span className="text-sm">{emailQuery.data?.to}</span>
-          </div>
-          <Separator />
-          <div className="flex gap-2">
-            <span className="w-[100px] text-muted-foreground text-sm">
-              Subject
-            </span>
-            <span className="text-sm">{emailQuery.data?.subject}</span>
-          </div> */}
-          <div className="flex flex-col gap-1 px-4 py-1">
-            {/* <div className=" text-[15px] font-medium">
-              {emailQuery.data?.to}
-            </div> */}
-            <div className=" text-sm">Subject: {emailQuery.data?.subject}</div>
-            <div className="text-muted-foreground text-xs">
-              From: {emailQuery.data?.from}
-            </div>
-          </div>
-          {emailQuery.data?.latestStatus === "SCHEDULED" &&
-          emailQuery.data?.scheduledAt ? (
-            <>
-              <Separator />
-              <div className="flex gap-2 items-center px-4">
-                <span className="w-[100px] text-muted-foreground text-sm ">
-                  Scheduled at
-                </span>
-                <span className="text-sm">
-                  {formatDate(
-                    emailQuery.data?.scheduledAt,
-                    "MMM dd'th', hh:mm a",
-                  )}
-                </span>
-                <div className="ml-4">
-                  <CancelEmail emailId={emailId} />
-                </div>
-              </div>
-            </>
-          ) : null}
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2, delay: 0.3 }}
-          >
-            <EmailPreview html={emailQuery.data?.html ?? ""} />
-          </motion.div>
+      {/* Grid de campos */}
+      <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+        <Field label="De" value={email?.from} />
+        <Field label="Assunto">
+          <span className="inline-flex items-center gap-1.5 text-sm break-all">
+            {email?.subject}
+            {email?.latestStatus === "DELIVERED" ? (
+              <Check className="h-3.5 w-3.5 text-emerald-500" />
+            ) : null}
+          </span>
+        </Field>
+        <Field label="Para" value={to} />
+        <CopyField label="ID" value={email?.id} />
+        {replyTo ? <Field label="Reply-To" value={replyTo} /> : null}
+        {cc ? <Field label="CC" value={cc} /> : null}
+        {bcc ? <Field label="BCC" value={bcc} /> : null}
+        <Field label="Log">
+          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+            POST /emails
+          </code>
+        </Field>
+        <Field label="Status">
+          <EmailStatusBadge status={email?.latestStatus ?? "SENT"} />
+        </Field>
+      </div>
+
+      {/* Agendamento */}
+      {isScheduled && email?.scheduledAt ? (
+        <div className="mt-6 flex items-center gap-3 rounded-lg border bg-muted/20 px-4 py-3">
+          <span className="text-sm text-muted-foreground">Agendado para</span>
+          <span className="text-sm">
+            {formatDate(email.scheduledAt, "dd/MM/yyyy 'às' HH:mm")}
+          </span>
+          <div className="ml-auto">
+            <CancelEmail emailId={emailId} />
+          </div>
         </div>
-        {emailQuery.data?.latestStatus !== "SCHEDULED" ? (
-          <div className=" border rounded-lg w-full shadow mb-2 ">
-            <div className="  p-4 flex flex-col gap-8 w-full">
-              <div className="font-medium">Events History</div>
-              <div className="flex items-stretch px-4 w-full">
-                <div className="border-r border-gray-300 dark:border-gray-700 border-dashed" />
-                <div className="flex flex-col gap-12 w-full">
-                  {emailQuery.data?.emailEvents.map((evt) => (
-                    <div
-                      key={evt.status}
-                      className="flex gap-5 items-start w-full"
-                    >
-                      <div className=" -ml-2.5">
-                        <EmailStatusIcon status={evt.status} />
+      ) : null}
+
+      {/* Histórico de eventos */}
+      {!isScheduled && email?.emailEvents?.length ? (
+        <div className="mt-8">
+          <div className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Histórico de eventos
+          </div>
+          <div className="rounded-lg border bg-muted/10 p-6 shadow-sm">
+            <div className="flex items-stretch px-2">
+              <div className="border-r border-dashed border-gray-300 dark:border-gray-700" />
+              <div className="flex w-full flex-col gap-10">
+                {email.emailEvents.map((evt) => (
+                  <div
+                    key={evt.status}
+                    className="flex w-full items-start gap-5"
+                  >
+                    <div className="-ml-2.5">
+                      <EmailStatusIcon status={evt.status} />
+                    </div>
+                    <div className="-mt-[0.125rem] w-full">
+                      <EmailStatusBadge status={evt.status} />
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        {formatDate(evt.createdAt, "dd/MM/yyyy 'às' HH:mm")}
                       </div>
-                      <div className="-mt-[0.125rem] w-full">
-                        <div className=" capitalize font-medium">
-                          <EmailStatusBadge status={evt.status} />
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          {formatDate(evt.createdAt, "MMM dd, hh:mm a")}
-                        </div>
-                        <div className="mt-1 text-foreground/80">
-                          <EmailStatusText
-                            status={evt.status}
-                            data={evt.data}
-                          />
-                        </div>
+                      <div className="mt-1 text-foreground/80">
+                        <EmailStatusText status={evt.status} data={evt.data} />
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        ) : null}
+        </div>
+      ) : null}
+
+      {/* Preview com abas */}
+      <div className="mb-4 mt-8">
+        <div className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Conteúdo
+        </div>
+        <div className="rounded-lg border shadow-sm">
+          <Tabs defaultValue="preview">
+            <div className="border-b px-2 pt-2">
+              <TabsList className="bg-transparent">
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+                <TabsTrigger value="text">Texto</TabsTrigger>
+                <TabsTrigger value="html">HTML</TabsTrigger>
+                <TabsTrigger value="raw">Raw</TabsTrigger>
+                <TabsTrigger value="insights">Insights</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="preview" className="m-0">
+              <EmailPreview html={email?.html ?? ""} />
+            </TabsContent>
+
+            <TabsContent value="text" className="m-0">
+              <CodeBlock
+                content={email?.text || "Sem versão em texto puro."}
+              />
+            </TabsContent>
+
+            <TabsContent value="html" className="m-0">
+              <CodeBlock content={email?.html || "Sem conteúdo HTML."} />
+            </TabsContent>
+
+            <TabsContent value="raw" className="m-0">
+              <CodeBlock content={buildRaw(email ?? null)} />
+            </TabsContent>
+
+            <TabsContent value="insights" className="m-0">
+              <Insights html={email?.html ?? ""} text={email?.text ?? ""} />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
 }
 
+/* --------------------------------- Campos --------------------------------- */
+
+function Field({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string | null;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      {children ?? (
+        <span className="break-all text-sm">{value ?? "—"}</span>
+      )}
+    </div>
+  );
+}
+
+function CopyField({ label, value }: { label: string; value?: string | null }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard indisponível */
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <button
+        onClick={copy}
+        className="group flex items-center gap-2 rounded bg-muted px-2 py-1 text-left"
+      >
+        <span className="truncate font-mono text-xs">{value ?? "—"}</span>
+        {copied ? (
+          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+        ) : (
+          <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-60 group-hover:opacity-100" />
+        )}
+      </button>
+    </div>
+  );
+}
+
+/* --------------------------------- Preview -------------------------------- */
+
 const EmailPreview = ({ html }: { html: string }) => {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShow(true);
-    }, 200);
-
+    const timer = setTimeout(() => setShow(true), 200);
     return () => clearTimeout(timer);
   }, []);
 
-  if (!show) {
-    return (
-      <div className="dark:bg-slate-200 h-[350px] overflow-visible rounded border-t"></div>
-    );
-  }
-
   return (
-    <div className="dark:bg-slate-200 h-[350px] overflow-visible rounded border-t">
-      <iframe
-        className="w-full h-full"
-        srcDoc={html}
-        sandbox="allow-same-origin"
-      />
+    <div className="h-[420px] overflow-auto rounded-b-lg bg-slate-100 p-6 dark:bg-slate-200">
+      {show ? (
+        <iframe
+          className="mx-auto h-full w-full max-w-2xl rounded bg-white shadow-sm"
+          srcDoc={html}
+          sandbox="allow-same-origin"
+        />
+      ) : null}
     </div>
   );
 };
+
+const CodeBlock = ({ content }: { content: string }) => (
+  <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-all rounded-b-lg bg-muted/30 p-4 font-mono text-xs leading-relaxed">
+    {content}
+  </pre>
+);
+
+function buildRaw(email: EmailData): string {
+  if (!email) return "—";
+  const lines = [
+    `From: ${email.from ?? ""}`,
+    `To: ${(email.to ?? []).join(", ")}`,
+    email.replyTo?.length ? `Reply-To: ${email.replyTo.join(", ")}` : null,
+    email.cc?.length ? `Cc: ${email.cc.join(", ")}` : null,
+    email.bcc?.length ? `Bcc: ${email.bcc.join(", ")}` : null,
+    `Subject: ${email.subject ?? ""}`,
+    email.sesEmailId ? `Message-ID: ${email.sesEmailId}` : null,
+    email.headers ? `\n${email.headers}` : null,
+    "",
+    email.text || "(sem corpo em texto)",
+  ].filter((l): l is string => l !== null);
+  return lines.join("\n");
+}
+
+const Insights = ({ html, text }: { html: string; text: string }) => {
+  const linkCount = (html.match(/<a\s/gi) ?? []).length;
+  const imgCount = (html.match(/<img\s/gi) ?? []).length;
+  const htmlSizeKb = (new Blob([html]).size / 1024).toFixed(1);
+
+  const rows: { label: string; value: string }[] = [
+    { label: "Links no conteúdo", value: String(linkCount) },
+    { label: "Imagens no conteúdo", value: String(imgCount) },
+    { label: "Tamanho do HTML", value: `${htmlSizeKb} KB` },
+    {
+      label: "Versão em texto puro",
+      value: text ? "Presente" : "Ausente",
+    },
+  ];
+
+  return (
+    <div className="rounded-b-lg p-4">
+      <div className="grid grid-cols-2 gap-4">
+        {rows.map((r) => (
+          <div
+            key={r.label}
+            className="rounded-lg border bg-muted/20 px-4 py-3"
+          >
+            <div className="text-xs text-muted-foreground">{r.label}</div>
+            <div className="mt-1 text-lg font-semibold">{r.value}</div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-xs text-muted-foreground">
+        Insights básicos derivados do conteúdo. Métricas avançadas de
+        entregabilidade/spam serão adicionadas em seguida.
+      </p>
+    </div>
+  );
+};
+
+/* ------------------------------ Texto por status --------------------------- */
 
 const EmailStatusText = ({
   status,
@@ -172,11 +329,12 @@ const EmailStatusText = ({
   if (status === "SENT") {
     return (
       <div>
-        We received your request and sent the email to recipient's server.
+        Recebemos sua solicitação e enviamos o e-mail para o servidor do
+        destinatário.
       </div>
     );
   } else if (status === "DELIVERED") {
-    return <div>Mail is successfully delivered to the recipient.</div>;
+    return <div>O e-mail foi entregue com sucesso ao destinatário.</div>;
   } else if (status === "DELIVERY_DELAYED") {
     const _errorData = data as unknown as SesDeliveryDelay;
     const errorMessage = DELIVERY_DELAY_ERRORS[_errorData.delayType];
@@ -187,21 +345,21 @@ const EmailStatusText = ({
     _errorData.bounceType;
 
     return (
-      <div className="flex flex-col gap-4 w-full">
+      <div className="flex w-full flex-col gap-4">
         <p>{getErrorMessage(_errorData)}</p>
-        <div className="rounded-xl p-4 bg-muted/30 flex flex-col gap-4">
-          <div className="flex gap-2 w-full">
+        <div className="flex flex-col gap-4 rounded-xl bg-muted/30 p-4">
+          <div className="flex w-full gap-2">
             <div className="w-1/2">
-              <p className="text-sm text-muted-foreground">Type</p>
+              <p className="text-sm text-muted-foreground">Tipo</p>
               <p>{_errorData.bounceType}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Sub Type</p>
+              <p className="text-sm text-muted-foreground">Subtipo</p>
               <p>{_errorData.bounceSubType}</p>
             </div>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">SMTP response</p>
+            <p className="text-sm text-muted-foreground">Resposta SMTP</p>
             <p>{_errorData.bouncedRecipients[0]?.diagnosticCode}</p>
           </div>
         </div>
@@ -215,17 +373,17 @@ const EmailStatusText = ({
     const userAgent = getUserAgent(_data.userAgent);
 
     return (
-      <div className="w-full rounded-xl p-4 bg-muted/30 mt-4">
-        <div className="flex  w-full ">
+      <div className="mt-4 w-full rounded-xl bg-muted/30 p-4">
+        <div className="flex w-full">
           {userAgent.os.name ? (
             <div className="w-1/2">
-              <p className="text-sm text-muted-foreground">OS</p>
+              <p className="text-sm text-muted-foreground">SO</p>
               <p>{userAgent.os.name}</p>
             </div>
           ) : null}
           {userAgent.browser.name ? (
             <div>
-              <p className="text-sm text-muted-foreground">Browser</p>
+              <p className="text-sm text-muted-foreground">Navegador</p>
               <p>{userAgent.browser.name}</p>
             </div>
           ) : null}
@@ -237,17 +395,17 @@ const EmailStatusText = ({
     const userAgent = getUserAgent(_data.userAgent);
 
     return (
-      <div className="w-full mt-4 flex flex-col gap-4  rounded-xl p-4 bg-muted/30">
-        <div className="flex  w-full ">
+      <div className="mt-4 flex w-full flex-col gap-4 rounded-xl bg-muted/30 p-4">
+        <div className="flex w-full">
           {userAgent.os.name ? (
             <div className="w-1/2">
-              <p className="text-sm text-muted-foreground">OS </p>
+              <p className="text-sm text-muted-foreground">SO </p>
               <p>{userAgent.os.name}</p>
             </div>
           ) : null}
           {userAgent.browser.name ? (
             <div>
-              <p className="text-sm text-muted-foreground">Browser </p>
+              <p className="text-sm text-muted-foreground">Navegador </p>
               <p>{userAgent.browser.name}</p>
             </div>
           ) : null}
@@ -262,17 +420,17 @@ const EmailStatusText = ({
     const _errorData = data as unknown as SesComplaint;
 
     return (
-      <div className="flex flex-col gap-4 w-full">
+      <div className="flex w-full flex-col gap-4">
         <p>{getComplaintMessage(_errorData.complaintFeedbackType)}</p>
       </div>
     );
   } else if (status === "CANCELLED") {
-    return <div>This scheduled email was cancelled</div>;
+    return <div>Este e-mail agendado foi cancelado</div>;
   } else if (status === "SUPPRESSED") {
     return (
       <div>
-        This email was suppressed because this email is previously either
-        bounced or the recipient complained.
+        Este e-mail foi suprimido porque anteriormente ele retornou (bounce) ou
+        o destinatário registrou uma reclamação.
       </div>
     );
   }

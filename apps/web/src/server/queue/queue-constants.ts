@@ -6,6 +6,10 @@ export const CAMPAIGN_SCHEDULER_QUEUE = "campaign-scheduler";
 export const DOMAIN_VERIFICATION_QUEUE = "domain-verification";
 export const WEBHOOK_DISPATCH_QUEUE = "webhook-dispatch";
 export const WEBHOOK_CLEANUP_QUEUE = "webhook-cleanup";
+export const PLATFORM_SYNC_QUEUE = "platform-sync";
+export const PLATFORM_SYNC_SCHEDULER_QUEUE = "platform-sync-scheduler";
+export const API_LOG_CLEANUP_QUEUE = "api-log-cleanup";
+export const INBOUND_POLL_QUEUE = "inbound-poll";
 
 export const DEFAULT_QUEUE_OPTIONS = {
   removeOnComplete: true,

@@ -30,7 +30,7 @@ type WaitListFormProps = {
 };
 
 const EMAIL_TYPE_LABEL: Record<(typeof WAITLIST_EMAIL_TYPES)[number], string> = {
-  transactional: "Transactional",
+  transactional: "Transacional",
   marketing: "Marketing",
 };
 
@@ -49,11 +49,11 @@ export function WaitListForm({ userEmail }: WaitListFormProps) {
 
   const submitRequest = api.waitlist.submitRequest.useMutation({
     onSuccess: () => {
-      toast.success("Thanks! We'll reach out shortly.");
+      toast.success("Obrigado! Entraremos em contato em breve.");
       form.reset();
     },
     onError: (error) => {
-      toast.error(error.message ?? "Something went wrong");
+      toast.error(error.message ?? "Algo deu errado");
     },
   });
 
@@ -65,7 +65,7 @@ export function WaitListForm({ userEmail }: WaitListFormProps) {
     setIsLoggingOut(true);
     signOut({ callbackUrl: "/login" }).catch(() => {
       setIsLoggingOut(false);
-      toast.error("Unable to log out. Please try again.");
+      toast.error("Não foi possível sair. Tente novamente.");
     });
   };
 
@@ -81,7 +81,7 @@ export function WaitListForm({ userEmail }: WaitListFormProps) {
           name="domain"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Primary domain</FormLabel>
+              <FormLabel>Domínio principal</FormLabel>
               <FormControl>
                 <Input
                   placeholder="acme.com"
@@ -96,9 +96,9 @@ export function WaitListForm({ userEmail }: WaitListFormProps) {
         />
 
         <div>
-          <p className="text-sm font-medium">Contact email</p>
+          <p className="text-sm font-medium">E-mail de contato</p>
           <p className="mt-1 rounded-md border bg-muted/30 px-3 py-2 text-sm">
-            {userEmail || "Unknown"}
+            {userEmail || "Desconhecido"}
           </p>
         </div>
 
@@ -119,7 +119,7 @@ export function WaitListForm({ userEmail }: WaitListFormProps) {
 
             return (
               <FormItem>
-                <FormLabel>What emails do you plan to send?</FormLabel>
+                <FormLabel>Que e-mails você pretende enviar?</FormLabel>
                 <FormControl>
                   <div className="flex flex-col gap-3 sm:flex-row">
                     {WAITLIST_EMAIL_TYPES.map((option) => {
@@ -152,11 +152,11 @@ export function WaitListForm({ userEmail }: WaitListFormProps) {
           name="emailVolume"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>How many emails will you send?</FormLabel>
+              <FormLabel>Quantos e-mails você vai enviar?</FormLabel>
               <FormControl>
                 <Textarea
                   rows={3}
-                  placeholder="e.g., Around 400 transactional emails per day and 5,000 marketing emails per month"
+                  placeholder="ex.: cerca de 400 e-mails transacionais por dia e 5.000 e-mails de marketing por mês"
                   {...field}
                   value={field.value}
                 />
@@ -171,11 +171,11 @@ export function WaitListForm({ userEmail }: WaitListFormProps) {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>What kind of emails will you send?</FormLabel>
+              <FormLabel>Que tipo de e-mails você vai enviar?</FormLabel>
               <FormControl>
                 <Textarea
                   rows={4}
-                  placeholder="Share a quick summary so we can prioritize your access"
+                  placeholder="Compartilhe um breve resumo para que possamos priorizar seu acesso"
                   {...field}
                   value={field.value}
                 />
@@ -187,7 +187,7 @@ export function WaitListForm({ userEmail }: WaitListFormProps) {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            We'll come back usually within 4 hours.
+            Normalmente respondemos em até 4 horas.
           </p>
           <div className="flex gap-2">
             <Button
@@ -198,19 +198,19 @@ export function WaitListForm({ userEmail }: WaitListFormProps) {
             >
               {isLoggingOut ? (
                 <>
-                  <Spinner className="mr-2 h-4 w-4" /> Logging out...
+                  <Spinner className="mr-2 h-4 w-4" /> Saindo...
                 </>
               ) : (
-                "Log out"
+                "Sair"
               )}
             </Button>
             <Button type="submit" disabled={submitRequest.isPending}>
               {submitRequest.isPending ? (
                 <>
-                  <Spinner className="mr-2 h-4 w-4" /> Sending...
+                  <Spinner className="mr-2 h-4 w-4" /> Enviando...
                 </>
               ) : (
-                "Request Access"
+                "Solicitar acesso"
               )}
             </Button>
           </div>

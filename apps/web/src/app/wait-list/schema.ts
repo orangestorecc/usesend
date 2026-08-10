@@ -7,27 +7,27 @@ export const WAITLIST_EMAIL_TYPES = [
 
 export const waitlistSubmissionSchema = z.object({
  domain: z
-  .string({ required_error: "Domain is required" })
+  .string({ required_error: "O domínio é obrigatório" })
   .trim()
-  .min(1, "Domain is required")
-  .max(255, "Domain must be 255 characters or fewer")
+  .min(1, "O domínio é obrigatório")
+  .max(255, "O domínio deve ter no máximo 255 caracteres")
   .regex(
     /^(?!:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/,
-    "Please enter a valid domain (e.g. example.com)"
+    "Digite um domínio válido (ex.: example.com)"
   ),
   emailTypes: z
     .array(z.enum(WAITLIST_EMAIL_TYPES))
-    .min(1, "Select at least one email type"),
+    .min(1, "Selecione pelo menos um tipo de e-mail"),
   emailVolume: z
-    .string({ required_error: "Share your expected volume" })
+    .string({ required_error: "Informe o volume esperado" })
     .trim()
-    .min(1, "Tell us how many emails you expect to send")
-    .max(500, "Keep the volume details under 500 characters"),
+    .min(1, "Conte-nos quantos e-mails você pretende enviar")
+    .max(500, "Mantenha os detalhes do volume abaixo de 500 caracteres"),
   description: z
-    .string({ required_error: "Provide a short description" })
+    .string({ required_error: "Forneça uma breve descrição" })
     .trim()
-    .min(10, "Please share a bit more detail")
-    .max(2000, "Description must be under 2000 characters"),
+    .min(10, "Compartilhe um pouco mais de detalhes")
+    .max(2000, "A descrição deve ter menos de 2000 caracteres"),
 });
 
 export type WaitlistSubmissionInput = z.infer<typeof waitlistSubmissionSchema>;

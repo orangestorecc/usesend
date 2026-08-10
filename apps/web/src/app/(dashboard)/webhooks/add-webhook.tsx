@@ -45,10 +45,10 @@ const EVENT_TYPES_ENUM = z.enum(WebhookEvents);
 
 const webhookSchema = z.object({
   url: z
-    .string({ required_error: "URL is required" })
-    .url("Please enter a valid URL"),
+    .string({ required_error: "A URL é obrigatória" })
+    .url("Digite uma URL válida"),
   eventTypes: z.array(EVENT_TYPES_ENUM, {
-    required_error: "Select at least one event",
+    required_error: "Selecione ao menos um evento",
   }),
   domainIds: z.array(z.number().int().positive()),
 });
@@ -59,9 +59,9 @@ const eventGroups: {
   label: string;
   events: readonly WebhookEventType[];
 }[] = [
-  { label: "Contact events", events: ContactEvents },
-  { label: "Domain events", events: DomainEvents },
-  { label: "Email events", events: EmailEvents },
+  { label: "Eventos de contato", events: ContactEvents },
+  { label: "Eventos de domínio", events: DomainEvents },
+  { label: "Eventos de e-mail", events: EmailEvents },
 ];
 
 export function AddWebhook() {
@@ -101,7 +101,7 @@ export function AddWebhook() {
     const selectedEvents = values.eventTypes ?? [];
 
     if (!allEventsSelected && selectedEvents.length === 0) {
-      toast.error("Select at least one event or all events");
+      toast.error("Selecione ao menos um evento ou todos os eventos");
       return;
     }
 
@@ -121,7 +121,7 @@ export function AddWebhook() {
           });
           setAllEventsSelected(false);
           setOpen(false);
-          toast.success("Webhook created successfully");
+          toast.success("Webhook criado com sucesso");
         },
         onError: (error) => {
           toast.error(error.message);
@@ -140,12 +140,12 @@ export function AddWebhook() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-1 h-4 w-4" />
-          Add webhook
+          Adicionar webhook
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create a new webhook</DialogTitle>
+          <DialogTitle>Criar um novo webhook</DialogTitle>
         </DialogHeader>
         <div className="py-2">
           <Form {...form}>
@@ -158,7 +158,7 @@ export function AddWebhook() {
                 name="url"
                 render={({ field, formState }) => (
                   <FormItem>
-                    <FormLabel>Endpoint URL</FormLabel>
+                    <FormLabel>URL do endpoint</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="https://example.com/webhooks/usesend"
@@ -182,12 +182,12 @@ export function AddWebhook() {
 
                   const allSelectedLabel =
                     selectedCount === 0
-                      ? "Select events"
+                      ? "Selecione os eventos"
                       : allEventsSelected
-                        ? "All events"
+                        ? "Todos os eventos"
                         : selectedCount === 1
                           ? selectedEvents[0]
-                          : `${selectedCount} events selected`;
+                          : `${selectedCount} eventos selecionados`;
 
                   const isGroupFullySelected = (
                     groupEvents: readonly WebhookEventType[],
@@ -252,7 +252,7 @@ export function AddWebhook() {
 
                   return (
                     <FormItem>
-                      <FormLabel>Events</FormLabel>
+                      <FormLabel>Eventos</FormLabel>
                       <FormControl>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -277,7 +277,7 @@ export function AddWebhook() {
                                 onSelect={(event) => event.preventDefault()}
                                 className="font-medium mb-2 px-2"
                               >
-                                All events
+                                Todos os eventos
                               </DropdownMenuCheckboxItem>
                               {eventGroups.map((group) => (
                                 <div key={group.label} className="">
@@ -332,10 +332,10 @@ export function AddWebhook() {
 
                   const selectedDomainsLabel =
                     selectedDomainIds.length === 0
-                      ? "All domains"
+                      ? "Todos os domínios"
                       : selectedDomainIds.length === 1
-                        ? (selectedDomains[0]?.name ?? "1 domain selected")
-                        : `${selectedDomainIds.length} domains selected`;
+                        ? (selectedDomains[0]?.name ?? "1 domínio selecionado")
+                        : `${selectedDomainIds.length} domínios selecionados`;
 
                   const handleToggleDomain = (domainId: number) => {
                     const exists = selectedDomainIds.includes(domainId);
@@ -347,7 +347,7 @@ export function AddWebhook() {
 
                   return (
                     <FormItem>
-                      <FormLabel>Domains</FormLabel>
+                      <FormLabel>Domínios</FormLabel>
                       <FormControl>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -370,7 +370,7 @@ export function AddWebhook() {
                                 onSelect={(event) => event.preventDefault()}
                                 className="mb-2 px-2 font-medium"
                               >
-                                All domains
+                                Todos os domínios
                               </DropdownMenuCheckboxItem>
                               {domainsQuery.data?.map((domain) => (
                                 <DropdownMenuCheckboxItem
@@ -392,8 +392,8 @@ export function AddWebhook() {
                         </DropdownMenu>
                       </FormControl>
                       <FormDescription>
-                        Leave this as all domains to receive events from every
-                        domain.
+                        Deixe em todos os domínios para receber eventos de todos
+                        os domínios.
                       </FormDescription>
                     </FormItem>
                   );
@@ -405,7 +405,7 @@ export function AddWebhook() {
                   type="submit"
                   disabled={createWebhookMutation.isPending}
                 >
-                  {createWebhookMutation.isPending ? "Creating..." : "Create"}
+                  {createWebhookMutation.isPending ? "Criando..." : "Criar"}
                 </Button>
               </div>
             </form>

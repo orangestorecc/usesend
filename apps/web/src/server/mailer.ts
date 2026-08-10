@@ -28,7 +28,7 @@ export async function sendSignUpEmail(
     return;
   }
 
-  const subject = "Sign in to useSend";
+  const subject = "Entre na sua conta Madmail";
 
   // Use jsx-email template for beautiful HTML
   const html = await renderOtpEmail({
@@ -38,7 +38,7 @@ export async function sendSignUpEmail(
   });
 
   // Fallback text version
-  const text = `Hey,\n\nYou can sign in to useSend by clicking the below URL:\n${url}\n\nYou can also use this OTP: ${token}\n\nThanks,\nuseSend Team`;
+  const text = `Olá,\n\nVocê pode entrar na sua conta Madmail clicando no link abaixo:\n${url}\n\nOu use este código (OTP): ${token}\n\nAtenciosamente,\nTime Madmail`;
 
   await sendMail(email, subject, text, html);
 }
@@ -55,7 +55,7 @@ export async function sendTeamInviteEmail(
     return;
   }
 
-  const subject = "You have been invited to join useSend";
+  const subject = "Você foi convidado para entrar no Madmail";
 
   // Use jsx-email template for beautiful HTML
   const html = await renderTeamInviteEmail({
@@ -64,7 +64,7 @@ export async function sendTeamInviteEmail(
   });
 
   // Fallback text version
-  const text = `Hey,\n\nYou have been invited to join the team ${teamName} on useSend.\n\nYou can accept the invitation by clicking the below URL:\n${url}\n\nThanks,\nuseSend Team`;
+  const text = `Olá,\n\nVocê foi convidado para entrar no time ${teamName} no Madmail.\n\nPara aceitar o convite, clique no link abaixo:\n${url}\n\nAtenciosamente,\nTime Madmail`;
 
   await sendMail(email, subject, text, html);
 }
@@ -75,8 +75,8 @@ export async function sendSubscriptionConfirmationEmail(email: string) {
     return;
   }
 
-  const subject = "Thanks for subscribing to useSend";
-  const text = `Hey,\n\nThanks for subscribing to useSend, just wanted to let you know you can join the discord server to have a dedicated support channel for your team. So that we can address your queries / bugs asap.\n\nYou can join over using the link: https://discord.com/invite/BU8n8pJv8S\n\nIf you prefer slack, please let me know\n\ncheers,\nkoushik - useSend`;
+  const subject = "Obrigado por assinar o Madmail";
+  const text = `Olá,\n\nObrigado por assinar o Madmail! Só passando para avisar que você pode entrar no nosso servidor do Discord para ter um canal de suporte dedicado ao seu time, assim conseguimos responder suas dúvidas / bugs o mais rápido possível.\n\nVocê pode entrar por este link: https://discord.com/invite/BU8n8pJv8S\n\nSe preferir o Slack, é só me avisar.\n\nAbraços,\nkoushik - Madmail`;
   const html = text.replace(/\n/g, "<br />");
 
   await sendMail(email, subject, text, html, undefined, env.FOUNDER_EMAIL);
@@ -90,49 +90,13 @@ export async function sendMail(
   replyTo?: string,
   fromOverride?: string
 ) {
-  if (isSelfHosted()) {
-    logger.info("Sending email using self hosted");
-    /* 
-      Self hosted so checking if we can send using one of the available domain
-      Assuming self hosted will have only one team
-      TODO: fix this
-     */
-    const team = await db.team.findFirst({});
-    if (!team) {
-      logger.error("No team found");
-      return;
-    }
+  // Quando há uma API key externa configurada (deploy que envia via nuvem
+  // pública do Madmail), usa o SDK. Caso contrário, envia internamente via SES
+  // usando o domínio verificado do time — funciona tanto em self-hosted quanto
+  // em cloud/multi-tenant sem depender de serviço externo.
+  const externalApiKey = env.USESEND_API_KEY ?? env.UNSEND_API_KEY;
 
-    const domains = await getDomains(team.id);
-
-    if (domains.length === 0 || !domains[0]) {
-      logger.error("No domains found");
-      return;
-    }
-
-    const availableDomains = domains.map((d) => d.name);
-    const domain = domains[0];
-
-    const candidateFroms = [fromOverride, env.FROM_EMAIL, `hello@${domain.name}`].filter(
-      (value): value is string => Boolean(value)
-    );
-
-    const selectedFrom =
-      candidateFroms.find((address) => {
-        const domainPart = address.split("@")[1];
-        return domainPart ? availableDomains.includes(domainPart) : false;
-      }) ?? `hello@${domain.name}`;
-
-    await sendEmail({
-      teamId: team.id,
-      to: email,
-      from: selectedFrom,
-      subject,
-      text,
-      html,
-      replyTo,
-    });
-  } else if (env.UNSEND_API_KEY && (env.FROM_EMAIL || fromOverride)) {
+  if (externalApiKey && (env.FROM_EMAIL || fromOverride)) {
     const fromAddress = fromOverride ?? env.FROM_EMAIL!;
     const resp = await getClient().emails.send({
       to: email,
@@ -146,13 +110,55 @@ export async function sendMail(
     if (resp.data) {
       logger.info("Email sent using usesend");
       return;
-    } else {
-      logger.error(
-        { code: resp.error?.code, message: resp.error?.message },
-        "Error sending email using usesend"
-      );
     }
-  } else {
-    throw new Error("USESEND_API_KEY/UNSEND_API_KEY not found");
+
+    logger.error(
+      { code: resp.error?.code, message: resp.error?.message },
+      "Error sending email using usesend"
+    );
+    return;
   }
+
+  logger.info("Sending email using internal SES");
+  /*
+    Envio interno: usa o primeiro time e um de seus domínios verificados como
+    remetente dos e-mails de sistema (OTP, convites, etc).
+    Assume que a instância tem ao menos um time com domínio verificado.
+    TODO: fix this
+   */
+  const team = await db.team.findFirst({});
+  if (!team) {
+    logger.error("No team found");
+    return;
+  }
+
+  const domains = await getDomains(team.id);
+
+  if (domains.length === 0 || !domains[0]) {
+    logger.error("No domains found");
+    return;
+  }
+
+  const availableDomains = domains.map((d) => d.name);
+  const domain = domains[0];
+
+  const candidateFroms = [fromOverride, env.FROM_EMAIL, `hello@${domain.name}`].filter(
+    (value): value is string => Boolean(value)
+  );
+
+  const selectedFrom =
+    candidateFroms.find((address) => {
+      const domainPart = address.split("@")[1];
+      return domainPart ? availableDomains.includes(domainPart) : false;
+    }) ?? `hello@${domain.name}`;
+
+  await sendEmail({
+    teamId: team.id,
+    to: email,
+    from: selectedFrom,
+    subject,
+    text,
+    html,
+    replyTo,
+  });
 }

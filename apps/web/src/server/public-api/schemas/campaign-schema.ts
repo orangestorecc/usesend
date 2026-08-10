@@ -24,7 +24,7 @@ export const parseScheduledAt = (scheduledAt?: string): Date | undefined => {
 
   throw new UnsendApiError({
     code: "BAD_REQUEST",
-    message: `Invalid date format: ${scheduledAt}. Use ISO 8601 format or natural language like 'tomorrow 9am'.`,
+    message: `Formato de data inválido: ${scheduledAt}. Use o formato ISO 8601 ou linguagem natural como 'tomorrow 9am'.`,
   });
 };
 

@@ -100,7 +100,7 @@ export const IdempotencyService = {
     if (idemKey !== undefined && (idemKey.length < 1 || idemKey.length > 256)) {
       throw new UnsendApiError({
         code: "BAD_REQUEST",
-        message: "Invalid Idempotency-Key length",
+        message: "Tamanho de Idempotency-Key inválido",
       });
     }
 
@@ -122,7 +122,7 @@ export const IdempotencyService = {
 
       throw new UnsendApiError({
         code: "NOT_UNIQUE",
-        message: "Idempotency-Key already used with a different payload",
+        message: "Idempotency-Key já utilizada com um payload diferente",
       });
     }
 
@@ -142,7 +142,7 @@ export const IdempotencyService = {
 
         throw new UnsendApiError({
           code: "NOT_UNIQUE",
-          message: "Idempotency-Key already used with a different payload",
+          message: "Idempotency-Key já utilizada com um payload diferente",
         });
       }
 

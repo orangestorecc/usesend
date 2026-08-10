@@ -2,20 +2,25 @@
 
 import AddMcpKey from "./add-mcp-key";
 import McpList from "./mcp-list";
+import ConnectMcp from "./connect-mcp";
 import { H1 } from "@usesend/ui";
 
 export default function McpPage() {
   return (
-    <div>
-      <div className="flex justify-between items-center">
-        <H1>MCP</H1>
-        <AddMcpKey />
+    <div className="space-y-6">
+      <ConnectMcp />
+
+      <div>
+        <div className="flex items-center justify-between">
+          <H1>Chaves do MCP</H1>
+          <AddMcpKey />
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Cada chave dá acesso ao seu time com os escopos que você definir.
+          Use-as para gerenciar/revogar integrações.
+        </p>
+        <McpList />
       </div>
-      <p className="text-sm text-muted-foreground mt-2">
-        Integrações de assistente (ChatGPT/Claude). Cada chave dá acesso ao seu
-        time com os escopos que você definir.
-      </p>
-      <McpList />
     </div>
   );
 }

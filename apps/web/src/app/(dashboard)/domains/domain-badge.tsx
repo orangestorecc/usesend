@@ -19,12 +19,20 @@ export const DomainStatusBadge: React.FC<{ status: DomainStatus }> = ({
       badgeColor = "bg-gray/70 text-gray border border-gray/20";
   }
 
+  const statusLabels: Record<string, string> = {
+    SUCCESS: "Verificado",
+    FAILED: "Falhou",
+    PENDING: "Pendente",
+    TEMPORARY_FAILURE: "Falha temporária",
+    NOT_STARTED: "Não iniciado",
+  };
+
   return (
     <div
       className={` text-center w-[120px] capitalize rounded-md py-1 justify-center flex items-center ${badgeColor}`}
     >
       <span className="text-xs">
-        {status === "SUCCESS" ? "Verified" : status.toLowerCase()}
+        {statusLabels[status] ?? status.toLowerCase()}
       </span>
     </div>
   );

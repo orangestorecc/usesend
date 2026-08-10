@@ -1,57 +1,57 @@
 export const DELIVERY_DELAY_ERRORS = {
-  InternalFailure: "An internal useSend issue caused the message to be delayed.",
-  General: "A generic failure occurred during the SMTP conversation.",
+  InternalFailure: "Um problema interno do useSend causou o atraso da mensagem.",
+  General: "Ocorreu uma falha genérica durante a conversa SMTP.",
   MailboxFull:
-    "The recipient's mailbox is full and is unable to receive additional messages.",
+    "A caixa de entrada do destinatário está cheia e não consegue receber novas mensagens.",
   SpamDetected:
-    "The recipient's mail server has detected a large amount of unsolicited email from your account.",
+    "O servidor de e-mail do destinatário detectou um grande volume de e-mails não solicitados vindos da sua conta.",
   RecipientServerError:
-    "A temporary issue with the recipient's email server is preventing the delivery of the message.",
+    "Um problema temporário no servidor de e-mail do destinatário está impedindo a entrega da mensagem.",
   IPFailure:
-    "The IP address that's sending the message is being blocked or throttled by the recipient's email provider.",
+    "O endereço IP que está enviando a mensagem está sendo bloqueado ou limitado pelo provedor de e-mail do destinatário.",
   TransientCommunicationFailure:
-    "There was a temporary communication failure during the SMTP conversation with the recipient's email provider.",
+    "Houve uma falha temporária de comunicação durante a conversa SMTP com o provedor de e-mail do destinatário.",
   BYOIPHostNameLookupUnavailable:
-    "useSend was unable to look up the DNS hostname for your IP addresses. This type of delay only occurs when you use Bring Your Own IP.",
+    "O useSend não conseguiu resolver o hostname DNS dos seus endereços IP. Esse tipo de atraso só ocorre quando você usa Bring Your Own IP.",
   Undetermined:
-    "useSend wasn't able to determine the reason for the delivery delay.",
+    "O useSend não conseguiu determinar o motivo do atraso na entrega.",
   SendingDeferral:
-    "useSend has deemed it appropriate to internally defer the message.",
+    "O useSend considerou apropriado adiar a mensagem internamente.",
 };
 
 export const BOUNCE_ERROR_MESSAGES = {
-  Undetermined: "useSend was unable to determine a specific bounce reason.",
+  Undetermined: "O useSend não conseguiu determinar um motivo específico para o retorno.",
   Permanent: {
     General:
-      "useSend received a general hard bounce. If you receive this type of bounce, you should remove the recipient's email address from your mailing list.",
+      "O useSend recebeu um hard bounce geral. Se você receber esse tipo de retorno, remova o endereço de e-mail do destinatário da sua lista de envio.",
     NoEmail:
-      "useSend received a permanent hard bounce because the target email address does not exist. If you receive this type of bounce, you should remove the recipient's email address from your mailing list.",
+      "O useSend recebeu um hard bounce permanente porque o endereço de e-mail de destino não existe. Se você receber esse tipo de retorno, remova o endereço de e-mail do destinatário da sua lista de envio.",
     Suppressed:
-      "useSend has suppressed sending to this address because it has a recent history of bouncing as an invalid address. To override the global suppression list, see Using the useSend account-level suppression list.",
+      "O useSend suprimiu o envio para este endereço porque ele tem um histórico recente de retornos como endereço inválido. Para ignorar a lista de supressão global, consulte o uso da lista de supressão em nível de conta do useSend.",
     OnAccountSuppressionList:
-      "useSend has suppressed sending to this address because it is on the account-level suppression list. This does not count toward your bounce rate metric.",
+      "O useSend suprimiu o envio para este endereço porque ele está na lista de supressão em nível de conta. Isso não conta para a sua métrica de taxa de retorno.",
   },
   Transient: {
     General:
-      "useSend received a general bounce. You may be able to successfully send to this recipient in the future.",
+      "O useSend recebeu um retorno geral. Talvez você consiga enviar para este destinatário com sucesso no futuro.",
     MailboxFull:
-      "useSend received a mailbox full bounce. You may be able to successfully send to this recipient in the future.",
+      "O useSend recebeu um retorno de caixa de entrada cheia. Talvez você consiga enviar para este destinatário com sucesso no futuro.",
     MessageTooLarge:
-      "useSend received a message too large bounce. You may be able to successfully send to this recipient if you reduce the size of the message.",
+      "O useSend recebeu um retorno de mensagem muito grande. Talvez você consiga enviar para este destinatário se reduzir o tamanho da mensagem.",
     ContentRejected:
-      "useSend received a content rejected bounce. You may be able to successfully send to this recipient if you change the content of the message.",
+      "O useSend recebeu um retorno de conteúdo rejeitado. Talvez você consiga enviar para este destinatário se alterar o conteúdo da mensagem.",
     AttachmentRejected:
-      "useSend received an attachment rejected bounce. You may be able to successfully send to this recipient if you remove or change the attachment.",
+      "O useSend recebeu um retorno de anexo rejeitado. Talvez você consiga enviar para este destinatário se remover ou alterar o anexo.",
   },
 };
 
 export const COMPLAINT_ERROR_MESSAGES = {
-  abuse: "Indicates unsolicited email or some other kind of email abuse.",
-  "auth-failure": "Email authentication failure report.",
-  fraud: "Indicates some kind of fraud or phishing activity.",
+  abuse: "Indica e-mail não solicitado ou algum outro tipo de abuso de e-mail.",
+  "auth-failure": "Relatório de falha de autenticação de e-mail.",
+  fraud: "Indica algum tipo de fraude ou atividade de phishing.",
   "not-spam":
-    "Indicates that the entity providing the report does not consider the message to be spam. This may be used to correct a message that was incorrectly tagged or categorized as spam.",
+    "Indica que a entidade que fornece o relatório não considera a mensagem como spam. Isso pode ser usado para corrigir uma mensagem que foi incorretamente marcada ou categorizada como spam.",
   other:
-    "Indicates any other feedback that does not fit into other registered types.",
-  virus: "Reports that a virus is found in the originating message.",
+    "Indica qualquer outro feedback que não se enquadra nos demais tipos registrados.",
+  virus: "Relata que um vírus foi encontrado na mensagem de origem.",
 };

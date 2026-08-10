@@ -67,6 +67,8 @@ function createDomain(id: number, status: DomainStatus): Domain {
     region: "us-east-1",
     clickTracking: false,
     openTracking: false,
+    receivingEnabled: false,
+    tlsEnforced: false,
     publicKey: "public-key",
     dkimSelector: "usesend",
     dkimStatus: DomainStatus.NOT_STARTED,

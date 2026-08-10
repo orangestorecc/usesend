@@ -134,7 +134,7 @@ export const campaignRouter = createTRPCRouter({
         if (!contactBook) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Contact book not found",
+            message: "Lista de contatos não encontrada",
           });
         }
       }
@@ -183,7 +183,7 @@ export const campaignRouter = createTRPCRouter({
     if (!campaign) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Campaign not found",
+        message: "Campanha não encontrada",
       });
     }
 

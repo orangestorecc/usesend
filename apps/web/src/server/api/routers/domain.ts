@@ -15,6 +15,7 @@ import {
   updateDomain,
 } from "~/server/service/domain-service";
 import { sendEmail } from "~/server/service/email-service";
+import { setDomainReceiving } from "~/server/aws/inbound-ses";
 import { SesSettingsService } from "~/server/service/ses-settings-service";
 import {
   getValidSesRegions,
@@ -58,13 +59,32 @@ export const domainRouter = createTRPCRouter({
       z.object({
         clickTracking: z.boolean().optional(),
         openTracking: z.boolean().optional(),
+        tlsEnforced: z.boolean().optional(),
       })
     )
     .mutation(async ({ input }) => {
       return updateDomain(input.id, {
         clickTracking: input.clickTracking,
         openTracking: input.openTracking,
+        tlsEnforced: input.tlsEnforced,
       });
+    }),
+
+  setReceiving: domainProcedure
+    .input(z.object({ enabled: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const domain = await db.domain.findFirst({
+        where: { id: input.id, teamId: ctx.team.id },
+      });
+      if (!domain) {
+        throw new Error("Domínio não encontrado");
+      }
+      await setDomainReceiving(domain.id, domain.name, input.enabled);
+      await db.domain.update({
+        where: { id: domain.id },
+        data: { receivingEnabled: input.enabled },
+      });
+      return { success: true };
     }),
 
   deleteDomain: domainProcedure.mutation(async ({ input }) => {
@@ -85,20 +105,20 @@ export const domainRouter = createTRPCRouter({
       });
 
       if (!domain) {
-        throw new Error("Domain not found");
+        throw new Error("Domínio não encontrado");
       }
 
       if (!user.email) {
-        throw new Error("User email not found");
+        throw new Error("E-mail do usuário não encontrado");
       }
 
       return sendEmail({
         teamId: team.id,
         to: user.email,
         from: `hello@${domain.name}`,
-        subject: "useSend test email",
-        text: "hello,\n\nuseSend is the best open source sending platform\n\ncheck out https://usesend.com",
-        html: "<p>hello,</p><p>useSend is the best open source sending platform<p><p>check out <a href='https://usesend.com'>usesend.com</a>",
+        subject: "E-mail de teste do Madmail",
+        text: "hello,\n\nMadmail is the best open source sending platform\n\ncheck out https://usesend.com",
+        html: "<p>hello,</p><p>Madmail is the best open source sending platform<p><p>check out <a href='https://usesend.com'>usesend.com</a>",
       });
     }
   ),

@@ -250,31 +250,13 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     createUser: async ({ user }) => {
-      let invitesAvailable = false;
-
-      if (user.email) {
-        const invites = await db.teamInvite.findMany({
-          where: { email: user.email },
-        });
-
-        invitesAvailable = invites.length > 0;
-      }
-
-      if (
-        !env.NEXT_PUBLIC_IS_CLOUD ||
-        env.NODE_ENV === "development" ||
-        invitesAvailable
-      ) {
-        await db.user.update({
-          where: { id: user.id },
-          data: { isBetaUser: true },
-        });
-      } else {
-        await db.user.update({
-          where: { id: user.id },
-          data: { isBetaUser: true, isWaitlisted: true },
-        });
-      }
+      // Multi-locatário aberto: todo novo cadastro entra ativo, sem fila de
+      // espera. (No cloud mode original do Madmail, cadastros sem convite eram
+      // marcados com isWaitlisted; aqui a instância é self-service.)
+      await db.user.update({
+        where: { id: user.id },
+        data: { isBetaUser: true, isWaitlisted: false },
+      });
     },
   },
   providers: getProviders(),

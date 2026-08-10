@@ -25,6 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@usesend/ui/src/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@usesend/ui/src/table";
 import { formatDistanceToNow } from "date-fns";
 
 import { api } from "~/trpc/react";
@@ -34,9 +42,9 @@ import { isCloud } from "~/utils/common";
 
 const searchSchema = z.object({
   query: z
-    .string({ required_error: "Enter a team ID, name, domain, member email, or subscription ID" })
+    .string({ required_error: "Informe o ID do time, nome, domínio, e-mail de membro ou ID de assinatura" })
     .trim()
-    .min(1, "Enter a team ID, name, domain, member email, or subscription ID"),
+    .min(1, "Informe o ID do time, nome, domínio, e-mail de membro ou ID de assinatura"),
 });
 
 type SearchInput = z.infer<typeof searchSchema>;
@@ -86,23 +94,25 @@ export default function AdminTeamsPage() {
   if (!isCloud()) {
     return (
       <div className="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">
-        Team administration tools are available only in the cloud deployment.
+        As ferramentas de administração de times estão disponíveis apenas na implantação em nuvem.
       </div>
     );
   }
+
+  const teamsQuery = api.admin.listTeams.useQuery();
 
   const findTeam = api.admin.findTeam.useMutation({
     onSuccess: (data) => {
       setHasSearched(true);
       if (!data) {
         setTeam(null);
-        toast.info("No team found for that query");
+        toast.info("Nenhum time encontrado para essa busca");
         return;
       }
       setTeam(data);
     },
     onError: (error) => {
-      toast.error(error.message ?? "Unable to search for team");
+      toast.error(error.message ?? "Não foi possível buscar o time");
     },
   });
 
@@ -115,10 +125,10 @@ export default function AdminTeamsPage() {
         isBlocked: updated.isBlocked,
         plan: updated.plan,
       });
-      toast.success("Team settings updated");
+      toast.success("Configurações do time atualizadas");
     },
     onError: (error) => {
-      toast.error(error.message ?? "Unable to update team settings");
+      toast.error(error.message ?? "Não foi possível atualizar as configurações do time");
     },
   });
 
@@ -147,10 +157,10 @@ export default function AdminTeamsPage() {
               name="query"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Team lookup</FormLabel>
+                  <FormLabel>Buscar time</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Team ID, team name, domain, member email, or subscription ID"
+                      placeholder="ID do time, nome do time, domínio, e-mail de membro ou ID de assinatura"
                       autoComplete="off"
                       {...field}
                       value={field.value}
@@ -163,10 +173,10 @@ export default function AdminTeamsPage() {
             <Button type="submit" disabled={findTeam.isPending}>
               {findTeam.isPending ? (
                 <>
-                  <Spinner className="mr-2 h-4 w-4" /> Searching...
+                  <Spinner className="mr-2 h-4 w-4" /> Buscando...
                 </>
               ) : (
-                "Lookup team"
+                "Buscar time"
               )}
             </Button>
           </form>
@@ -175,31 +185,114 @@ export default function AdminTeamsPage() {
 
       {findTeam.isPending ? null : hasSearched && !team ? (
         <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          No team matched that query. Try another search.
+          Nenhum time corresponde a essa busca. Tente outra pesquisa.
         </div>
       ) : null}
+
+      {/* Lista de todos os times */}
+      <div className="rounded-lg border shadow-sm">
+        <div className="flex items-center justify-between border-b px-6 py-4">
+          <div>
+            <h3 className="font-medium">Todos os clientes</h3>
+            <p className="text-xs text-muted-foreground">
+              {teamsQuery.data?.length ?? 0} cliente(s). Clique em uma linha para
+              gerenciar.
+            </p>
+          </div>
+          {teamsQuery.isFetching ? (
+            <Spinner className="h-4 w-4" />
+          ) : null}
+        </div>
+        {teamsQuery.data && teamsQuery.data.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Plano</TableHead>
+                <TableHead>Membros</TableHead>
+                <TableHead>Domínios</TableHead>
+                <TableHead>Criado</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {teamsQuery.data.map((t) => (
+                <TableRow
+                  key={t.id}
+                  className={`cursor-pointer ${
+                    team?.id === t.id ? "bg-muted/50" : ""
+                  }`}
+                  onClick={() => {
+                    setHasSearched(false);
+                    setTeam(t);
+                  }}
+                >
+                  <TableCell className="text-muted-foreground">
+                    #{t.id}
+                  </TableCell>
+                  <TableCell className="font-medium">{t.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{t.plan}</Badge>
+                  </TableCell>
+                  <TableCell>{t.teamUsers.length}</TableCell>
+                  <TableCell>{t.domains.length}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDistanceToNow(new Date(t.createdAt), {
+                      addSuffix: true,
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={t.isBlocked ? "destructive" : "outline"}>
+                      {t.isBlocked ? "Bloqueado" : "Ativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <a
+                      href={`/api/admin/impersonate?teamId=${t.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted"
+                    >
+                      Entrar na conta
+                    </a>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : teamsQuery.isLoading ? (
+          <div className="p-6 text-sm text-muted-foreground">
+            Carregando times...
+          </div>
+        ) : (
+          <div className="p-6 text-sm text-muted-foreground">
+            Nenhum time cadastrado ainda.
+          </div>
+        )}
+      </div>
 
       {team ? (
         <div className="space-y-6 rounded-lg border p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm text-muted-foreground">Team</p>
+              <p className="text-sm text-muted-foreground">Time</p>
               <p className="text-xl font-semibold">{team.name}</p>
               <p className="text-xs text-muted-foreground">
-                ID #{team.id} • Created {formatDistanceToNow(new Date(team.createdAt), { addSuffix: true })}
+                ID #{team.id} • Criado {formatDistanceToNow(new Date(team.createdAt), { addSuffix: true })}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">Plan: {team.plan}</Badge>
+              <Badge variant="outline">Plano: {team.plan}</Badge>
               <Badge variant={team.isBlocked ? "destructive" : "outline"}>
-                {team.isBlocked ? "Blocked" : "Active"}
+                {team.isBlocked ? "Bloqueado" : "Ativo"}
               </Badge>
             </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">Members</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Membros</h3>
               <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
                 {team.teamUsers.length ? (
                   team.teamUsers.map((member) => (
@@ -215,12 +308,12 @@ export default function AdminTeamsPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-muted-foreground">No members found.</p>
+                  <p className="text-xs text-muted-foreground">Nenhum membro encontrado.</p>
                 )}
               </div>
             </div>
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">Domains</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Domínios</h3>
               <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
                 {team.domains.length ? (
                   team.domains.map((domain) => (
@@ -231,13 +324,13 @@ export default function AdminTeamsPage() {
                       <span>{domain.name}</span>
                       <Badge variant={domain.status === "SUCCESS" ? "outline" : "secondary"}>
                         {domain.status === "SUCCESS"
-                          ? "Verified"
+                          ? "Verificado"
                           : domain.status.toLowerCase()}
                       </Badge>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-muted-foreground">No domains connected.</p>
+                  <p className="text-xs text-muted-foreground">Nenhum domínio conectado.</p>
                 )}
               </div>
             </div>
@@ -245,7 +338,7 @@ export default function AdminTeamsPage() {
 
           <div className="rounded-lg border bg-muted/10 p-4">
             <p className="text-sm text-muted-foreground">
-              Billing contact: {team.billingEmail ?? "Not set"}
+              Contato de cobrança: {team.billingEmail ?? "Não definido"}
             </p>
           </div>
 
@@ -257,7 +350,7 @@ export default function AdminTeamsPage() {
                   name="apiRateLimit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>API rate limit</FormLabel>
+                      <FormLabel>Limite de taxa da API</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -280,7 +373,7 @@ export default function AdminTeamsPage() {
                   name="dailyEmailLimit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Daily email limit</FormLabel>
+                      <FormLabel>Limite diário de e-mails</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -303,7 +396,7 @@ export default function AdminTeamsPage() {
                   name="plan"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Plan</FormLabel>
+                      <FormLabel>Plano</FormLabel>
                       <FormControl>
                         <Select
                           value={field.value}
@@ -311,7 +404,7 @@ export default function AdminTeamsPage() {
                           disabled={updateTeam.isPending}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select plan" />
+                            <SelectValue placeholder="Selecione o plano" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="FREE">Free</SelectItem>
@@ -328,7 +421,7 @@ export default function AdminTeamsPage() {
                   name="isBlocked"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Blocked</FormLabel>
+                      <FormLabel>Bloqueado</FormLabel>
                       <FormControl>
                         <div className="flex items-center gap-3 rounded-md border px-3 py-2">
                           <Switch
@@ -337,7 +430,7 @@ export default function AdminTeamsPage() {
                             disabled={updateTeam.isPending}
                           />
                           <span className="text-sm text-muted-foreground">
-                            {field.value ? "Team is blocked" : "Team is active"}
+                            {field.value ? "Time está bloqueado" : "Time está ativo"}
                           </span>
                         </div>
                       </FormControl>
@@ -349,10 +442,10 @@ export default function AdminTeamsPage() {
                   <Button type="submit" disabled={updateTeam.isPending}>
                     {updateTeam.isPending ? (
                       <>
-                        <Spinner className="mr-2 h-4 w-4" /> Saving...
+                        <Spinner className="mr-2 h-4 w-4" /> Salvando...
                       </>
                     ) : (
-                      "Update team"
+                      "Atualizar time"
                     )}
                   </Button>
                 </div>

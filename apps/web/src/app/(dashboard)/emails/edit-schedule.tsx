@@ -53,7 +53,7 @@ export const EditSchedule: React.FC<{
   const handleScheduleUpdate = () => {
     const parsedDate = chrono.parseDate(scheduleInput);
     if (!parsedDate) {
-      toast.error("Invalid date and time");
+      toast.error("Data e hora inválidas");
       return;
     }
 
@@ -66,7 +66,7 @@ export const EditSchedule: React.FC<{
         onSuccess: () => {
           utils.email.getEmail.invalidate({ id: emailId });
           setOpen(false);
-          toast.success("Email schedule updated successfully");
+          toast.success("Agendamento do e-mail atualizado com sucesso");
         },
         onError: (error) => {
           toast.error(error.message);
@@ -95,13 +95,13 @@ export const EditSchedule: React.FC<{
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Schedule</DialogTitle>
+          <DialogTitle>Editar agendamento</DialogTitle>
         </DialogHeader>
         <div className="py-2">
           <div className="space-y-4">
             <div>
               <label htmlFor="scheduleInput" className="block mb-2">
-                Schedule at
+                Agendar para
               </label>
               {/* <Input
                 id="scheduleInput"
@@ -131,19 +131,19 @@ export const EditSchedule: React.FC<{
                 open={openSuggestions}
                 onOpenChange={setOpenSuggestions}
               >
-                <CommandInput placeholder="Type a command or search..." />
+                <CommandInput placeholder="Digite um comando ou busque..." />
                 <CommandList>
-                  <CommandEmpty>No results found.</CommandEmpty>
-                  <CommandGroup heading="Suggestions">
-                    <CommandItem>Calendar</CommandItem>
-                    <CommandItem>Search Emoji</CommandItem>
-                    <CommandItem>Calculator</CommandItem>
+                  <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
+                  <CommandGroup heading="Sugestões">
+                    <CommandItem>Calendário</CommandItem>
+                    <CommandItem>Buscar emoji</CommandItem>
+                    <CommandItem>Calculadora</CommandItem>
                   </CommandGroup>
                   <CommandSeparator />
-                  <CommandGroup heading="Settings">
-                    <CommandItem>Profile</CommandItem>
-                    <CommandItem>Billing</CommandItem>
-                    <CommandItem>Settings</CommandItem>
+                  <CommandGroup heading="Configurações">
+                    <CommandItem>Perfil</CommandItem>
+                    <CommandItem>Faturamento</CommandItem>
+                    <CommandItem>Configurações</CommandItem>
                   </CommandGroup>
                 </CommandList>
               </CommandDialog>
@@ -155,8 +155,8 @@ export const EditSchedule: React.FC<{
                 disabled={updateEmailScheduledAtMutation.isPending}
               >
                 {updateEmailScheduledAtMutation.isPending
-                  ? "Updating..."
-                  : "Update"}
+                  ? "Atualizando..."
+                  : "Atualizar"}
               </Button>
             </div>
           </div>

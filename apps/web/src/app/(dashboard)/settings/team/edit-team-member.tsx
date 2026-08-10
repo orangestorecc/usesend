@@ -62,7 +62,7 @@ export const EditTeamMember: React.FC<{
         onSuccess: async () => {
           utils.team.getTeamUsers.invalidate();
           setOpen(false);
-          toast.success("Team member role updated successfully");
+          toast.success("Função do membro do time atualizada com sucesso");
         },
         onError: async (error) => {
           toast.error(error.message);
@@ -83,7 +83,7 @@ export const EditTeamMember: React.FC<{
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Team Member Role</DialogTitle>
+          <DialogTitle>Editar função do membro do time</DialogTitle>
         </DialogHeader>
         <div className="py-2">
           <Form {...teamUserForm}>
@@ -96,19 +96,19 @@ export const EditTeamMember: React.FC<{
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Role</FormLabel>
+                    <FormLabel>Função</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
+                          <SelectValue placeholder="Selecione uma função" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="MEMBER">Member</SelectItem>
-                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="MEMBER">Membro</SelectItem>
+                        <SelectItem value="ADMIN">Administrador</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -121,14 +121,14 @@ export const EditTeamMember: React.FC<{
                   variant="outline"
                   onClick={() => setOpen(false)}
                 >
-                  Cancel
+                  Cancelar
                 </Button>
                 <Button
                   type="submit"
                   isLoading={updateTeamUserMutation.isPending}
                   className="w-[150px]"
                 >
-                  Update Role
+                  Atualizar função
                 </Button>
               </div>
             </form>

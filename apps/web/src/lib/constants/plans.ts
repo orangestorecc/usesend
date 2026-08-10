@@ -10,17 +10,26 @@ export enum LimitReason {
   EMAIL_FREE_PLAN_MONTHLY_LIMIT_REACHED = "EMAIL_FREE_PLAN_MONTHLY_LIMIT_REACHED",
 }
 
-export const PLAN_LIMITS: Record<
-  Plan,
-  {
-    emailsPerMonth: number;
-    emailsPerDay: number;
-    domains: number;
-    contactBooks: number;
-    teamMembers: number;
-    webhooks: number;
-  }
-> = {
+// -1 = ilimitado. Campos "projetados" (contacts/segments/broadcasts/aiCredits/
+// automations/dedicatedIp) alimentam a página de Uso estilo Resend; alguns
+// ainda não são aplicados/rastreados (IA, automações) — projeção para a UI.
+export type PlanLimits = {
+  emailsPerMonth: number;
+  emailsPerDay: number;
+  domains: number;
+  contactBooks: number;
+  teamMembers: number;
+  webhooks: number;
+  contacts: number;
+  segments: number;
+  broadcasts: number;
+  aiCredits: number;
+  automations: number;
+  rateLimit: number; // req/s (default; Team.apiRateLimit pode sobrescrever)
+  dedicatedIp: boolean; // add-on disponível no plano
+};
+
+export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   FREE: {
     emailsPerMonth: 3000,
     emailsPerDay: 100,
@@ -28,13 +37,37 @@ export const PLAN_LIMITS: Record<
     contactBooks: 1,
     teamMembers: 1,
     webhooks: 1,
+    contacts: 1000,
+    segments: 3,
+    broadcasts: -1,
+    aiCredits: 5,
+    automations: 10000,
+    rateLimit: 2,
+    dedicatedIp: false,
   },
   BASIC: {
-    emailsPerMonth: -1, // unlimited
-    emailsPerDay: -1, // unlimited
+    emailsPerMonth: -1,
+    emailsPerDay: -1,
     domains: -1,
     contactBooks: -1,
     teamMembers: -1,
     webhooks: -1,
+    contacts: -1,
+    segments: -1,
+    broadcasts: -1,
+    aiCredits: 100,
+    automations: 10000,
+    rateLimit: 10,
+    dedicatedIp: true,
   },
+};
+
+// Extras (pay-as-you-go) e add-ons — valores PROJETADOS em R$ (ajustar depois).
+export const EXTRAS_CONFIG = {
+  transactionalOverage: { pricePerThousandBRL: 0.9 },
+  automationsOverage: { pricePerRunBRL: 0.0075 },
+};
+
+export const ADDONS_CONFIG = {
+  dedicatedIp: { pricePerMonthBRL: 150 },
 };

@@ -16,6 +16,14 @@ import { waitlistRouter } from "./routers/waitlist";
 import { feedbackRouter } from "./routers/feedback";
 import { webhookRouter } from "./routers/webhook";
 import { mcpRouter } from "./routers/mcp";
+import { platformIntegrationRouter } from "./routers/platform-integration";
+import { apiLogRouter } from "./routers/api-log";
+import { billingProfileRouter } from "./routers/billing-profile";
+import { unsubscribePageRouter } from "./routers/unsubscribe-page";
+import { paymentGatewayRouter } from "./routers/payment-gateway";
+import { promoCodeRouter } from "./routers/promo-code";
+import { planCatalogRouter } from "./routers/plan-catalog";
+import { inboundRouter } from "./routers/inbound";
 
 /**
  * This is the primary router for your server.
@@ -40,6 +48,14 @@ export const appRouter = createTRPCRouter({
   feedback: feedbackRouter,
   webhook: webhookRouter,
   mcp: mcpRouter,
+  platformIntegration: platformIntegrationRouter,
+  apiLog: apiLogRouter,
+  billingProfile: billingProfileRouter,
+  unsubscribePage: unsubscribePageRouter,
+  paymentGateway: paymentGatewayRouter,
+  promoCode: promoCodeRouter,
+  planCatalog: planCatalogRouter,
+  inbound: inboundRouter,
 });
 
 // export type definition of API

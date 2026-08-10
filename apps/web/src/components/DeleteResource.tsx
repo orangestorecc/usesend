@@ -66,7 +66,7 @@ export const DeleteResource = <
   title,
   resourceName,
   descriptionBody,
-  confirmLabel = "Delete",
+  confirmLabel = "Excluir",
   isLoading = false,
   onConfirm,
   open: controlledOpen,
@@ -105,9 +105,9 @@ export const DeleteResource = <
 
   const defaultDescription = (
     <>
-      Are you sure you want to delete{" "}
-      <span className="font-semibold text-foreground">{resourceName}</span>? You
-      can't reverse this.
+      Tem certeza de que deseja excluir{" "}
+      <span className="font-semibold text-foreground">{resourceName}</span>? Essa
+      ação não pode ser desfeita.
     </>
   );
 
@@ -131,7 +131,7 @@ export const DeleteResource = <
           >
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                Type{" "}
+                Digite{" "}
                 <div
                   className="px-1 py-0.5 font-mono border rounded flex gap-1 items-center cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={copyToClipboard}
@@ -154,7 +154,7 @@ export const DeleteResource = <
                     )}
                   </Button>
                 </div>
-                below
+                abaixo
               </div>
               <FormField
                 control={form.control}
@@ -185,10 +185,10 @@ export const DeleteResource = <
                 onClick={() => setOpen(false)}
                 disabled={isLoading}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button type="submit" variant="destructive" disabled={isLoading}>
-                {isLoading ? "Deleting..." : confirmLabel}
+                {isLoading ? "Excluindo..." : confirmLabel}
               </Button>
             </div>
           </form>

@@ -1,0 +1,5 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Madmail symbol">
+  <!-- Symbol for dark backgrounds / app icon: white rounded square, black M -->
+  <rect x="0" y="0" width="120" height="120" rx="26" fill="#FAFAFA"/>
+  <text x="60" y="64" fill="#000000" font-family="Inter,'Helvetica Neue',Arial,sans-serif" font-weight="700" font-size="82" letter-spacing="-3px" text-anchor="middle" dominant-baseline="central">M</text>
+</svg>

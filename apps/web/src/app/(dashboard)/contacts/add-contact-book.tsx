@@ -30,8 +30,8 @@ import { useUpgradeModalStore } from "~/store/upgradeModalStore";
 import { LimitReason } from "~/lib/constants/plans";
 
 const contactBookSchema = z.object({
-  name: z.string({ required_error: "Name is required" }).min(1, {
-    message: "Name is required",
+  name: z.string({ required_error: "O nome é obrigatório" }).min(1, {
+    message: "O nome é obrigatório",
   }),
   variables: z.string().optional(),
 });
@@ -75,7 +75,7 @@ export default function AddContactBook() {
           utils.contacts.getContactBooks.invalidate();
           contactBookForm.reset();
           setOpen(false);
-          toast.success("Contact book created successfully");
+          toast.success("Lista de contatos criada com sucesso");
         },
         onError: (error) => {
           toast.error(error.message);
@@ -101,13 +101,13 @@ export default function AddContactBook() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-1" />
-          Add Contact Book
+          Adicionar lista de contatos
         </Button>
       </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create a new contact book</DialogTitle>
+          <DialogTitle>Criar uma nova lista de contatos</DialogTitle>
         </DialogHeader>
         <div className="py-2">
           <Form {...contactBookForm}>
@@ -120,15 +120,15 @@ export default function AddContactBook() {
                 name="name"
                 render={({ field, formState }) => (
                   <FormItem>
-                    <FormLabel>Contact book name</FormLabel>
+                    <FormLabel>Nome da lista de contatos</FormLabel>
                     <FormControl>
-                      <Input placeholder="My contacts" {...field} />
+                      <Input placeholder="Meus contatos" {...field} />
                     </FormControl>
                     {formState.errors.name ? (
                       <FormMessage />
                     ) : (
                       <FormDescription>
-                        eg: product / website / newsletter name
+                        ex: nome do produto / site / newsletter
                       </FormDescription>
                     )}
                   </FormItem>
@@ -139,7 +139,7 @@ export default function AddContactBook() {
                 name="variables"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Variables</FormLabel>
+                    <FormLabel>Variáveis</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="registrationCode, company, plan"
@@ -147,8 +147,8 @@ export default function AddContactBook() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Optional comma-separated variable names for campaign
-                      personalization.
+                      Nomes de variáveis separados por vírgula (opcional) para
+                      personalização de campanhas.
                     </FormDescription>
                   </FormItem>
                 )}
@@ -162,8 +162,8 @@ export default function AddContactBook() {
                   }
                 >
                   {createContactBookMutation.isPending
-                    ? "Creating..."
-                    : "Create"}
+                    ? "Criando..."
+                    : "Criar"}
                 </Button>
               </div>
             </form>

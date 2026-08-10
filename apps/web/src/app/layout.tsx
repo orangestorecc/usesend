@@ -19,9 +19,17 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "useSend",
-  description: "Open source email platform",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  title: {
+    default: "Madmail",
+    template: "%s · Madmail",
+  },
+  description: "E-mail marketing que mora no seu ChatGPT.",
+  icons: [
+    { rel: "icon", url: "/favicon.ico?v=2" },
+    { rel: "icon", type: "image/png", sizes: "32x32", url: "/brand/madmail-icon-32.png?v=2" },
+    { rel: "icon", type: "image/png", sizes: "192x192", url: "/brand/madmail-icon-512.png?v=2" },
+    { rel: "apple-touch-icon", url: "/brand/madmail-icon-256.png?v=2" },
+  ],
 };
 
 export default async function RootLayout({
@@ -30,11 +38,19 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="bg-sidebar-background">
+    <html
+      lang="pt-BR"
+      suppressHydrationWarning
+      className="bg-sidebar-background"
+    >
       <body
         className={`font-sans ${inter.variable} ${jetbrainsMono.variable} app bg-sidebar-background`}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+        >
           <Toaster />
           <TRPCReactProvider>{children}</TRPCReactProvider>
         </ThemeProvider>

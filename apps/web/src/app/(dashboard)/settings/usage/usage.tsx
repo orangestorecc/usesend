@@ -1,245 +1,227 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import { Card } from "@usesend/ui/src/card";
 import Spinner from "@usesend/ui/src/spinner";
 import { format } from "date-fns";
-import {
-  getCost,
-  PLAN_CREDIT_UNITS,
-  UNIT_PRICE,
-  USAGE_UNIT_PRICE,
-} from "~/lib/usage";
+import { Switch } from "@usesend/ui/src/switch";
+import { PlanUpgradeButton } from "~/components/payments/plan-upgrade-button";
 import { useTeam } from "~/providers/team-context";
-import { EmailUsageType } from "@prisma/client";
-import { PlanDetails } from "~/components/payments/PlanDetails";
-import { UpgradeButton } from "~/components/payments/UpgradeButton";
-import { Progress } from "@usesend/ui/src/progress";
 
-const FREE_PLAN_LIMIT = 3000;
+const fmt = (n: number) => n.toLocaleString("pt-BR");
 
-function FreePlanUsage({
-  usage,
-  dayUsage,
+function Row({
+  label,
+  used,
+  limit,
+  valueText,
 }: {
-  usage: { type: EmailUsageType; sent: number }[];
-  dayUsage: { type: EmailUsageType; sent: number }[];
+  label: string;
+  used?: number;
+  limit?: number;
+  valueText?: string;
 }) {
-  const DAILY_LIMIT = 100;
-  const totalSent = usage?.reduce((acc, item) => acc + item.sent, 0) || 0;
-  const monthlyPercentageUsed = (totalSent / FREE_PLAN_LIMIT) * 100;
+  const unlimited = limit !== undefined && limit < 0;
+  const showBar = !unlimited && limit !== undefined && limit > 0;
+  const pct = showBar ? Math.min(100, ((used ?? 0) / (limit as number)) * 100) : 0;
 
-  // Calculate daily usage - this is a simplified version, you might want to adjust based on actual daily tracking
-  const dailyUsage = dayUsage?.reduce((acc, item) => acc + item.sent, 0) || 0;
-  const dailyPercentageUsed = (dailyUsage / DAILY_LIMIT) * 100;
+  const right =
+    valueText ??
+    (unlimited
+      ? "Ilimitado"
+      : `${fmt(used ?? 0)} / ${fmt(limit ?? 0)}`);
 
   return (
-    <Card className="p-6">
-      <div className="flex w-full">
-        <div className="space-y-4 w-full">
-          {usage?.map((item) => (
-            <div
-              key={item.type}
-              className="flex justify-between items-center border-b pb-3 last:border-0 last:pb-0"
-            >
-              <div>
-                <div className="font-medium capitalize">
-                  {item.type.toLowerCase()}
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {item.type === "TRANSACTIONAL"
-                    ? "Mails sent using the send api or SMTP"
-                    : "Mails designed sent from useSend editor"}
-                </div>
-              </div>
-              <div className="font-mono font-medium">
-                {item.sent.toLocaleString()} emails
-              </div>
-            </div>
-          ))}
-          <div className="flex justify-between items-center pt-3 ">
-            <div className="font-medium">Total</div>
-            <div className="font-mono font-medium">
-              {usage
-                ?.reduce((acc, item) => acc + item.sent, 0)
-                .toLocaleString()}{" "}
-              emails
-            </div>
-          </div>
-        </div>
-        <div className="w-full flex justify-center items-center">
-          <div className="w-[300px] space-y-8">
-            <div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="">Monthly Limit</div>
-                  <div className="font-mono font-medium">
-                    {totalSent.toLocaleString()}/
-                    {FREE_PLAN_LIMIT.toLocaleString()}
-                  </div>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-300 ease-in-out"
-                    style={{
-                      width: `${Math.min(monthlyPercentageUsed, 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="">Daily Limit</div>
-                  <div className="font-mono">
-                    {dailyUsage.toLocaleString()}/{DAILY_LIMIT.toLocaleString()}
-                  </div>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-300 ease-in-out"
-                    style={{ width: `${Math.min(dailyPercentageUsed, 100)}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="border-b py-3 last:border-0">
+      <div className="flex items-center justify-between">
+        <span className="text-sm">{label}</span>
+        <span className="font-mono text-sm text-muted-foreground">{right}</span>
       </div>
-    </Card>
+      {showBar ? (
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
+          <div
+            className="h-full bg-primary transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 }
 
-function PaidPlanUsage({
-  usage,
+function Section({
+  title,
+  description,
+  action,
+  children,
 }: {
-  usage: { type: EmailUsageType; sent: number }[];
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
 }) {
-  const { currentTeam } = useTeam();
-
-  if (currentTeam?.plan === "FREE") return null;
-
-  const totalCost =
-    usage?.reduce((acc, item) => acc + getCost(item.sent, item.type), 0) || 0;
-  const planCreditCost = PLAN_CREDIT_UNITS[currentTeam?.plan!] * UNIT_PRICE;
-
   return (
-    <Card className="p-6">
-      <div className="flex w-full">
-        <div className="space-y-4 w-full">
-          {usage?.map((item) => (
-            <div
-              key={item.type}
-              className="flex justify-between items-center border-b pb-3 last:border-0 last:pb-0"
-            >
-              <div>
-                <div className="font-medium capitalize">
-                  {item.type.toLowerCase()}
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  <span className="font-mono">
-                    {item.sent.toLocaleString()}
-                  </span>{" "}
-                  emails at{" "}
-                  <span className="font-mono">
-                    ${USAGE_UNIT_PRICE[item.type]}
-                  </span>{" "}
-                  each
-                </div>
-              </div>
-              <div className="font-mono font-medium">
-                ${getCost(item.sent, item.type).toFixed(2)}
-              </div>
-            </div>
-          ))}
-          <div>
-            <div className="flex justify-between items-center border-b pb-3 last:border-0 last:pb-0">
-              <div>
-                <div className="font-medium capitalize">Available credit</div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {currentTeam?.plan}
-                </div>
-              </div>
-              <div className="font-mono font-medium">
-                {totalCost > planCreditCost
-                  ? "0"
-                  : `$${(planCreditCost - totalCost).toFixed(2)}`}
-              </div>
-            </div>
-            <Progress
-              value={100 - Math.min(100, (totalCost / planCreditCost) * 100)}
-            />
-          </div>
-        </div>
-        <div className="w-full flex justify-center items-center">
-          <div>
-            <div className="font-medium">Amount Due</div>
-            <div className="">
-              <div className="text-2xl font-mono">
-                {planCreditCost < totalCost
-                  ? `$${(totalCost - planCreditCost).toFixed(2)}`
-                  : `$${(0.0).toFixed(2)}`}
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="grid grid-cols-1 gap-6 border-b py-8 lg:grid-cols-2">
+      <div>
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+          {description}
+        </p>
+        {action ? <div className="mt-3">{action}</div> : null}
       </div>
-    </Card>
+      <div>{children}</div>
+    </div>
   );
 }
 
 export default function UsagePage() {
-  const { data: usage, isLoading } = api.billing.getThisMonthUsage.useQuery();
   const { currentTeam } = useTeam();
+  const { data, isLoading } = api.limits.usageOverview.useQuery();
 
-  const { data: subscription } = api.billing.getSubscriptionDetails.useQuery();
-
-  // Calculate the billing period based on subscription if available
   const today = new Date();
-  const billingPeriod =
-    subscription?.currentPeriodStart && subscription?.currentPeriodEnd
-      ? `${format(new Date(subscription.currentPeriodStart), "MMM dd")} - ${format(new Date(subscription.currentPeriodEnd), "MMM dd")}`
-      : `${format(new Date(today.getFullYear(), today.getMonth(), 1), "MMM dd")} - ${format(new Date(today.getFullYear(), today.getMonth() + 1, 1), "MMM dd")}`;
+  const billingPeriod = `${format(new Date(today.getFullYear(), today.getMonth(), 1), "dd MMM")} – ${format(new Date(today.getFullYear(), today.getMonth() + 1, 1), "dd MMM")}`;
+
+  if (isLoading || !data) {
+    return (
+      <div className="flex justify-center py-16">
+        <Spinner className="h-8 w-8" innerSvgClass="stroke-primary" />
+      </div>
+    );
+  }
 
   return (
     <div>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">Usage</h1>
-            <div className="text-sm text-muted-foreground mt-1">
-              <span className="font-medium">{billingPeriod}</span>
+      <div className="mb-2">
+        <h1 className="text-xl font-bold">Uso</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{billingPeriod}</p>
+      </div>
+
+      {/* Transacional */}
+      <Section
+        title="Transacional"
+        description="E-mails enviados pela API ou SMTP, integrados ao seu app."
+        action={
+          currentTeam?.plan === "FREE" ? (
+            <PlanUpgradeButton product="transactional" />
+          ) : undefined
+        }
+      >
+        <Row
+          label="Limite mensal"
+          used={data.transactional.monthly.used}
+          limit={data.transactional.monthly.limit}
+        />
+        <Row
+          label="Limite diário"
+          used={data.transactional.daily.used}
+          limit={data.transactional.daily.limit}
+        />
+      </Section>
+
+      {/* Marketing */}
+      <Section
+        title="Marketing"
+        description="Crie e envie campanhas usando Contatos e Broadcasts."
+        action={
+          currentTeam?.plan === "FREE" ? (
+            <PlanUpgradeButton product="marketing" />
+          ) : undefined
+        }
+      >
+        <Row
+          label="Contatos"
+          used={data.marketing.contacts.used}
+          limit={data.marketing.contacts.limit}
+        />
+        <Row
+          label="Segmentos"
+          used={data.marketing.segments.used}
+          limit={data.marketing.segments.limit}
+        />
+        <Row
+          label="Broadcasts"
+          used={data.marketing.broadcasts.used}
+          limit={data.marketing.broadcasts.limit}
+        />
+      </Section>
+
+      {/* Time */}
+      <Section
+        title="Time"
+        description="Cotas e limites do seu time."
+      >
+        <Row
+          label="Créditos de IA"
+          used={data.team.aiCredits.used}
+          limit={data.team.aiCredits.limit}
+        />
+        <Row
+          label="Automações"
+          used={data.team.automations.used}
+          limit={data.team.automations.limit}
+        />
+        <Row
+          label="Domínios"
+          used={data.team.domains.used}
+          limit={data.team.domains.limit}
+        />
+        <Row label="Limite de requisições" valueText={`${data.team.rateLimit} req/s`} />
+      </Section>
+
+      {/* Extras — pay-as-you-go */}
+      <Section
+        title="Extras"
+        description="Pay-as-you-go: continue usando além da sua cota. (Em breve)"
+      >
+        <div className="border-b py-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium">
+                Transacional · R$ {data.extras.transactionalOverage.pricePerThousandBRL.toFixed(2)} / 1.000 e-mails
+              </div>
+              <p className="mt-1 max-w-md text-xs text-muted-foreground">
+                Quando ativo, você continua enviando além da cota. Cobrança
+                automática por bloco adicional de 1.000 e-mails.
+              </p>
             </div>
+            <Switch disabled />
           </div>
         </div>
+        <div className="py-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium">
+                Automações · R$ {data.extras.automationsOverage.pricePerRunBRL.toFixed(4)} / execução
+              </div>
+              <p className="mt-1 max-w-md text-xs text-muted-foreground">
+                Comece com execuções gratuitas e escale conforme a necessidade.
+              </p>
+            </div>
+            <Switch disabled />
+          </div>
+        </div>
+      </Section>
 
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Spinner className="w-8 h-8" innerSvgClass="stroke-primary" />
+      {/* Add-ons */}
+      <Section
+        title="Add-ons"
+        description="Recursos especiais para ir além."
+      >
+        <div className="py-3">
+          <div className="text-sm font-medium">
+            IP dedicado · R$ {data.addons.dedicatedIp.pricePerMonthBRL.toFixed(2)} / mês
           </div>
-        ) : usage?.month.length === 0 ? (
-          <Card className="p-6 text-center text-muted-foreground">
-            No usage data available
-          </Card>
-        ) : currentTeam?.plan === "FREE" ? (
-          <FreePlanUsage
-            usage={usage?.month ?? []}
-            dayUsage={usage?.day ?? []}
-          />
-        ) : (
-          <PaidPlanUsage usage={usage?.month ?? []} />
-        )}
-      </div>
-      {currentTeam?.plan ? (
-        <Card className=" rounded-xl mt-10 p-4 px-8">
-          <PlanDetails />
-          <div className="mt-4">
-            {currentTeam?.plan === "FREE" ? <UpgradeButton /> : null}
-          </div>
-        </Card>
-      ) : null}
+          <p className="mt-1 max-w-md text-xs text-muted-foreground">
+            Provisionamos, aquecemos e monitoramos um IP dedicado para
+            entregabilidade consistente.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {data.addons.dedicatedIp.available
+              ? "Disponível no seu plano."
+              : "Disponível a partir do plano Pro."}
+          </p>
+        </div>
+      </Section>
+
     </div>
   );
 }

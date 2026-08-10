@@ -8,6 +8,7 @@ export type DomainDnsRecord = {
   priority?: string | null;
   status: DomainStatus;
   recommended?: boolean;
+  group?: "verification" | "sending" | "receiving";
 };
 
 export type DomainWithDnsRecords = Domain & {

@@ -38,6 +38,25 @@ export async function register() {
     );
     await CampaignSchedulerService.start();
 
+    if (process.env.REDIS_URL) {
+      const { initPlatformSyncScheduler } = await import(
+        "~/server/jobs/platform-sync-scheduler-job"
+      );
+      await initPlatformSyncScheduler();
+
+      const { initApiLogCleanupJob } = await import(
+        "~/server/jobs/api-log-cleanup-job"
+      );
+      await initApiLogCleanupJob();
+
+      if (process.env.INBOUND_S3_BUCKET) {
+        const { initInboundPollJob } = await import(
+          "~/server/jobs/inbound-poll-job"
+        );
+        await initInboundPollJob();
+      }
+    }
+
     initialized = true;
   }
 }

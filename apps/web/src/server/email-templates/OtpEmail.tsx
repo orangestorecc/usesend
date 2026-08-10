@@ -16,12 +16,12 @@ interface OtpEmailProps {
 export function OtpEmail({
   otpCode,
   loginUrl,
-  hostName = "useSend",
+  hostName = "Madmail",
   logoUrl,
 }: OtpEmailProps) {
   return (
-    <EmailLayout preview={`Your verification code: ${otpCode}`}>
-      <EmailHeader logoUrl={logoUrl} title="Sign in to your account" />
+    <EmailLayout preview={`Seu código de verificação: ${otpCode}`}>
+      <EmailHeader logoUrl={logoUrl} title="Entre na sua conta" />
 
       <Container style={{ padding: "20px 0", textAlign: "left" as const }}>
         <Text
@@ -33,7 +33,7 @@ export function OtpEmail({
             textAlign: "left" as const,
           }}
         >
-          Hi there,
+          Olá,
         </Text>
 
         <Text
@@ -45,7 +45,7 @@ export function OtpEmail({
             textAlign: "left" as const,
           }}
         >
-          Use the verification code below to sign in to your useSend account:
+          Use o código de verificação abaixo para entrar na sua conta Madmail:
         </Text>
 
         <Container
@@ -72,7 +72,7 @@ export function OtpEmail({
         </Container>
 
         <Container style={{ margin: "0 0 32px 0", textAlign: "left" as const }}>
-          <EmailButton href={loginUrl}>Sign in with one click</EmailButton>
+          <EmailButton href={loginUrl}>Entrar com um clique</EmailButton>
         </Container>
 
         <Text
@@ -84,8 +84,8 @@ export function OtpEmail({
             textAlign: "left" as const,
           }}
         >
-          If you didn't request this email, you can safely ignore it. The
-          verification code will expire automatically.
+          Se você não solicitou este e-mail, pode ignorá-lo com segurança. O
+          código de verificação expira automaticamente.
         </Text>
       </Container>
 

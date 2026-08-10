@@ -1,7 +1,7 @@
 export const INVITATION_REQUIRED_MESSAGE =
-  "You need a team invitation to create an account on this instance.";
+  "Você precisa de um convite de time para criar uma conta nesta instância.";
 export const GENERIC_AUTH_ERROR_MESSAGE =
-  "Unable to sign in. Please try again.";
+  "Não foi possível entrar. Tente novamente.";
 
 export function getAuthErrorMessage(error?: string | null) {
   if (!error) {

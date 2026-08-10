@@ -1,182 +1,368 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@usesend/ui/src/button";
 import { Card } from "@usesend/ui/src/card";
+import { Input } from "@usesend/ui/src/input";
+import { Label } from "@usesend/ui/src/label";
 import { Spinner } from "@usesend/ui/src/spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@usesend/ui/src/select";
+import { toast } from "@usesend/ui/src/toaster";
+import { Plus, X, Download, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { useTeam } from "~/providers/team-context";
 import { api } from "~/trpc/react";
-import { PlanDetails } from "~/components/payments/PlanDetails";
-import { UpgradeButton } from "~/components/payments/UpgradeButton";
 
-export default function SettingsPage() {
-  const { currentTeam, currentIsAdmin } = useTeam();
-  const manageSessionUrl = api.billing.getManageSessionUrl.useMutation();
-  const updateBillingEmailMutation =
-    api.billing.updateBillingEmail.useMutation();
+const brl = (cents: number) =>
+  (cents / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 
-  const { data: subscription } = api.billing.getSubscriptionDetails.useQuery();
-  const [isEditingEmail, setIsEditingEmail] = useState(false);
-  const [billingEmail, setBillingEmail] = useState(
-    currentTeam?.billingEmail || "",
+function SectionCard({
+  title,
+  description,
+  children,
+  footer,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}) {
+  return (
+    <Card className="overflow-hidden">
+      <div className="p-6">
+        <h2 className="text-base font-semibold">{title}</h2>
+        {description ? (
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        ) : null}
+        <div className="mt-4">{children}</div>
+      </div>
+      {footer ? <div className="border-t bg-muted/20 px-6 py-3">{footer}</div> : null}
+    </Card>
   );
+}
 
-  const apiUtils = api.useUtils();
+export default function BillingPage() {
+  const { currentTeam, currentIsAdmin } = useTeam();
+  const utils = api.useUtils();
 
-  const onManageClick = async () => {
-    const url = await manageSessionUrl.mutateAsync();
-    if (url) {
-      window.location.href = url;
-    }
-  };
+  const profileQuery = api.billingProfile.get.useQuery();
+  const invoicesQuery = api.billingProfile.invoices.useQuery();
+  const updateContact = api.billingProfile.updateContact.useMutation();
+  const updateFiscal = api.billingProfile.updateFiscal.useMutation();
 
-  const handleEditEmail = () => {
-    setBillingEmail(currentTeam?.billingEmail || "");
-    setIsEditingEmail(true);
-  };
+  // Contato de faturamento
+  const [emails, setEmails] = useState<string[]>([""]);
+  const [whatsapp, setWhatsapp] = useState("");
+  // Fiscal
+  const [personType, setPersonType] = useState("PJ");
+  const [document, setDocument] = useState("");
+  const [name, setName] = useState("");
+  const [tradeName, setTradeName] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [district, setDistrict] = useState("");
+  const [city, setCity] = useState("");
+  const [uf, setUf] = useState("");
 
-  const handleSaveEmail = async () => {
-    try {
-      await updateBillingEmailMutation.mutateAsync({ billingEmail });
-      await apiUtils.team.getTeams.invalidate();
-      setIsEditingEmail(false);
-    } catch (error) {
-      console.error("Failed to update billing email:", error);
-    }
-  };
+  useEffect(() => {
+    const p = profileQuery.data;
+    if (!p) return;
+    setEmails(p.billingEmails.length ? p.billingEmails : [""]);
+    setWhatsapp(p.whatsapp ?? "");
+    setPersonType(p.personType);
+    setDocument(p.document ?? "");
+    setName(p.name ?? "");
+    setTradeName(p.tradeName ?? "");
+    setPostalCode(p.postalCode ?? "");
+    setAddressLine1(p.addressLine1 ?? "");
+    setDistrict(p.district ?? "");
+    setCity(p.city ?? "");
+    setUf(p.state ?? "");
+  }, [profileQuery.data]);
 
-  const paymentMethod =
-    subscription?.paymentMethod && subscription.paymentMethod !== "null"
-      ? JSON.parse(subscription.paymentMethod)
-      : {};
-
-  if (!currentIsAdmin) {
-    return null;
-  }
-
-  if (!currentTeam?.plan) {
+  if (!currentIsAdmin) return null;
+  if (!currentTeam?.plan || profileQuery.isLoading) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <Spinner className="w-4 h-4" />
+      <div className="flex h-full items-center justify-center py-16">
+        <Spinner className="h-4 w-4" />
       </div>
     );
   }
 
-  return (
-    <div className="space-y-8">
-      <Card className=" rounded-xl mt-10 p-8 px-8">
-        <PlanDetails />
-        <div className="mt-4">
-          {currentTeam?.plan !== "FREE" ? (
-            <Button
-              onClick={onManageClick}
-              className="mt-4 w-[120px]"
-              disabled={manageSessionUrl.isPending}
-            >
-              {manageSessionUrl.isPending ? (
-                <Spinner className="w-4 h-4" />
-              ) : (
-                "Manage"
-              )}
-            </Button>
-          ) : (
-            <UpgradeButton />
-          )}
-        </div>
-      </Card>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-        <Card className="p-6">
-          <div>
-            <div className="text-sm text-muted-foreground">Payment Method</div>
-            {subscription ? (
-              <div className="mt-2">
-                <div className="text-lg font-mono uppercase flex items-center gap-2">
-                  {subscription.paymentMethod &&
-                  subscription.paymentMethod !== "null" ? (
-                    <>
-                      <span>💳</span>
-                      <span className="capitalize">
-                        {paymentMethod?.card?.brand || ""} ••••{" "}
-                        {paymentMethod?.card?.last4 || ""}
-                      </span>
-                      {paymentMethod?.card && (
-                        <span className="text-sm text-muted-foreground lowercase">
-                          (Expires: {paymentMethod.card.exp_month}/
-                          {paymentMethod.card.exp_year})
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    "No Payment Method"
-                  )}
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  Next billing date:{" "}
-                  {subscription.currentPeriodEnd
-                    ? format(
-                        new Date(subscription.currentPeriodEnd),
-                        "MMM dd, yyyy",
-                      )
-                    : "N/A"}
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground mt-2">
-                No active subscription
-              </div>
-            )}
-          </div>
-        </Card>
+  const saveContact = () => {
+    const clean = emails.map((e) => e.trim()).filter(Boolean);
+    updateContact.mutate(
+      { billingEmails: clean, whatsapp: whatsapp || null },
+      {
+        onSuccess: () => {
+          utils.billingProfile.get.invalidate();
+          toast.success("Contato de faturamento salvo.");
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
 
-        <Card className="p-6">
+  const saveFiscal = () => {
+    updateFiscal.mutate(
+      {
+        personType: personType as "PF" | "PJ",
+        document: document || null,
+        name: name || null,
+        tradeName: personType === "PJ" ? tradeName || null : null,
+        postalCode: postalCode || null,
+        addressLine1: addressLine1 || null,
+        district: district || null,
+        city: city || null,
+        state: uf || null,
+      },
+      {
+        onSuccess: () => {
+          utils.billingProfile.get.invalidate();
+          toast.success("Dados fiscais salvos.");
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      {/* E-mail de faturamento + WhatsApp */}
+      <SectionCard
+        title="Contato de faturamento"
+        description="As faturas e avisos de cobrança serão enviados para estes contatos."
+        footer={
+          <Button size="sm" onClick={saveContact} disabled={updateContact.isPending}>
+            {updateContact.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        }
+      >
+        <div className="space-y-3">
           <div>
-            <div className="text-sm text-muted-foreground">Billing Email</div>
-            {isEditingEmail ? (
-              <div className="mt-2">
-                <div className="flex items-center gap-2">
-                  <input
+            <Label>E-mails de faturamento</Label>
+            <div className="mt-1 space-y-2">
+              {emails.map((email, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
                     type="email"
-                    value={billingEmail}
-                    onChange={(e) => setBillingEmail(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Enter billing email"
+                    value={email}
+                    placeholder="financeiro@empresa.com"
+                    onChange={(e) => {
+                      const next = [...emails];
+                      next[i] = e.target.value;
+                      setEmails(next);
+                    }}
                   />
-                  <Button
-                    onClick={handleSaveEmail}
-                    disabled={updateBillingEmailMutation.isPending}
-                    size="sm"
-                  >
-                    {updateBillingEmailMutation.isPending ? (
-                      <Spinner className="w-4 h-4" />
-                    ) : (
-                      "Save"
-                    )}
-                  </Button>
-                  <Button
-                    onClick={() => setIsEditingEmail(false)}
-                    variant="outline"
-                    size="sm"
-                  >
-                    Cancel
-                  </Button>
+                  {emails.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setEmails(emails.filter((_, idx) => idx !== i))}
+                      className="rounded p-2 text-muted-foreground hover:bg-muted"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  ) : null}
                 </div>
-              </div>
-            ) : (
-              <div className="mt-2">
-                <div className="flex items-center gap-2">
-                  <div className="font-mono">
-                    {currentTeam?.billingEmail || "No billing email set"}
-                  </div>
-                  <Button onClick={handleEditEmail} variant="default" size="sm">
-                    Edit
-                  </Button>
-                </div>
-              </div>
-            )}
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEmails([...emails, ""])}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                Adicionar e-mail
+              </Button>
+            </div>
           </div>
-        </Card>
-      </div>
+          <div>
+            <Label>WhatsApp</Label>
+            <Input
+              className="mt-1"
+              value={whatsapp}
+              placeholder="(51) 99999-9999"
+              onChange={(e) => setWhatsapp(e.target.value)}
+            />
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* Formas de pagamento */}
+      <SectionCard
+        title="Formas de pagamento"
+        description="Cartão de crédito, PIX ou boleto. Uma delas será a padrão ao assinar um plano pago."
+      >
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
+          <CreditCard className="h-6 w-6 text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            As formas de pagamento serão configuradas no checkout.
+          </p>
+          <p className="max-w-md text-xs text-muted-foreground">
+            No plano grátis não há forma padrão. Ao assinar um plano pago, a forma
+            escolhida no checkout vira a padrão.
+          </p>
+        </div>
+      </SectionCard>
+
+      {/* Responsável financeiro / dados fiscais */}
+      <SectionCard
+        title="Responsável financeiro"
+        description="Estes dados são usados para a emissão da nota fiscal (NF-e)."
+        footer={
+          <Button size="sm" onClick={saveFiscal} disabled={updateFiscal.isPending}>
+            {updateFiscal.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        }
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Tipo</Label>
+            <Select value={personType} onValueChange={setPersonType}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PF">Pessoa física</SelectItem>
+                <SelectItem value="PJ">Pessoa jurídica</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>{personType === "PF" ? "CPF" : "CNPJ"}</Label>
+            <Input
+              className="mt-1"
+              value={document}
+              onChange={(e) => setDocument(e.target.value)}
+              placeholder={personType === "PF" ? "000.000.000-00" : "00.000.000/0000-00"}
+            />
+          </div>
+          <div className={personType === "PJ" ? "" : "sm:col-span-2"}>
+            <Label>{personType === "PF" ? "Nome completo" : "Razão social"}</Label>
+            <Input
+              className="mt-1"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          {personType === "PJ" ? (
+            <div>
+              <Label>Nome fantasia</Label>
+              <Input
+                className="mt-1"
+                value={tradeName}
+                onChange={(e) => setTradeName(e.target.value)}
+              />
+            </div>
+          ) : null}
+          <div>
+            <Label>País</Label>
+            <Input className="mt-1" value="Brasil" disabled />
+          </div>
+          <div>
+            <Label>CEP</Label>
+            <Input
+              className="mt-1"
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+              placeholder="00000-000"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Endereço</Label>
+            <Input
+              className="mt-1"
+              value={addressLine1}
+              onChange={(e) => setAddressLine1(e.target.value)}
+              placeholder="Rua, número, complemento"
+            />
+          </div>
+          <div>
+            <Label>Bairro</Label>
+            <Input
+              className="mt-1"
+              value={district}
+              onChange={(e) => setDistrict(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2">
+              <Label>Cidade</Label>
+              <Input
+                className="mt-1"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>UF</Label>
+              <Input
+                className="mt-1"
+                value={uf}
+                maxLength={2}
+                onChange={(e) => setUf(e.target.value.toUpperCase())}
+              />
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* Faturas */}
+      <SectionCard title="Faturas" description="Histórico de cobranças.">
+        {invoicesQuery.data?.length ? (
+          <div className="divide-y">
+            {invoicesQuery.data.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex items-center justify-between py-3 text-sm"
+              >
+                <span className="text-muted-foreground">
+                  {format(new Date(inv.issuedAt), "dd MMM yyyy")}
+                </span>
+                <span className="font-mono">{brl(inv.amountCents)}</span>
+                <span
+                  className={`rounded px-2 py-0.5 text-xs font-medium ${
+                    inv.status === "paid"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : inv.status === "open"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {inv.status === "paid"
+                    ? "Paga"
+                    : inv.status === "open"
+                      ? "Aberta"
+                      : "Cancelada"}
+                </span>
+                {inv.pdfUrl ? (
+                  <a
+                    href={inv.pdfUrl}
+                    className="rounded p-1.5 text-muted-foreground hover:bg-muted"
+                  >
+                    <Download className="h-4 w-4" />
+                  </a>
+                ) : (
+                  <span className="w-7" />
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Nenhuma fatura ainda.
+          </p>
+        )}
+      </SectionCard>
     </div>
   );
 }

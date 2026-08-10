@@ -1,4 +1,4 @@
 export const timeframeOptions = [
-  { label: "Today", value: "today" },
-  { label: "This month", value: "thisMonth" },
+  { label: "Hoje", value: "today" },
+  { label: "Este mês", value: "thisMonth" },
 ] as const;

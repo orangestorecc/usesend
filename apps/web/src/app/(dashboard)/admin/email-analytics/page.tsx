@@ -56,17 +56,17 @@ export default function AdminEmailAnalyticsPage() {
   if (!isCloudEnv) {
     return (
       <div className="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">
-        Email analytics are available only in the cloud deployment.
+        A análise de e-mails está disponível apenas na implantação em nuvem.
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Email analytics</h2>
+      <h2 className="text-xl font-semibold">Análise de e-mails</h2>
       <div className="flex flex-wrap gap-4">
         <div className="w-48">
-          <Label htmlFor="timeframe">Timeframe</Label>
+          <Label htmlFor="timeframe">Período</Label>
           <Select
             value={timeframe}
             onValueChange={(value) =>
@@ -74,7 +74,7 @@ export default function AdminEmailAnalyticsPage() {
             }
           >
             <SelectTrigger id="timeframe">
-              <SelectValue placeholder="Select timeframe" />
+              <SelectValue placeholder="Selecione o período" />
             </SelectTrigger>
             <SelectContent>
               {timeframeOptions.map((option) => (
@@ -87,27 +87,27 @@ export default function AdminEmailAnalyticsPage() {
         </div>
         <div className="flex items-center space-x-3">
           <Switch checked={paidOnly} onCheckedChange={setPaidOnly} id="paid" />
-          <Label htmlFor="paid">Paid users only</Label>
+          <Label htmlFor="paid">Apenas usuários pagos</Label>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Sent" value={totals.sent} />
-        <SummaryCard label="Delivered" value={totals.delivered} />
-        <SummaryCard label="Opened" value={totals.opened} />
-        <SummaryCard label="Clicked" value={totals.clicked} />
-        <SummaryCard label="Bounced" value={totals.bounced} />
-        <SummaryCard label="Complained" value={totals.complained} />
-        <SummaryCard label="Hard bounced" value={totals.hardBounced} />
+        <SummaryCard label="Enviados" value={totals.sent} />
+        <SummaryCard label="Entregues" value={totals.delivered} />
+        <SummaryCard label="Abertos" value={totals.opened} />
+        <SummaryCard label="Clicados" value={totals.clicked} />
+        <SummaryCard label="Devolvidos" value={totals.bounced} />
+        <SummaryCard label="Reclamações" value={totals.complained} />
+        <SummaryCard label="Devoluções permanentes" value={totals.hardBounced} />
       </div>
 
       <Card className="overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Usage by team</CardTitle>
+            <CardTitle>Uso por time</CardTitle>
             {data ? (
               <p className="text-sm text-muted-foreground">
-                Since {data.timeframe === "today" ? "today" : data.periodStart}
+                Desde {data.timeframe === "today" ? "hoje" : data.periodStart}
               </p>
             ) : null}
           </div>
@@ -117,16 +117,16 @@ export default function AdminEmailAnalyticsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Team</TableHead>
-                <TableHead>Team ID</TableHead>
-                <TableHead>Plan</TableHead>
-                <TableHead className="text-right">Sent</TableHead>
-                <TableHead className="text-right">Delivered</TableHead>
-                <TableHead className="text-right">Opened</TableHead>
-                <TableHead className="text-right">Clicked</TableHead>
-                <TableHead className="text-right">Bounced</TableHead>
-                <TableHead className="text-right">Complained</TableHead>
-                <TableHead className="text-right">Hard bounced</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>ID do time</TableHead>
+                <TableHead>Plano</TableHead>
+                <TableHead className="text-right">Enviados</TableHead>
+                <TableHead className="text-right">Entregues</TableHead>
+                <TableHead className="text-right">Abertos</TableHead>
+                <TableHead className="text-right">Clicados</TableHead>
+                <TableHead className="text-right">Devolvidos</TableHead>
+                <TableHead className="text-right">Reclamações</TableHead>
+                <TableHead className="text-right">Devoluções permanentes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -139,7 +139,7 @@ export default function AdminEmailAnalyticsPage() {
               ) : rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="py-12 text-center">
-                    No email activity found for this period.
+                    Nenhuma atividade de e-mail encontrada para este período.
                   </TableCell>
                 </TableRow>
               ) : (

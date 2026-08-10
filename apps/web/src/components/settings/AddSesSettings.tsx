@@ -37,7 +37,7 @@ export const AddSesSettings: React.FC<SesSettingsProps> = ({ onSuccess }) => {
       <div className=" w-[400px] flex flex-col gap-8">
         <div>
           <h1 className="text-2xl font-semibold text-center">
-            Add SES Settings
+            Adicionar configurações do SES
           </h1>
         </div>
         <AddSesSettingsForm onSuccess={onSuccess} />
@@ -63,14 +63,14 @@ export const AddSesSettingsForm: React.FC<SesSettingsProps> = ({
     return (
       <div className="flex min-h-[500px] flex-col items-center justify-center gap-3 text-center">
         <p className="text-sm text-muted-foreground" role="alert">
-          Failed to load the default AWS region.
+          Não foi possível carregar a região padrão da AWS.
         </p>
         <Button
           type="button"
           variant="outline"
           onClick={() => void defaultRegion.refetch()}
         >
-          Retry
+          Tentar novamente
         </Button>
       </div>
     );
@@ -105,14 +105,14 @@ const SesSettingsForm: React.FC<
 
     if (!data.usesendUrl.startsWith("https://") && !localhost) {
       form.setError("usesendUrl", {
-        message: "URL must start with https://",
+        message: "A URL deve começar com https://",
       });
       return;
     }
 
     if (data.usesendUrl.includes("localhost") && !localhost) {
       form.setError("usesendUrl", {
-        message: "URL must be a valid url",
+        message: "A URL deve ser válida",
       });
       return;
     }
@@ -130,7 +130,7 @@ const SesSettingsForm: React.FC<
           onSuccess?.();
         },
         onError: (e) => {
-          toast.error("Failed to create", {
+          toast.error("Não foi possível criar", {
             description: e.message,
           });
         },
@@ -152,7 +152,7 @@ const SesSettingsForm: React.FC<
       } catch {
         form.setValue("sendRate", 1);
         form.setError("region", {
-          message: "Unable to load the SES quota for this region",
+          message: "Não foi possível carregar a cota do SES para esta região",
         });
       }
     }
@@ -169,7 +169,7 @@ const SesSettingsForm: React.FC<
           name="region"
           render={({ field, formState }) => (
             <FormItem>
-              <FormLabel>Region</FormLabel>
+              <FormLabel>Região</FormLabel>
               <FormControl>
                 <Input
                   placeholder="us-east-1"
@@ -184,7 +184,7 @@ const SesSettingsForm: React.FC<
               {formState.errors.region ? (
                 <FormMessage />
               ) : (
-                <FormDescription>The region of the SES account</FormDescription>
+                <FormDescription>A região da conta do SES</FormDescription>
               )}
             </FormItem>
           )}
@@ -194,7 +194,7 @@ const SesSettingsForm: React.FC<
           name="usesendUrl"
           render={({ field, formState }) => (
             <FormItem>
-              <FormLabel>Callback URL</FormLabel>
+              <FormLabel>URL de callback</FormLabel>
               <FormControl>
                 <Input
                   placeholder="https://example.com"
@@ -206,8 +206,8 @@ const SesSettingsForm: React.FC<
                 <FormMessage />
               ) : (
                 <FormDescription>
-                  This url should be accessible from the internet. Will be
-                  called from SES
+                  Esta URL deve ser acessível pela internet. Será chamada
+                  pelo SES
                 </FormDescription>
               )}
             </FormItem>
@@ -218,7 +218,7 @@ const SesSettingsForm: React.FC<
           name="sendRate"
           render={({ field, formState }) => (
             <FormItem>
-              <FormLabel>Send Rate</FormLabel>
+              <FormLabel>Taxa de envio</FormLabel>
               <FormControl>
                 <Input placeholder="1" className="w-full" {...field} />
               </FormControl>
@@ -226,7 +226,7 @@ const SesSettingsForm: React.FC<
                 <FormMessage />
               ) : (
                 <FormDescription>
-                  The number of emails to send per second.
+                  O número de e-mails a enviar por segundo.
                 </FormDescription>
               )}
             </FormItem>
@@ -237,7 +237,7 @@ const SesSettingsForm: React.FC<
           name="transactionalQuota"
           render={({ field, formState }) => (
             <FormItem>
-              <FormLabel>Transactional Quota</FormLabel>
+              <FormLabel>Cota transacional</FormLabel>
               <FormControl>
                 <Input placeholder="0" className="w-full" {...field} />
               </FormControl>
@@ -245,8 +245,8 @@ const SesSettingsForm: React.FC<
                 <FormMessage />
               ) : (
                 <FormDescription>
-                  The percentage of the quota to be used for transactional
-                  emails (0-100%).
+                  A porcentagem da cota a ser usada para e-mails
+                  transacionais (0-100%).
                 </FormDescription>
               )}
             </FormItem>
@@ -260,7 +260,7 @@ const SesSettingsForm: React.FC<
           {addSesSettings.isPending ? (
             <Spinner className="w-5 h-5" />
           ) : (
-            "Create"
+            "Criar"
           )}
         </Button>
       </form>

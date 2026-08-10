@@ -51,7 +51,7 @@ export const TextEditorPanel = ({
         <label className="flex items-center gap-2 p-2 rounded-lg  cursor-text">
           <input
             className="flex-1 bg-transparent outline-none min-w-[12rem] text-black text-sm"
-            placeholder="Enter valid url"
+            placeholder="Insira uma URL válida"
             value={state.url}
             onChange={state.onChange}
           />

@@ -249,7 +249,7 @@ export function ResizableImageTemplate(props: NodeViewProps) {
                     />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>Width</TooltipContent>
+                <TooltipContent>Largura</TooltipContent>
               </Tooltip>
               <Separator orientation="vertical" className="h-6 my-auto" />
               {alignments.map((alignment) => (
@@ -270,7 +270,7 @@ export function ResizableImageTemplate(props: NodeViewProps) {
                       <AlignmentIcon alignment={alignment} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Align {alignment}</TooltipContent>
+                  <TooltipContent>Alinhar {alignment}</TooltipContent>
                 </Tooltip>
               ))}
               <Separator orientation="vertical" className="h-6 my-auto" />
@@ -290,7 +290,7 @@ export function ResizableImageTemplate(props: NodeViewProps) {
                     />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>Border radius</TooltipContent>
+                <TooltipContent>Raio da borda</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger>
@@ -307,7 +307,7 @@ export function ResizableImageTemplate(props: NodeViewProps) {
                     />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>Border width</TooltipContent>
+                <TooltipContent>Largura da borda</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger>
@@ -328,7 +328,7 @@ export function ResizableImageTemplate(props: NodeViewProps) {
                     }}
                   />
                 </TooltipTrigger>
-                <TooltipContent>Border color</TooltipContent>
+                <TooltipContent>Cor da borda</TooltipContent>
               </Tooltip>
               <Separator orientation="vertical" className="h-6 my-auto" />
               <Popover open={openImgSrc} onOpenChange={setOpenImgSrc}>
@@ -344,7 +344,7 @@ export function ResizableImageTemplate(props: NodeViewProps) {
                       <TooltipTrigger asChild>
                         <ImageIcon className="h-4 w-4 " />
                       </TooltipTrigger>
-                      <TooltipContent>Image source</TooltipContent>
+                      <TooltipContent>Origem da imagem</TooltipContent>
                     </Tooltip>
                   </Button>
                 </PopoverTrigger>
@@ -375,7 +375,7 @@ export function ResizableImageTemplate(props: NodeViewProps) {
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
-                  <TooltipContent>Alt text</TooltipContent>
+                  <TooltipContent>Texto alternativo</TooltipContent>
                 </Tooltip>
                 <PopoverContent className="light border-gray-200 px-4 py-2">
                   <TextEditorPanel

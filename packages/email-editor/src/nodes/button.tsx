@@ -92,7 +92,7 @@ export function ButtonComponent(props: NodeViewProps) {
                       props.selected ? "text-transparent" : ""
                     )}
                   >
-                    {text === "" ? "Button text" : text}
+                    {text === "" ? "Texto do botão" : text}
                   </span>
                 </div>
                 {props.selected ? (
@@ -184,7 +184,7 @@ export function ButtonComponent(props: NodeViewProps) {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Align {alignment}</p>
+                        <p>Alinhar {alignment}</p>
                       </TooltipContent>
                     </Tooltip>
                   ))}
@@ -212,7 +212,7 @@ export function ButtonComponent(props: NodeViewProps) {
                         }}
                       />
                     </TooltipTrigger>
-                    <TooltipContent>Background color</TooltipContent>
+                    <TooltipContent>Cor de fundo</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger>
@@ -236,7 +236,7 @@ export function ButtonComponent(props: NodeViewProps) {
                         }}
                       />
                     </TooltipTrigger>
-                    <TooltipContent>Text color</TooltipContent>
+                    <TooltipContent>Cor do texto</TooltipContent>
                   </Tooltip>
                 </div>
               </div>
@@ -258,7 +258,7 @@ export function ButtonComponent(props: NodeViewProps) {
                         />
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>Border radius</TooltipContent>
+                    <TooltipContent>Raio da borda</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger>
@@ -275,7 +275,7 @@ export function ButtonComponent(props: NodeViewProps) {
                         />
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>Border width</TooltipContent>
+                    <TooltipContent>Largura da borda</TooltipContent>
                   </Tooltip>
 
                   <Tooltip>
@@ -295,7 +295,7 @@ export function ButtonComponent(props: NodeViewProps) {
                         }}
                       />
                     </TooltipTrigger>
-                    <TooltipContent>Border color</TooltipContent>
+                    <TooltipContent>Cor da borda</TooltipContent>
                   </Tooltip>
                 </div>
               </div>

@@ -2,7 +2,8 @@ import * as React from "react";
 import { cn } from "../lib/utils";
 
 // Simple typography primitives: H1, H2, BodyText
-// H1/H2 use mono font, slightly bolder and larger per request
+// Madmail brand: headings use Inter (font-sans), tight tracking.
+// Monospace is reserved for prompts, code and data — never titles.
 
 export interface TypographyProps extends React.HTMLAttributes<HTMLElement> {
   asChild?: boolean;
@@ -13,8 +14,8 @@ export const H1 = React.forwardRef<HTMLHeadingElement, TypographyProps>(
     <h1
       ref={ref}
       className={cn(
-        // font-mono, larger and a bit bolder
-        " font-mono text-xl font-medium text-primary",
+        // Inter, larger, semibold, tight — matches the brand
+        "font-sans text-2xl font-semibold tracking-tight text-foreground",
         className
       )}
       {...props}
@@ -28,8 +29,8 @@ export const H2 = React.forwardRef<HTMLHeadingElement, TypographyProps>(
     <h2
       ref={ref}
       className={cn(
-        // font-mono, slightly smaller than H1, bold
-        "font-mono text-lg",
+        // Inter, slightly smaller than H1, semibold, tight
+        "font-sans text-lg font-semibold tracking-tight text-foreground",
         className
       )}
       {...props}

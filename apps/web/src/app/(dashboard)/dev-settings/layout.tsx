@@ -12,11 +12,14 @@ export default function ApiKeysPage({
 }) {
   return (
     <div>
-      <H1>Developer Settings</H1>
+      <H1>Integrações</H1>
       <div className="flex gap-4 mt-4">
         <SettingsNavButton href="/dev-settings">API Keys</SettingsNavButton>
         <SettingsNavButton href="/dev-settings/smtp">SMTP</SettingsNavButton>
         <SettingsNavButton href="/dev-settings/mcp">MCP</SettingsNavButton>
+        <SettingsNavButton href="/dev-settings/platforms">
+          Plataformas
+        </SettingsNavButton>
       </div>
       <div className="mt-8">{children}</div>
     </div>

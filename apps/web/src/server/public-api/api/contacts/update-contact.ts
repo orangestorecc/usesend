@@ -67,7 +67,7 @@ function updateContactInfo(app: PublicAPIApp) {
     if (!contact) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Contact not found",
+        message: "Contato não encontrado",
       });
     }
 

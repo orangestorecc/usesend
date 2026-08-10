@@ -71,7 +71,7 @@ function getContactBook(app: PublicAPIApp) {
     if (!contactBook) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Contact book not found",
+        message: "Lista de contatos não encontrada",
       });
     }
 

@@ -35,7 +35,7 @@ export const waitlistRouter = createTRPCRouter({
         logger.error("FOUNDER_EMAIL/ADMIN_EMAIL is not configured; skipping waitlist notification");
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Waitlist notifications are not configured",
+          message: "As notificações da lista de espera não estão configuradas",
         });
       }
 
@@ -50,7 +50,7 @@ export const waitlistRouter = createTRPCRouter({
       } else if (currentCount >= RATE_LIMIT_MAX_ATTEMPTS) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
-          message: "You have reached the waitlist request limit. Please try later.",
+          message: "Você atingiu o limite de solicitações da lista de espera. Tente novamente mais tarde.",
         });
       }
 

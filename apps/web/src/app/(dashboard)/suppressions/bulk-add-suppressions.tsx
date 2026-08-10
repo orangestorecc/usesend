@@ -83,7 +83,7 @@ export default function BulkAddSuppressionsDialog({
   const processFile = (file: File) => {
     // Validate file type
     if (!file.name.endsWith(".txt") && !file.name.endsWith(".csv")) {
-      setError("Please upload a .txt or .csv file");
+      setError("Envie um arquivo .txt ou .csv");
       return;
     }
 
@@ -131,7 +131,7 @@ export default function BulkAddSuppressionsDialog({
     setProcessing(true);
 
     if (!emails.trim()) {
-      setError("Please enter email addresses");
+      setError("Digite os e-mails");
       setProcessing(false);
       return;
     }
@@ -139,7 +139,7 @@ export default function BulkAddSuppressionsDialog({
     const emailList = parseEmails(emails);
 
     if (emailList.length === 0) {
-      setError("No valid email addresses found");
+      setError("Nenhum e-mail válido encontrado");
       setProcessing(false);
       return;
     }
@@ -147,20 +147,20 @@ export default function BulkAddSuppressionsDialog({
     const validEmails = validateEmails(emailList);
 
     if (validEmails.length === 0) {
-      setError("No valid email addresses found");
+      setError("Nenhum e-mail válido encontrado");
       setProcessing(false);
       return;
     }
 
     if (validEmails.length > 1000) {
-      setError("Maximum 1000 email addresses allowed per upload");
+      setError("Máximo de 1000 e-mails permitidos por envio");
       setProcessing(false);
       return;
     }
 
     if (validEmails.length !== emailList.length) {
       const invalidCount = emailList.length - validEmails.length;
-      setError(`${invalidCount} invalid email addresses will be skipped`);
+      setError(`${invalidCount} e-mails inválidos serão ignorados`);
       // Continue processing with valid emails
     }
 
@@ -181,9 +181,9 @@ export default function BulkAddSuppressionsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Bulk Add Email Suppressions</DialogTitle>
+          <DialogTitle>Adicionar supressões de e-mail em massa</DialogTitle>
           <DialogDescription>
-            Add multiple email addresses to the suppression list at once.
+            Adicione vários e-mails à lista de supressões de uma só vez.
           </DialogDescription>
         </DialogHeader>
 
@@ -192,20 +192,20 @@ export default function BulkAddSuppressionsDialog({
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="text">
                 <FileText className="h-4 w-4 mr-2" />
-                Text Input
+                Entrada de texto
               </TabsTrigger>
               <TabsTrigger value="file">
                 <Upload className="h-4 w-4 mr-2" />
-                File Upload
+                Envio de arquivo
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="text" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="emails">Email Addresses</Label>
+                <Label htmlFor="emails">E-mails</Label>
                 <Textarea
                   id="emails"
-                  placeholder="Enter email addresses separated by commas, semicolons, or new lines:&#10;example1@domain.com&#10;example2@domain.com&#10;example3@domain.com"
+                  placeholder="Digite os e-mails separados por vírgulas, ponto e vírgula ou novas linhas:&#10;exemplo1@dominio.com&#10;exemplo2@dominio.com&#10;exemplo3@dominio.com"
                   value={emails}
                   onChange={(e) => setEmails(e.target.value)}
                   className="min-h-[120px]"
@@ -216,7 +216,7 @@ export default function BulkAddSuppressionsDialog({
 
             <TabsContent value="file" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="file">Upload File</Label>
+                <Label htmlFor="file">Enviar arquivo</Label>
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
                     isDragOver
@@ -248,13 +248,13 @@ export default function BulkAddSuppressionsDialog({
                         onClick={() => document.getElementById("file")?.click()}
                         disabled={processing}
                       >
-                        Choose File
+                        Escolher arquivo
                       </Button>
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                       {isDragOver
-                        ? "Drop your file here"
-                        : "Upload a .txt or .csv file with email addresses or drag and drop here"}
+                        ? "Solte seu arquivo aqui"
+                        : "Envie um arquivo .txt ou .csv com e-mails ou arraste e solte aqui"}
                     </p>
                   </div>
                 </div>
@@ -271,7 +271,7 @@ export default function BulkAddSuppressionsDialog({
           </Tabs>
 
           <div className="space-y-2">
-            <Label htmlFor="reason">Reason</Label>
+            <Label htmlFor="reason">Motivo</Label>
             <Select
               value={reason}
               onValueChange={(value) => setReason(value as SuppressionReason)}
@@ -282,19 +282,19 @@ export default function BulkAddSuppressionsDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="MANUAL">Manual</SelectItem>
-                <SelectItem value="HARD_BOUNCE">Hard Bounce</SelectItem>
-                <SelectItem value="COMPLAINT">Complaint</SelectItem>
+                <SelectItem value="HARD_BOUNCE">Hard bounce</SelectItem>
+                <SelectItem value="COMPLAINT">Reclamação</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {emailList.length > 0 && (
             <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-              <div>Found {emailList.length} email addresses</div>
-              <div>Valid: {validEmails.length}</div>
+              <div>{emailList.length} e-mails encontrados</div>
+              <div>Válidos: {validEmails.length}</div>
               {validEmails.length !== emailList.length && (
                 <div className="text-orange-600">
-                  Invalid: {emailList.length - validEmails.length}
+                  Inválidos: {emailList.length - validEmails.length}
                 </div>
               )}
             </div>
@@ -313,15 +313,15 @@ export default function BulkAddSuppressionsDialog({
               onClick={handleClose}
               disabled={processing}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button
               type="submit"
               disabled={processing || validEmails.length === 0}
             >
               {processing
-                ? "Adding..."
-                : `Add ${validEmails.length} Suppressions`}
+                ? "Adicionando..."
+                : `Adicionar ${validEmails.length} supressões`}
             </Button>
           </DialogFooter>
         </form>

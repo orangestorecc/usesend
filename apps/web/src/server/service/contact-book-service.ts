@@ -173,7 +173,7 @@ export async function updateContactBook(
       if (!contactBook) {
         throw new UnsendApiError({
           code: "BAD_REQUEST",
-          message: "Contact book not found",
+          message: "Lista de contatos não encontrada",
         });
       }
 

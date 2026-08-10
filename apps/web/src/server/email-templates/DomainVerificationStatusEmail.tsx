@@ -21,15 +21,15 @@ function formatDomainStatus(status: DomainStatus) {
 function getTitle(currentStatus: DomainStatus, previousStatus: DomainStatus) {
   if (currentStatus === DomainStatus.SUCCESS) {
     return previousStatus === DomainStatus.SUCCESS
-      ? "Domain verification checked"
-      : "Your domain is verified";
+      ? "Verificação do domínio conferida"
+      : "Seu domínio foi verificado";
   }
 
   if (previousStatus === DomainStatus.SUCCESS) {
-    return "Your domain status changed";
+    return "O status do seu domínio mudou";
   }
 
-  return "Your domain verification needs attention";
+  return "A verificação do seu domínio precisa de atenção";
 }
 
 export function DomainVerificationStatusEmail({
@@ -39,7 +39,7 @@ export function DomainVerificationStatusEmail({
   domainUrl,
 }: DomainVerificationStatusEmailProps) {
   const isSuccess = currentStatus === DomainStatus.SUCCESS;
-  const preview = `${domainName} is now ${formatDomainStatus(currentStatus)}`;
+  const preview = `${domainName} agora está ${formatDomainStatus(currentStatus)}`;
 
   return (
     <EmailLayout preview={preview}>
@@ -55,7 +55,7 @@ export function DomainVerificationStatusEmail({
             textAlign: "left" as const,
           }}
         >
-          Hey,
+          Olá,
         </Text>
 
         {isSuccess ? (
@@ -68,8 +68,8 @@ export function DomainVerificationStatusEmail({
               textAlign: "left" as const,
             }}
           >
-            Your domain <strong>{domainName}</strong> is now verified, and you
-            can start sending emails.
+            Seu domínio <strong>{domainName}</strong> foi verificado e você já
+            pode começar a enviar e-mails.
           </Text>
         ) : (
           <Text
@@ -81,9 +81,9 @@ export function DomainVerificationStatusEmail({
               textAlign: "left" as const,
             }}
           >
-            Your domain <strong>{domainName}</strong> could not be verified
-            because the DNS records are not set up correctly yet. Please review
-            your DNS settings and try again.
+            Seu domínio <strong>{domainName}</strong> não pôde ser verificado
+            porque os registros DNS ainda não estão configurados corretamente.
+            Revise suas configurações de DNS e tente novamente.
           </Text>
         )}
 
@@ -96,11 +96,14 @@ export function DomainVerificationStatusEmail({
             textAlign: "left" as const,
           }}
         >
-          Open your domain settings to review records and verification details.
+          Abra as configurações do seu domínio para revisar os registros e os
+          detalhes da verificação.
         </Text>
 
         <Container style={{ margin: "0 0 32px 0", textAlign: "left" as const }}>
-          <EmailButton href={domainUrl}>Open domain settings</EmailButton>
+          <EmailButton href={domainUrl}>
+            Abrir configurações do domínio
+          </EmailButton>
         </Container>
 
         <Text
@@ -112,9 +115,9 @@ export function DomainVerificationStatusEmail({
             textAlign: "left" as const,
           }}
         >
-          Thanks,
+          Obrigado,
           <br />
-          useSend Team
+          Time Madmail
         </Text>
       </Container>
 

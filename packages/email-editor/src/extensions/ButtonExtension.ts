@@ -25,7 +25,7 @@ export const ButtonExtension = Node.create({
         default: "button",
       },
       text: {
-        default: "Button",
+        default: "Botão",
       },
       url: {
         default: "",

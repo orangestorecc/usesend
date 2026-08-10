@@ -37,7 +37,7 @@ export default function getTemplate(app: PublicAPIApp) {
     if (!template) {
       throw new UnsendApiError({
         code: "NOT_FOUND",
-        message: "Template not found",
+        message: "Template não encontrado",
       });
     }
     return c.json({

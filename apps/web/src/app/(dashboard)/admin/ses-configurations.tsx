@@ -23,14 +23,14 @@ export default function SesConfigurations() {
         <Table className="">
           <TableHeader className="">
             <TableRow className=" bg-muted/30">
-              <TableHead className="rounded-tl-xl">Region</TableHead>
+              <TableHead className="rounded-tl-xl">Região</TableHead>
               <TableHead>Prefix Key</TableHead>
               <TableHead>Callback URL</TableHead>
-              <TableHead>Callback status</TableHead>
-              <TableHead>Created at</TableHead>
-              <TableHead>Send rate</TableHead>
-              <TableHead>Transactional quota</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Status do callback</TableHead>
+              <TableHead>Criado em</TableHead>
+              <TableHead>Taxa de envio</TableHead>
+              <TableHead>Cota transacional</TableHead>
+              <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -46,7 +46,7 @@ export default function SesConfigurations() {
             ) : sesSettingsQuery.data?.length === 0 ? (
               <TableRow className="h-32">
                 <TableCell colSpan={6} className="text-center py-4">
-                  <p>No SES configurations added</p>
+                  <p>Nenhuma configuração SES adicionada</p>
                 </TableCell>
               </TableRow>
             ) : (
@@ -63,10 +63,10 @@ export default function SesConfigurations() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {sesSetting.callbackSuccess ? "Success" : "Failed"}
+                    {sesSetting.callbackSuccess ? "Sucesso" : "Falha"}
                   </TableCell>
                   <TableCell>
-                    {formatDistanceToNow(sesSetting.createdAt)} ago
+                    há {formatDistanceToNow(sesSetting.createdAt)}
                   </TableCell>
                   <TableCell>{sesSetting.sesEmailRateLimit}</TableCell>
                   <TableCell>{sesSetting.transactionalQuota}%</TableCell>
