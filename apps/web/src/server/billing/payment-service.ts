@@ -6,6 +6,13 @@ import {
 } from "~/lib/constants/plan-catalog";
 import * as rede from "./rede";
 import * as inter from "./inter";
+import { getGatewayConfig, parseInstallments } from "./gateway-config";
+
+/** Parcelas habilitadas hoje pelo admin (1x sempre ativa). */
+export async function getEnabledInstallments(): Promise<number[]> {
+  const row = await getGatewayConfig("rede");
+  return parseInstallments(row?.config.installments);
+}
 
 export type Product = "transactional" | "marketing";
 export type Method = "card" | "pix" | "boleto";
@@ -245,6 +252,15 @@ export async function createCheckout(
   });
 
   if (input.method === "card") {
+    // Parcelamento: só aceita o que o admin habilitou (padrão: apenas 1x).
+    const installments = input.installments ?? 1;
+    const enabled = await getEnabledInstallments();
+    if (!enabled.includes(installments)) {
+      throw new Error(
+        `Parcelamento em ${installments}x não está disponível. Opções: ${enabled.join(", ")}x.`,
+      );
+    }
+
     const charge = await db.charge.create({
       data: {
         teamId: input.teamId,
@@ -263,14 +279,14 @@ export async function createCheckout(
           amountCents,
           reference: charge.id,
           cardToken: input.cardToken,
-          installments: input.installments,
+          installments,
           securityCode: input.card?.securityCode,
           softDescriptor: "MADMAIL",
         })
       : await rede.chargeWithCard({
           amountCents,
           reference: charge.id,
-          installments: input.installments,
+          installments,
           softDescriptor: "MADMAIL",
           generateToken: input.saveCard,
           card: input.card!,

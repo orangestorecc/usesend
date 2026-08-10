@@ -58,6 +58,9 @@ function CheckoutInner() {
   const [cardCvc, setCardCvc] = useState("");
   const [cardHolder, setCardHolder] = useState("");
   const [saveCard, setSaveCard] = useState(true);
+  const [installments, setInstallments] = useState(1);
+  const { data: installmentOptions } =
+    api.payments.installmentOptions.useQuery();
 
   // Resultado pendente (PIX / boleto)
   const [chargeId, setChargeId] = useState<string | null>(null);
@@ -147,6 +150,7 @@ function CheckoutInner() {
         method,
         promoCode: promo?.code,
         saveCard: method === "card" ? saveCard : undefined,
+        installments: method === "card" ? installments : undefined,
         card,
       },
       {
@@ -421,6 +425,25 @@ function CheckoutInner() {
                         onChange={(e) => setCardHolder(e.target.value)}
                       />
                     </div>
+                    {installmentOptions && installmentOptions.length > 1 ? (
+                      <div>
+                        <Label>Parcelamento</Label>
+                        <select
+                          className="mt-1 h-10 w-full rounded-md border bg-background px-2 text-sm"
+                          value={installments}
+                          onChange={(e) =>
+                            setInstallments(Number(e.target.value))
+                          }
+                        >
+                          {installmentOptions.map((n) => (
+                            <option key={n} value={n}>
+                              {n}x de {brl(total / n)}
+                              {n === 1 ? " (à vista)" : " sem juros"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
                     <label className="flex items-center gap-2 text-sm text-muted-foreground">
                       <input
                         type="checkbox"

@@ -676,6 +676,31 @@ model Charge {
   @@index([providerChargeId])
 }
 
+// Log de todas as chamadas aos gateways de pagamento (saída) e webhooks
+// recebidos (entrada). Retenção mínima de 30 dias, limpa por job.
+model PaymentGatewayLog {
+  id             String   @id @default(cuid())
+  provider       String // inter | rede
+  direction      String // outbound (nós -> gateway) | inbound (webhook recebido)
+  method         String // GET | POST | PUT | DELETE | WEBHOOK
+  url            String
+  operation      String? // rótulo amigável: pix.create, boleto.create, oauth.token…
+  requestHeaders Json?
+  requestBody    Json?
+  responseStatus Int?
+  responseBody   Json?
+  durationMs     Int?
+  success        Boolean  @default(false)
+  error          String?
+  chargeId       String?
+  teamId         Int?
+  createdAt      DateTime @default(now())
+
+  @@index([provider, createdAt])
+  @@index([chargeId])
+  @@index([createdAt])
+}
+
 // Config global de gateway de pagamento (controlada pelo admin da plataforma).
 model PaymentGatewayConfig {
   id        String   @id @default(cuid())

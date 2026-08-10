@@ -1,4 +1,5 @@
 import { requireGateway, isPaymentsSandbox, type RedeConfig } from "./gateway-config";
+import { logGatewayCall } from "./gateway-log";
 
 /**
  * Adapter da Rede (e-Rede v1). Autenticação: Basic base64(pv:token).
@@ -44,23 +45,55 @@ async function redeRequest(
   method: string,
   path: string,
   body?: unknown,
+  meta?: { operation?: string; chargeId?: string },
 ): Promise<{ status: number; json: RedeRaw }> {
-  const res = await fetch(BASE() + path, {
-    method,
-    headers: {
-      Authorization: authHeader(cfg),
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  let json: RedeRaw = {};
+  const url = BASE() + path;
+  const startedAt = Date.now();
   try {
-    json = (await res.json()) as RedeRaw;
-  } catch {
-    json = {};
+    const res = await fetch(url, {
+      method,
+      headers: {
+        Authorization: authHeader(cfg),
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    let json: RedeRaw = {};
+    try {
+      json = (await res.json()) as RedeRaw;
+    } catch {
+      json = {};
+    }
+    void logGatewayCall({
+      provider: "rede",
+      direction: "outbound",
+      method,
+      url,
+      operation: meta?.operation,
+      requestBody: body,
+      responseStatus: res.status,
+      responseBody: json,
+      durationMs: Date.now() - startedAt,
+      success: res.status < 300,
+      chargeId: meta?.chargeId,
+    });
+    return { status: res.status, json };
+  } catch (err) {
+    void logGatewayCall({
+      provider: "rede",
+      direction: "outbound",
+      method,
+      url,
+      operation: meta?.operation,
+      requestBody: body,
+      durationMs: Date.now() - startedAt,
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+      chargeId: meta?.chargeId,
+    });
+    throw err;
   }
-  return { status: res.status, json };
 }
 
 /** Retorno aprovado do e-Rede. */
@@ -130,7 +163,10 @@ export async function chargeWithCard(
     body.tokenGeneration = { generateToken: true };
   }
 
-  const { json } = await redeRequest(cfg, "POST", "/transactions", body);
+  const { json } = await redeRequest(cfg, "POST", "/transactions", body, {
+    operation: "card.charge",
+    chargeId: input.reference,
+  });
   const success = isApproved(json);
   return {
     success,
@@ -171,7 +207,10 @@ export async function chargeWithToken(
   };
   if (input.securityCode) body.securityCode = input.securityCode;
 
-  const { json } = await redeRequest(cfg, "POST", "/transactions", body);
+  const { json } = await redeRequest(cfg, "POST", "/transactions", body, {
+    operation: "card.charge.token",
+    chargeId: input.reference,
+  });
   const success = isApproved(json);
   return {
     success,

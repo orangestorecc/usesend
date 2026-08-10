@@ -1,7 +1,10 @@
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { createTRPCRouter, adminProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { encryptSecret, decryptSecret } from "~/server/crypto";
+import { env } from "~/env";
+import { getLogRetentionDays } from "~/server/billing/gateway-log";
 
 const PROVIDERS = ["inter", "rede"] as const;
 type Provider = (typeof PROVIDERS)[number];
@@ -68,6 +71,156 @@ export const paymentGatewayRouter = createTRPCRouter({
         create: { provider: input.provider, enabled: input.enabled, configEnc },
         update: { enabled: input.enabled, configEnc },
       });
+      return { success: true };
+    }),
+
+  /** URLs de webhook a cadastrar no painel de cada provedor. */
+  webhookUrls: adminProcedure.query(() => {
+    const base = env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "";
+    const token = env.PAYMENTS_WEBHOOK_TOKEN;
+    const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+    return {
+      inter: `${base}/api/webhook/inter${qs}`,
+      rede: `${base}/api/webhook/rede${qs}`,
+      protected: Boolean(token),
+    };
+  }),
+
+  /** Log de transações (chamadas ao gateway + webhooks recebidos). */
+  logs: adminProcedure
+    .input(
+      z.object({
+        provider: z.enum(PROVIDERS),
+        direction: z.enum(["all", "outbound", "inbound"]).default("all"),
+        status: z.enum(["all", "success", "error"]).default("all"),
+        search: z.string().optional(),
+        page: z.number().int().min(1).default(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      const perPage = 25;
+      const where: Prisma.PaymentGatewayLogWhereInput = {
+        provider: input.provider,
+        ...(input.direction !== "all" ? { direction: input.direction } : {}),
+        ...(input.status !== "all"
+          ? { success: input.status === "success" }
+          : {}),
+        ...(input.search
+          ? {
+              OR: [
+                { url: { contains: input.search, mode: "insensitive" } },
+                { operation: { contains: input.search, mode: "insensitive" } },
+                { chargeId: { contains: input.search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      };
+
+      const [logs, total] = await Promise.all([
+        db.paymentGatewayLog.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          skip: (input.page - 1) * perPage,
+          take: perPage,
+        }),
+        db.paymentGatewayLog.count({ where }),
+      ]);
+
+      return {
+        logs,
+        total,
+        page: input.page,
+        perPage,
+        retentionDays: getLogRetentionDays(),
+      };
+    }),
+
+  /** Cartões tokenizados guardados para recorrência (sem PAN — só metadados). */
+  tokenizedCards: adminProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        page: z.number().int().min(1).default(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      const perPage = 25;
+      const where: Prisma.PaymentMethodWhereInput = {
+        type: "card",
+        ...(input.search
+          ? {
+              OR: [
+                { last4: { contains: input.search } },
+                { brand: { contains: input.search, mode: "insensitive" } },
+                { holderName: { contains: input.search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      };
+
+      const [cards, total] = await Promise.all([
+        db.paymentMethod.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          skip: (input.page - 1) * perPage,
+          take: perPage,
+          select: {
+            id: true,
+            teamId: true,
+            provider: true,
+            brand: true,
+            last4: true,
+            expMonth: true,
+            expYear: true,
+            holderName: true,
+            isDefault: true,
+            createdAt: true,
+          },
+        }),
+        db.paymentMethod.count({ where }),
+      ]);
+
+      const teamIds = [...new Set(cards.map((c) => c.teamId))];
+      const teams = await db.team.findMany({
+        where: { id: { in: teamIds } },
+        select: { id: true, name: true },
+      });
+      const teamName = new Map(teams.map((t) => [t.id, t.name]));
+
+      return {
+        cards: cards.map((c) => ({
+          ...c,
+          teamName: teamName.get(c.teamId) ?? `Time #${c.teamId}`,
+        })),
+        total,
+        page: input.page,
+        perPage,
+      };
+    }),
+
+  /** Remove um cartão tokenizado (revoga o uso em recorrências futuras). */
+  deleteTokenizedCard: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      const card = await db.paymentMethod.findUnique({
+        where: { id: input.id },
+      });
+      if (!card) throw new Error("Cartão não encontrado.");
+      await db.paymentMethod.delete({ where: { id: input.id } });
+
+      // Se era o padrão, promove o mais recente do mesmo time.
+      if (card.isDefault) {
+        const next = await db.paymentMethod.findFirst({
+          where: { teamId: card.teamId, type: "card" },
+          orderBy: { createdAt: "desc" },
+        });
+        if (next) {
+          await db.paymentMethod.update({
+            where: { id: next.id },
+            data: { isDefault: true },
+          });
+        }
+      }
       return { success: true };
     }),
 });

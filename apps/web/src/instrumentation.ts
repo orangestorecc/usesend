@@ -60,6 +60,11 @@ export async function register() {
         "~/server/jobs/subscription-billing-job"
       );
       await initSubscriptionBillingJob();
+
+      const { initPaymentLogCleanupJob } = await import(
+        "~/server/jobs/payment-log-cleanup-job"
+      );
+      await initPaymentLogCleanupJob();
     }
 
     initialized = true;

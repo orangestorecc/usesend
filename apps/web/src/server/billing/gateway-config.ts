@@ -16,7 +16,31 @@ export type InterConfig = {
 export type RedeConfig = {
   pv?: string;
   token?: string;
+  /**
+   * Parcelas habilitadas, como lista separada por vírgula (ex: "1,2,3").
+   * Por padrão só 1x fica ativa — as demais entram desativadas e o admin
+   * habilita conscientemente (juros/prazo de repasse mudam por parcela).
+   */
+  installments?: string;
 };
+
+/** Número máximo de parcelas ofertável. */
+export const MAX_INSTALLMENTS = 12;
+
+/**
+ * Lê as parcelas habilitadas da config. Sempre inclui 1x (à vista não pode ser
+ * desligada) e ignora valores fora de 1..MAX_INSTALLMENTS.
+ */
+export function parseInstallments(raw?: string): number[] {
+  if (!raw) return [1];
+  const parsed = raw
+    .split(",")
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= MAX_INSTALLMENTS);
+  const set = new Set(parsed);
+  set.add(1);
+  return [...set].sort((a, b) => a - b);
+}
 
 type ConfigMap = {
   inter: InterConfig;
