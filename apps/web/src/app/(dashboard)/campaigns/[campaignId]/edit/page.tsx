@@ -6,7 +6,6 @@ import { Button } from "@usesend/ui/src/button";
 import { Input } from "@usesend/ui/src/input";
 import { Editor } from "@usesend/email-editor";
 import type { TiptapEditor } from "@usesend/email-editor";
-import { EditorToolbar } from "~/components/editor-toolbar";
 import { EmailHeaderBar } from "~/components/editor/EmailHeaderBar";
 import { use, useMemo, useState } from "react";
 import { Campaign } from "@prisma/client";
@@ -47,6 +46,7 @@ import {
 import ScheduleCampaign from "../../schedule-campaign";
 import { useRouter } from "next/navigation";
 import { getCampaignEditorVariables } from "~/lib/constants/campaign";
+import { useAiRequest } from "~/components/editor/EditorAiBridge";
 
 const sendSchema = z.object({
   confirmation: z.string(),
@@ -109,6 +109,7 @@ function CampaignEditor({
     campaign.content ? JSON.parse(campaign.content) : undefined,
   );
   const [isSaving, setIsSaving] = useState(false);
+  const aiRequest = useAiRequest();
   const [editorInstance, setEditorInstance] = useState<TiptapEditor | null>(
     null,
   );
@@ -518,6 +519,8 @@ function CampaignEditor({
               }}
               variables={editorVariables}
               variableSuggestionsHelperText={variableSuggestionsHelperText}
+              onAiRequest={aiRequest}
+              placeholder="Pressione '/' para comandos, ou use a IA para escrever seu e-mail"
               uploadImage={
                 campaign.imageUploadSupported ? handleFileChange : undefined
               }

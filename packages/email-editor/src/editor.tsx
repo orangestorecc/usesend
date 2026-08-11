@@ -13,6 +13,8 @@ import { EditorShell } from "./chrome/EditorShell";
 import { LeftRail } from "./chrome/LeftRail";
 import { BlockPalette } from "./chrome/BlockPalette";
 import { CodeView } from "./chrome/CodeView";
+import { AiComposer } from "./chrome/AiComposer";
+import { BlockContextMenu } from "./menus/BlockContextMenu";
 import { PropertiesPanel } from "./panels/PropertiesPanel";
 import {
   EditorChromeProvider,
@@ -34,9 +36,9 @@ export type EditorProps = {
   // ---- Novos (todos opcionais; com tudo desligado o editor renderiza
   //      exatamente como antes da reformulação) ----
 
-  /** Liga o trilho lateral e a paleta de blocos. */
+  /** Liga o trilho lateral e a paleta de blocos. Ligado por padrão. */
   showBlockPalette?: boolean;
-  /** Liga o painel direito de propriedades / estilo da página. */
+  /** Liga o painel direito de propriedades / estilo da página. Ligado por padrão. */
   showPropertiesPanel?: boolean;
   /** Conteúdo acima do canvas (cabeçalho De/Assunto). */
   header?: React.ReactNode;
@@ -48,6 +50,8 @@ export type EditorProps = {
   onAiRequest?: (req: AiRequest) => Promise<AiResult>;
   /** Texto do placeholder do corpo. */
   placeholder?: string;
+  /** Ações extras sob o canvas vazio (ex.: escolher template, subir HTML). */
+  emptyStateSlot?: React.ReactNode;
   /** Modo controlado do trilho. Ausente => o componente controla sozinho. */
   mode?: EditorMode;
   onModeChange?: (mode: EditorMode) => void;
@@ -60,13 +64,14 @@ export const Editor: React.FC<EditorProps> = ({
   variables,
   uploadImage,
   variableSuggestionsHelperText,
-  showBlockPalette = false,
-  showPropertiesPanel = false,
+  showBlockPalette = true,
+  showPropertiesPanel = true,
   header,
   panelHeaderSlot,
   panelFooterSlot,
   onAiRequest,
   placeholder,
+  emptyStateSlot,
   mode: controlledMode,
   onModeChange,
 }) => {
@@ -123,6 +128,9 @@ export const Editor: React.FC<EditorProps> = ({
     [editor, mode, onAiRequest, uploadImage],
   );
 
+  // `useEditor` re-renderiza a cada transação, então isEmpty já vem atual.
+  const vazio = editor?.isEmpty ?? true;
+
   const canvas = (
     <div
       className="bg-white rounded-md text-black p-4 sm:p-8 unsend-editor light"
@@ -133,6 +141,15 @@ export const Editor: React.FC<EditorProps> = ({
       {editor ? <LinkMenu editor={editor} appendTo={menuContainerRef} /> : null}
     </div>
   );
+
+  /** Ações de partida, só com o documento ainda vazio. */
+  const acoesIniciais =
+    editor && vazio && (onAiRequest || emptyStateSlot) ? (
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <AiComposer variant="empty" />
+        {emptyStateSlot}
+      </div>
+    ) : null;
 
   // Sem nenhuma das novas áreas ligadas, devolve o canvas puro — mesmo DOM de
   // antes, para não afetar as telas que ainda não migraram.
@@ -164,7 +181,15 @@ export const Editor: React.FC<EditorProps> = ({
           ) : undefined
         }
       >
-        {mode === "code" ? <CodeView /> : canvas}
+        {mode === "code" ? (
+          <CodeView />
+        ) : (
+          <>
+            {canvas}
+            {acoesIniciais}
+            <BlockContextMenu />
+          </>
+        )}
       </EditorShell>
     </EditorChromeProvider>
   );

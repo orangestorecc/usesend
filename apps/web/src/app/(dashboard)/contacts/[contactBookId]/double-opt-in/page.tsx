@@ -144,7 +144,7 @@ function DoubleOptInEditor({
             ) : (
               <div className="h-2 w-2 bg-green rounded-full" />
             )}
-            {formatDistanceToNow(contactBook.updatedAt) === "less than a minute"
+            {Date.now() - new Date(contactBook.updatedAt).getTime() < 60_000
               ? "agora mesmo"
               : `há ${formatDistanceToNow(contactBook.updatedAt)}`}
           </div>
@@ -239,6 +239,11 @@ function DoubleOptInEditor({
         <div className="rounded-lg bg-gray-50 w-full sm:w-[700px] mx-auto p-4 sm:p-10">
           <div className="w-full sm:w-[600px] mx-auto">
             <Editor
+              /* Esta tela ainda usa o container estreito de 600px: com o trilho
+                 e o painel ligados o canvas colapsa. Opta por sair do shell até
+                 a página ser reestruturada como as de campanhas e templates. */
+              showBlockPalette={false}
+              showPropertiesPanel={false}
               initialContent={json}
               onUpdate={(content) => {
                 const nextContent = content.getJSON();

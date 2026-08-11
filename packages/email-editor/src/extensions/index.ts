@@ -29,6 +29,7 @@ import {
 } from "./EmbedExtensions";
 import { PageStyleDocument } from "./PageStyleExtension";
 import { BlockDropExtension } from "./BlockDropExtension";
+import { BlockShortcuts } from "./BlockShortcuts";
 
 export function extensions({
   variables,
@@ -116,6 +117,7 @@ export function extensions({
     // Depois de GlobalDragHandle: o drop externo precisa interromper a cadeia
     // de handleDOMEvents sem passar pelo handler do arrasto interno.
     BlockDropExtension,
+    BlockShortcuts,
   ];
 
   return extensions;
