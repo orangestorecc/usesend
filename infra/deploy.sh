@@ -53,6 +53,12 @@ trap restaurar_se_interrompido INT TERM HUP
 export NEXT_PUBLIC_IS_CLOUD=true
 export NODE_OPTIONS="--max-old-space-size=3072"
 
+# Identifica a release pelo commit. É o que amarra o sourcemap ao erro: sem
+# isso o Sentry não sabe a qual versão do bundle o stack trace pertence e
+# devolve código minificado. Também é o que faz o "resolve in next release"
+# funcionar — a issue fecha sozinha quando sobe o deploy com a correção.
+export NEXT_PUBLIC_GIT_SHA="$AFTER"
+
 if npx next build > "$LOGS/build.log" 2>&1; then
   echo "  BUILD_ID: $(cat "$WEB/.next/BUILD_ID")"
   trap - INT TERM HUP
