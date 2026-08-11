@@ -243,3 +243,33 @@
 .unsend-editor .footer {
   font-size: 0.8rem;
 }
+
+/* Indicador de destino do arrasto vindo da paleta. O dropcursor do StarterKit
+   não cobre esse caso: ele só reage ao arrasto interno (view.dragging).
+
+   A linha é desenhada no ::before, e o elemento em si tem altura ZERO: se ele
+   ocupasse espaço, inseri-lo na posição 0 empurraria a borda de cima do editor
+   para baixo do ponteiro — o arrasto "sairia" da view e o drop se perderia. */
+.madmail-drop-indicator {
+  display: block;
+  position: relative;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.madmail-drop-indicator::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1.5px;
+  height: 3px;
+  border-radius: 2px;
+  background: #555;
+}
+
+.ProseMirror.madmail-dragging-external > * {
+  opacity: 0.65;
+  transition: opacity 120ms ease;
+}

@@ -38,6 +38,12 @@ import type { UploadFn } from "../extensions/ImageExtension";
  * mostrar os blocos em qualquer outro lugar.
  */
 
+/**
+ * MIME próprio do arrasto vindo da paleta. Distingue-o do arrasto interno do
+ * editor (dragHandle.ts), que usa `text/html` e `text/plain`.
+ */
+export const BLOCK_MIME = "application/x-madmail-block";
+
 export type BlockCategory = "text" | "media" | "layout" | "utility";
 
 /** Rótulo exibido como cabeçalho de seção no menu "/". */
