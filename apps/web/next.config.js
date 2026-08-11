@@ -89,13 +89,15 @@ export default withSentryConfig(config, {
   // que bloqueador de anúncio não engula o relatório de erro.
   tunnelRoute: "/monitoring",
 
-  // Corta o SDK de erro do lado do cliente pela metade removendo o código de
-  // debug, que só serve em desenvolvimento.
-  disableLogger: true,
-
   webpack: {
     // O `register()` de `instrumentation.ts` roda em toda inicialização; o
     // Sentry não precisa instrumentar de novo o startup do Vercel Cron.
     automaticVercelMonitors: false,
+
+    treeshake: {
+      // Corta o SDK do lado do cliente removendo o código de debug, que só
+      // serve em desenvolvimento.
+      removeDebugLogging: true,
+    },
   },
 });
