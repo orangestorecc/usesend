@@ -200,7 +200,7 @@ describe("double-opt-in-service", () => {
     });
 
     const sendArgs = mockSendEmail.mock.calls[0]?.[0];
-    expect(sendArgs.html).toContain("Please confirm your subscription");
+    expect(sendArgs.html).toContain("Confirme sua inscrição");
     expect(sendArgs.html).toContain("contactId=contact_1");
     expect(mockLogger.error).toHaveBeenCalled();
   });
