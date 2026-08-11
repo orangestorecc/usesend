@@ -1,0 +1,66 @@
+name: Deploy Madmail
+
+# Só dispara quando o que vai para o servidor realmente muda. Sem os filtros,
+# commits de documentação e de infra reimplantavam a produção inteira.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "apps/marketing/**"
+      - "packages/**"
+      - "infra/deploy.sh"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "turbo.json"
+      - ".github/workflows/deploy-app.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-madmail
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Preparar chave SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          if [ -z "$DEPLOY_SSH_PRIVATE_KEY" ]; then
+            echo "::error::Secrets de deploy não configurados."
+            exit 1
+          fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes \
+              -p "${DEPLOY_PORT:-2203}" \
+              "$DEPLOY_USER@$DEPLOY_HOST" \
+              'bash -lc "/opt/madmail/deploy.sh"'
+
+      - name: Conferir se está no ar
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+              https://app.madmail.com.br/api/health || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "app.madmail.com.br respondendo 200"
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "::error::A aplicação não respondeu 200 após o deploy."
+          exit 1
