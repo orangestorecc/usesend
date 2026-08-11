@@ -24,6 +24,7 @@ import { paymentGatewayRouter } from "./routers/payment-gateway";
 import { promoCodeRouter } from "./routers/promo-code";
 import { planCatalogRouter } from "./routers/plan-catalog";
 import { inboundRouter } from "./routers/inbound";
+import { inboundAdminRouter } from "./routers/inbound-admin";
 import { paymentsRouter } from "./routers/payments";
 import { aiRouter } from "./routers/ai";
 
@@ -58,6 +59,7 @@ export const appRouter = createTRPCRouter({
   promoCode: promoCodeRouter,
   planCatalog: planCatalogRouter,
   inbound: inboundRouter,
+  inboundAdmin: inboundAdminRouter,
   payments: paymentsRouter,
   ai: aiRouter,
 });

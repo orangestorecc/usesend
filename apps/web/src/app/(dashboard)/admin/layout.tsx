@@ -49,6 +49,9 @@ export default function AdminLayout({
             Pagamentos
           </SettingsNavButton>
         ) : null}
+        <SettingsNavButton href="/admin/recebimento">
+          Recebimento
+        </SettingsNavButton>
       </div>
       <div className="mt-8">{children}</div>
     </div>
