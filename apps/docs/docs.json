@@ -20,48 +20,31 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Documentação",
         "groups": [
           {
-            "group": "Getting Started",
-            "pages": [
-              "introduction",
-              "get-started/nodejs",
-              "get-started/python",
-              "get-started/go",
-              "get-started/local",
-              "get-started/smtp"
-            ]
+            "group": "Comece por aqui",
+            "pages": ["introduction", "get-started/smtp"]
           },
           {
-            "group": "Self Hosting",
-            "pages": [
-              "self-hosting/overview",
-              "self-hosting/ubuntu-24",
-              "self-hosting/portainer-nginx-proxy-manager",
-              "self-hosting/railway"
-            ]
-          },
-          {
-            "group": "Guides",
+            "group": "Guias",
             "pages": [
               "guides/webhooks",
               "guides/double-opt-in",
-              "guides/campaign-personalization",
-              "guides/use-with-react-email"
+              "guides/campaign-personalization"
             ]
           }
         ]
       },
       {
-        "tab": "API Reference",
+        "tab": "Referência da API",
         "groups": [
           {
-            "group": "API Reference",
+            "group": "Referência da API",
             "pages": ["api-reference/introduction"]
           },
           {
-            "group": "Emails",
+            "group": "E-mails",
             "pages": [
               "api-reference/emails/get-email",
               "api-reference/emails/list-emails",
@@ -72,7 +55,7 @@
             ]
           },
           {
-            "group": "Contact Books",
+            "group": "Listas de contatos",
             "pages": [
               "api-reference/contacts/list-contact-books",
               "api-reference/contacts/get-contact-book",
@@ -82,7 +65,7 @@
             ]
           },
           {
-            "group": "Contacts",
+            "group": "Contatos",
             "pages": [
               "api-reference/contacts/get-contact",
               "api-reference/contacts/get-contacts",
@@ -95,7 +78,7 @@
             ]
           },
           {
-            "group": "Domains",
+            "group": "Domínios",
             "pages": [
               "api-reference/domains/get-domain",
               "api-reference/domains/list-domains",
@@ -105,7 +88,7 @@
             ]
           },
           {
-            "group": "Campaigns",
+            "group": "Campanhas",
             "pages": [
               "api-reference/campaigns/create-campaign",
               "api-reference/campaigns/get-campaigns",
@@ -117,7 +100,7 @@
             ]
           },
           {
-            "group": "Analytics",
+            "group": "Análises",
             "pages": [
               "api-reference/analytics/email-time-series",
               "api-reference/analytics/reputation-metrics"
@@ -126,29 +109,15 @@
         ]
       },
       {
-        "tab": "Changelog",
+        "tab": "Novidades",
         "groups": [
           {
-            "group": "Updates",
+            "group": "Atualizações",
             "pages": ["changelog"]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "GitHub",
-          "href": "https://github.com/usesend/usesend",
-          "icon": "github"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://discord.gg/BU8n8pJv8S",
-          "icon": "discord"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/logo-wordmark.svg",
@@ -179,10 +148,16 @@
     }
   },
   "footer": {
-    "socials": {
-      "x": "https://x.com/Madmail_com",
-      "github": "https://github.com/usesend"
-    }
+    "links": [
+      {
+        "header": "Madmail",
+        "items": [
+          { "label": "Site", "href": "https://www.madmail.com.br" },
+          { "label": "Entrar", "href": "https://app.madmail.com.br" },
+          { "label": "Suporte", "href": "mailto:hey@madmail.com.br" }
+        ]
+      }
+    ]
   },
   "contextual": {
     "options": ["copy", "view", "chatgpt", "claude", "perplexity"]

@@ -1,24 +1,81 @@
 ---
-title: Introduction
-description: "Fundamental concepts of Madmail's API."
+title: Introdução
+description: "Conceitos fundamentais da API do Madmail."
 ---
 
-## Base URL
+## URL base
 
-Madmail's API is built on REST principles and is served over HTTPS. To ensure data privacy, unencrypted HTTP is not supported.
+A API do Madmail segue os princípios REST e é servida por HTTPS. Para garantir a
+privacidade dos dados, HTTP sem criptografia não é suportado.
 
-The Base URL for all API endpoints is:
+A URL base de todos os endpoints é:
 
 ```sh Terminal
-https://app.usesend.com/api/
+https://app.madmail.com.br/api/
 ```
 
-## Authentication
+## Autenticação
 
-Authentication to Madmail's API is performed via the Authorization header with a Bearer token. To authenticate, you need to include the Authorization header with the word Bearer followed by your token in your API requests like so:
+A autenticação na API do Madmail é feita pelo cabeçalho `Authorization` com um
+token Bearer. Inclua o cabeçalho com a palavra `Bearer` seguida do seu token:
 
 ```sh Terminal
 Authorization: Bearer us_12345
 ```
 
-You can create a new token/API key under your Madmail [Developer Settings](https://app.usesend.com/dev-settings/api-keys).
+Você cria um token/chave de API nas
+[Configurações de desenvolvedor](https://app.madmail.com.br/dev-settings/api-keys)
+do Madmail.
+
+## Conector de IA (MCP)
+
+Além da API REST, o Madmail expõe um servidor **MCP** (Model Context Protocol) —
+o padrão aberto que permite que assistentes como o **ChatGPT** e o **Claude**
+usem ferramentas externas. É assim que você **dispara conversando**: você
+descreve a campanha, o assistente executa no Madmail.
+
+<Info>
+  Você não precisa escrever código para usar o MCP. Basta conectar o seu
+  assistente ao endereço abaixo e autorizar o acesso à sua conta.
+</Info>
+
+### Endpoint
+
+```sh Terminal
+https://mcp.madmail.com.br/mcp
+```
+
+A autorização é feita por **OAuth**: ao conectar, o assistente abre a tela de
+login do Madmail e você aprova o acesso. Nenhuma chave é copiada manualmente, e
+você pode revogar o acesso quando quiser em
+[Configurações de desenvolvedor](https://app.madmail.com.br/dev-settings/mcp).
+
+### O que o assistente consegue fazer
+
+<CardGroup cols={2}>
+  <Card title="Contatos e listas" icon="users">
+    `list_contacts`, `import_contacts`, `list_lists`, `create_list`
+  </Card>
+  <Card title="Segmentos" icon="filter">
+    `create_segment`, `preview_segment`, `materialize_segment`,
+    `list_segments`, `delete_segment`
+  </Card>
+  <Card title="Campanhas" icon="paper-plane">
+    `create_campaign`, `schedule_campaign`, `send_campaign`,
+    `list_campaigns`, `get_campaign_report`
+  </Card>
+  <Card title="Modelos e prévia" icon="file-lines">
+    `list_templates`, `get_template`, `save_template`, `render_preview`
+  </Card>
+  <Card title="E-mail avulso" icon="envelope">
+    `send_email`
+  </Card>
+  <Card title="Métricas e uso" icon="chart-line">
+    `get_analytics`, `get_usage`, `billing_summary`
+  </Card>
+</CardGroup>
+
+<Note>
+  O assistente **propõe** as ações; o disparo real só acontece com a sua
+  confirmação. As permissões seguem o escopo autorizado no login.
+</Note>

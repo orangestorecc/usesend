@@ -1,58 +1,57 @@
 ---
 title: Double Opt-In
-description: "Verify new subscribers with a confirmation email before adding them to your contact book"
+description: "Confirme novos inscritos com um e-mail de verificação antes de adicioná-los à sua lista de contatos"
 ---
 
-## Overview
+## Visão geral
 
-Double opt-in requires new contacts to confirm their email address before they become subscribed. When enabled on a contact book, newly added contacts receive a confirmation email with a verification link. Only after clicking the link do they become fully subscribed.
+O double opt-in exige que novos contatos confirmem o endereço de e-mail antes de ficarem inscritos. Quando ativado em uma lista de contatos, todo contato recém-adicionado recebe um e-mail de confirmação com um link de verificação. Só depois de clicar no link ele passa a ficar totalmente inscrito.
 
-**Why use double opt-in?**
+**Por que usar double opt-in?**
 
-- Ensures email addresses are valid and owned by the subscriber
-- Reduces bounce rates and spam complaints
-- Improves deliverability and sender reputation
-- Helps comply with email marketing regulations (GDPR, CAN-SPAM)
+- Garante que os endereços de e-mail são válidos e pertencem ao inscrito
+- Reduz taxas de bounce e reclamações de spam
+- Melhora a entregabilidade e a reputação do remetente
+- Ajuda na conformidade com regulamentações de e-mail marketing (LGPD, GDPR, CAN-SPAM)
 
-## How it works
+## Como funciona
 
 <Steps>
-  <Step title="Contact is added">
-    When a contact is added to a contact book with double opt-in enabled (via
-    dashboard, API, or CSV import), they are created with a **Pending** status
-    instead of being immediately subscribed.
+  <Step title="O contato é adicionado">
+    Quando um contato é adicionado a uma lista com double opt-in ativado (pelo
+    dashboard, pela API ou por importação de CSV), ele é criado com o status
+    **Pendente**, em vez de ser inscrito imediatamente.
   </Step>
-  <Step title="Confirmation email is sent">
-    A confirmation email is automatically sent to the contact with a unique
-    verification link. The link is signed with HMAC-SHA256 and expires after 7
-    days.
+  <Step title="O e-mail de confirmação é enviado">
+    Um e-mail de confirmação é enviado automaticamente ao contato com um link de
+    verificação único. O link é assinado com HMAC-SHA256 e expira em 7 dias.
   </Step>
-  <Step title="Contact confirms">
-    The contact clicks the verification link in the email and confirms their
-    subscription on the confirmation page.
+  <Step title="O contato confirma">
+    O contato clica no link de verificação do e-mail e confirma a inscrição na
+    página de confirmação.
   </Step>
-  <Step title="Contact is subscribed">
-    The contact's status changes from **Pending** to **Subscribed** and they
-    will now receive your emails.
+  <Step title="O contato fica inscrito">
+    O status do contato muda de **Pendente** para **Inscrito** e ele passa a
+    receber seus e-mails.
   </Step>
 </Steps>
 
-## Enabling double opt-in
+## Ativando o double opt-in
 
-### Via the dashboard
+### Pelo dashboard
 
-1. Go to [Contacts](https://app.usesend.com/contacts) and select a contact book
-2. Click on the **Double Opt-In** tab
-3. Toggle double opt-in on
-4. Customize the confirmation email (optional)
-5. Save your changes
+1. Acesse [Contatos](https://app.madmail.com.br/contacts) e selecione uma lista de contatos
+2. Clique na aba **Double Opt-In**
+3. Ative o double opt-in
+4. Personalize o e-mail de confirmação (opcional)
+5. Salve as alterações
 
-### Via the API
+### Pela API
 
-Create a contact book with double opt-in enabled:
+Crie uma lista de contatos com double opt-in ativado:
 
 ```bash
-curl -X POST https://app.usesend.com/api/v1/contactBooks \
+curl -X POST https://app.madmail.com.br/api/v1/contactBooks \
   -H "Authorization: Bearer us_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -63,10 +62,10 @@ curl -X POST https://app.usesend.com/api/v1/contactBooks \
   }'
 ```
 
-Or enable it on an existing contact book:
+Ou ative em uma lista já existente:
 
 ```bash
-curl -X PATCH https://app.usesend.com/api/v1/contactBooks/{contactBookId} \
+curl -X PATCH https://app.madmail.com.br/api/v1/contactBooks/{contactBookId} \
   -H "Authorization: Bearer us_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -74,28 +73,28 @@ curl -X PATCH https://app.usesend.com/api/v1/contactBooks/{contactBookId} \
   }'
 ```
 
-## Contact statuses
+## Status dos contatos
 
-When double opt-in is enabled, contacts have three possible statuses:
+Com o double opt-in ativado, os contatos podem ter três status:
 
-| Status           | Description                                                      |
+| Status           | Descrição                                                        |
 | ---------------- | ---------------------------------------------------------------- |
-| **Subscribed**   | Contact has confirmed their subscription and will receive emails |
-| **Pending**      | Contact has been added but hasn't confirmed yet                  |
-| **Unsubscribed** | Contact has explicitly unsubscribed                              |
+| **Inscrito**     | O contato confirmou a inscrição e vai receber e-mails            |
+| **Pendente**     | O contato foi adicionado, mas ainda não confirmou                |
+| **Descadastrado**| O contato cancelou a inscrição explicitamente                    |
 
 <Warning>
-  Contacts with **Pending** status will not receive campaign emails. They will
-  only receive the double opt-in confirmation email.
+  Contatos com status **Pendente** não recebem e-mails de campanha. Eles só
+  recebem o e-mail de confirmação do double opt-in.
 </Warning>
 
-## Customizing the confirmation email
+## Personalizando o e-mail de confirmação
 
-You can customize three aspects of the confirmation email:
+Você pode personalizar três aspectos do e-mail de confirmação:
 
-### From address
+### Endereço de remetente
 
-Set a custom sender address for confirmation emails. The address must use one of your verified domains.
+Defina um remetente personalizado para os e-mails de confirmação. O endereço precisa usar um dos seus domínios verificados.
 
 ```json
 {
@@ -103,11 +102,11 @@ Set a custom sender address for confirmation emails. The address must use one of
 }
 ```
 
-If not set, the confirmation email will be sent from the first available verified domain.
+Se não for definido, o e-mail de confirmação será enviado pelo primeiro domínio verificado disponível.
 
-### Subject line
+### Assunto
 
-Customize the email subject. The default is "Please confirm your subscription".
+Personalize o assunto do e-mail. O padrão é "Please confirm your subscription".
 
 ```json
 {
@@ -115,41 +114,41 @@ Customize the email subject. The default is "Please confirm your subscription".
 }
 ```
 
-### Email template
+### Template do e-mail
 
-The confirmation email body can be customized using the Madmail email editor (via the dashboard) or by providing the editor JSON content via the API.
+O corpo do e-mail de confirmação pode ser personalizado no editor de e-mails do Madmail (pelo dashboard) ou enviando o conteúdo JSON do editor pela API.
 
-#### Template variables
+#### Variáveis do template
 
-The following variables can be used in the confirmation email template:
+As variáveis a seguir podem ser usadas no template do e-mail de confirmação:
 
-| Variable             | Description                      |
-| -------------------- | -------------------------------- |
-| `{{doubleOptInUrl}}` | The confirmation link (required) |
-| `{{email}}`          | The contact's email address      |
-| `{{firstName}}`      | The contact's first name         |
-| `{{lastName}}`       | The contact's last name          |
+| Variável             | Descrição                            |
+| -------------------- | ------------------------------------ |
+| `{{doubleOptInUrl}}` | O link de confirmação (obrigatório)  |
+| `{{email}}`          | O e-mail do contato                  |
+| `{{firstName}}`      | O primeiro nome do contato           |
+| `{{lastName}}`       | O sobrenome do contato               |
 
 <Warning>
-  The `{{ doubleOptInUrl }}` variable is **required** in the email template. The
-  confirmation email cannot be saved without it. This ensures every confirmation
-  email contains a working verification link.
+  A variável `{{ doubleOptInUrl }}` é **obrigatória** no template do e-mail. O
+  e-mail de confirmação não pode ser salvo sem ela. Isso garante que todo e-mail
+  de confirmação contenha um link de verificação funcional.
 </Warning>
 
-## Resending confirmation emails
+## Reenviando e-mails de confirmação
 
-If a contact hasn't confirmed their subscription, you can resend the confirmation email from the dashboard:
+Se um contato ainda não confirmou a inscrição, você pode reenviar o e-mail de confirmação pelo dashboard:
 
-1. Go to your contact book and find the pending contact
-2. Click the **Resend** button next to the contact
+1. Abra sua lista de contatos e localize o contato pendente
+2. Clique no botão **Reenviar** ao lado do contato
 
-Each resend generates a new confirmation link with a fresh 7-day expiration window.
+Cada reenvio gera um novo link de confirmação, com uma nova janela de validade de 7 dias.
 
-## Best practices
+## Boas práticas
 
-| Best practice                      | Why it helps                                                                     |
-| ---------------------------------- | -------------------------------------------------------------------------------- |
-| Set up a verified domain first     | Double opt-in emails need a verified domain before they can be sent              |
-| Keep the confirmation email simple | Makes it easier for subscribers to understand and complete the confirmation step |
-| Use a recognizable from address    | Reduces the chance of the confirmation email being ignored or marked as spam     |
-| Monitor pending contacts           | Helps you spot low confirmation rates and improve your signup flow               |
+| Boa prática                            | Por que ajuda                                                                        |
+| -------------------------------------- | ------------------------------------------------------------------------------------ |
+| Configure um domínio verificado antes  | Os e-mails de double opt-in precisam de um domínio verificado para serem enviados    |
+| Mantenha o e-mail de confirmação simples | Facilita para o inscrito entender e concluir a etapa de confirmação                 |
+| Use um remetente reconhecível          | Reduz a chance de o e-mail de confirmação ser ignorado ou marcado como spam          |
+| Acompanhe os contatos pendentes        | Ajuda a identificar taxas baixas de confirmação e melhorar seu fluxo de cadastro     |

@@ -1,76 +1,76 @@
 ---
 title: Webhooks
-description: "Receive real-time notifications when events occur in your Madmail account"
+description: "Receba notificações em tempo real quando eventos acontecem na sua conta Madmail"
 ---
 
-## Overview
+## Visão geral
 
-Webhooks allow you to receive HTTP POST requests to your server when events occur in Madmail, such as when an email is delivered, bounced, or clicked. This enables you to build real-time integrations and automate workflows.
+Os webhooks permitem que você receba requisições HTTP POST no seu servidor quando eventos acontecem no Madmail, como quando um e-mail é entregue, sofre bounce ou é clicado. Com isso você constrói integrações em tempo real e automatiza fluxos de trabalho.
 
-## Setting up webhooks
+## Configurando webhooks
 
 <Steps>
-  <Step title="Create a webhook endpoint">
-    Create an endpoint on your server that can receive POST requests. The endpoint must:
+  <Step title="Crie um endpoint de webhook">
+    Crie um endpoint no seu servidor capaz de receber requisições POST. O endpoint precisa:
 
-    - Accept POST requests with JSON body
-    - Return a 2xx status code to acknowledge receipt
-    - Respond within 10 seconds
-
-  </Step>
-  <Step title="Add webhook in dashboard">
-    Go to [Webhooks](https://app.usesend.com/webhooks) in your Madmail dashboard and create a new webhook:
-
-    - Enter your endpoint URL
-    - Select which events you want to receive
-    - Copy the signing secret for verification
+    - Aceitar requisições POST com corpo JSON
+    - Retornar um status 2xx para confirmar o recebimento
+    - Responder em até 10 segundos
 
   </Step>
-  <Step title="Verify webhook signatures">
-    Always verify webhook signatures to ensure requests are from Madmail. See the [Signature Verification](#signature-verification) section below.
+  <Step title="Adicione o webhook no dashboard">
+    Acesse [Webhooks](https://app.madmail.com.br/webhooks) no seu dashboard do Madmail e crie um novo webhook:
+
+    - Informe a URL do seu endpoint
+    - Selecione quais eventos você quer receber
+    - Copie o secret de assinatura para a verificação
+
+  </Step>
+  <Step title="Verifique as assinaturas dos webhooks">
+    Sempre verifique as assinaturas para garantir que as requisições vêm do Madmail. Veja a seção [Verificação de assinatura](#verificação-de-assinatura) abaixo.
   </Step>
 </Steps>
 
-## Event types
+## Tipos de evento
 
-### Email events
+### Eventos de e-mail
 
-| Event                     | Description                                          |
-| ------------------------- | ---------------------------------------------------- |
-| `email.queued`            | Email has been queued for sending                    |
-| `email.sent`              | Email has been sent to the recipient's mail server   |
-| `email.delivered`         | Email was successfully delivered                     |
-| `email.delivery_delayed`  | Email delivery is being retried                      |
-| `email.bounced`           | Email bounced (permanent or temporary)               |
-| `email.rejected`          | Email was rejected                                   |
-| `email.rendering_failure` | Email failed during template rendering               |
-| `email.complained`        | Recipient marked email as spam                       |
-| `email.failed`            | Email failed to send                                 |
-| `email.cancelled`         | Scheduled email was cancelled                        |
-| `email.suppressed`        | Email was suppressed (recipient on suppression list) |
-| `email.opened`            | Recipient opened the email                           |
-| `email.clicked`           | Recipient clicked a link in the email                |
+| Evento                    | Descrição                                                     |
+| ------------------------- | ------------------------------------------------------------- |
+| `email.queued`            | O e-mail entrou na fila de envio                              |
+| `email.sent`              | O e-mail foi enviado ao servidor de e-mail do destinatário    |
+| `email.delivered`         | O e-mail foi entregue com sucesso                             |
+| `email.delivery_delayed`  | A entrega do e-mail está sendo retentada                      |
+| `email.bounced`           | O e-mail sofreu bounce (permanente ou temporário)             |
+| `email.rejected`          | O e-mail foi rejeitado                                        |
+| `email.rendering_failure` | Falha ao renderizar o template do e-mail                      |
+| `email.complained`        | O destinatário marcou o e-mail como spam                      |
+| `email.failed`            | Falha ao enviar o e-mail                                      |
+| `email.cancelled`         | Um e-mail agendado foi cancelado                              |
+| `email.suppressed`        | O e-mail foi suprimido (destinatário na lista de supressão)   |
+| `email.opened`            | O destinatário abriu o e-mail                                 |
+| `email.clicked`           | O destinatário clicou em um link do e-mail                    |
 
-### Contact events
+### Eventos de contato
 
-| Event             | Description             |
-| ----------------- | ----------------------- |
-| `contact.created` | New contact was created |
-| `contact.updated` | Contact was updated     |
-| `contact.deleted` | Contact was deleted     |
+| Evento            | Descrição                  |
+| ----------------- | -------------------------- |
+| `contact.created` | Um novo contato foi criado |
+| `contact.updated` | O contato foi atualizado   |
+| `contact.deleted` | O contato foi excluído     |
 
-### Domain events
+### Eventos de domínio
 
-| Event             | Description                   |
-| ----------------- | ----------------------------- |
-| `domain.created`  | New domain was added          |
-| `domain.verified` | Domain verification completed |
-| `domain.updated`  | Domain settings were updated  |
-| `domain.deleted`  | Domain was deleted            |
+| Evento            | Descrição                              |
+| ----------------- | -------------------------------------- |
+| `domain.created`  | Um novo domínio foi adicionado         |
+| `domain.verified` | A verificação do domínio foi concluída |
+| `domain.updated`  | As configurações do domínio mudaram    |
+| `domain.deleted`  | O domínio foi excluído                 |
 
-## Webhook payload
+## Payload do webhook
 
-Each webhook request includes a JSON payload with the following structure. See [Event data details](#event-data-details) for details on the `data` field for each event type.
+Cada requisição de webhook inclui um payload JSON com a estrutura abaixo. Veja [Detalhes dos dados de evento](#detalhes-dos-dados-de-evento) para saber o conteúdo do campo `data` em cada tipo de evento.
 
 ```json
 {
@@ -91,39 +91,39 @@ Each webhook request includes a JSON payload with the following structure. See [
 }
 ```
 
-### Payload fields
+### Campos do payload
 
-| Field       | Description                                |
-| ----------- | ------------------------------------------ |
-| `id`        | Unique identifier for this webhook call    |
-| `type`      | The event type (e.g., `email.delivered`)   |
-| `version`   | API version for the payload format         |
-| `createdAt` | When the event was created                 |
-| `teamId`    | Your team ID                               |
-| `data`      | Event-specific data (varies by event type) |
-| `attempt`   | Delivery attempt number (1-6)              |
+| Campo       | Descrição                                             |
+| ----------- | ----------------------------------------------------- |
+| `id`        | Identificador único desta chamada de webhook          |
+| `type`      | O tipo do evento (por exemplo, `email.delivered`)     |
+| `version`   | Versão da API para o formato do payload               |
+| `createdAt` | Quando o evento foi criado                            |
+| `teamId`    | O ID do seu time                                      |
+| `data`      | Dados específicos do evento (variam conforme o tipo)  |
+| `attempt`   | Número da tentativa de entrega (1-6)                  |
 
-## Request headers
+## Cabeçalhos da requisição
 
-Each webhook request includes the following headers:
+Cada requisição de webhook inclui os seguintes cabeçalhos:
 
-| Header                | Description                            |
-| --------------------- | -------------------------------------- |
-| `X-UseSend-Signature` | HMAC-SHA256 signature for verification |
-| `X-UseSend-Timestamp` | Unix timestamp in milliseconds         |
-| `X-UseSend-Event`     | Event type                             |
-| `X-UseSend-Call`      | Unique webhook call ID                 |
-| `X-UseSend-Retry`     | `true` if this is a retry attempt      |
+| Cabeçalho             | Descrição                                     |
+| --------------------- | --------------------------------------------- |
+| `X-UseSend-Signature` | Assinatura HMAC-SHA256 para verificação       |
+| `X-UseSend-Timestamp` | Timestamp Unix em milissegundos               |
+| `X-UseSend-Event`     | Tipo do evento                                |
+| `X-UseSend-Call`      | ID único da chamada do webhook                |
+| `X-UseSend-Retry`     | `true` se for uma tentativa de reenvio        |
 
-## Signature verification
+## Verificação de assinatura
 
-Always verify webhook signatures to ensure requests are authentic. The signature is computed as:
+Sempre verifique as assinaturas dos webhooks para garantir que as requisições são autênticas. A assinatura é calculada assim:
 
 ```
 HMAC-SHA256(secret, "${timestamp}.${rawBody}")
 ```
 
-### Using the SDK (Recommended)
+### Usando o SDK (recomendado)
 
 <CodeGroup>
 ```bash npm
@@ -215,9 +215,9 @@ app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
 app.listen(3000);
 ```
 
-### Verification only
+### Apenas verificação
 
-If you only need to verify the signature without parsing:
+Se você só precisa verificar a assinatura, sem fazer o parse do evento:
 
 ```typescript
 const isValid = webhooks.verify(rawBody, { headers: request.headers });
@@ -227,9 +227,9 @@ if (!isValid) {
 }
 ```
 
-### Manual verification
+### Verificação manual
 
-If you prefer to verify manually without the SDK:
+Se você preferir verificar manualmente, sem o SDK:
 
 ```typescript
 import { createHmac, timingSafeEqual } from "crypto";
@@ -261,60 +261,61 @@ const timestamp = request.headers.get("X-UseSend-Timestamp");
 const isValid = verifyWebhook(secret, rawBody, signature, timestamp);
 ```
 
-## Retry behavior
+## Comportamento de retentativa
 
-If your endpoint doesn't return a 2xx response, Madmail will retry delivery with exponential backoff:
+Se o seu endpoint não retornar uma resposta 2xx, o Madmail vai tentar entregar novamente com backoff exponencial:
 
-| Attempt | Delay       |
-| ------- | ----------- |
-| 1       | Immediate   |
-| 2       | ~5 seconds  |
-| 3       | ~10 seconds |
-| 4       | ~20 seconds |
-| 5       | ~40 seconds |
-| 6       | ~80 seconds |
+| Tentativa | Intervalo    |
+| --------- | ------------ |
+| 1         | Imediato     |
+| 2         | ~5 segundos  |
+| 3         | ~10 segundos |
+| 4         | ~20 segundos |
+| 5         | ~40 segundos |
+| 6         | ~80 segundos |
 
-After 6 failed attempts, the webhook call is marked as failed.
+Depois de 6 tentativas sem sucesso, a chamada do webhook é marcada como falha.
 
 <Warning>
-  If your webhook endpoint fails 30 consecutive calls, the webhook will be
-  automatically disabled to prevent continued failures. You can re-enable it
-  from the dashboard.
+  Se o seu endpoint de webhook falhar em 30 chamadas consecutivas, o webhook
+  será desativado automaticamente para evitar falhas contínuas. Você pode
+  reativá-lo pelo dashboard.
 </Warning>
 
-## Best practices
+## Boas práticas
 
 <AccordionGroup>
-  <Accordion title="Respond quickly">
-    Return a 2xx response as soon as possible. Process webhook data
-    asynchronously if needed. Requests timeout after 10 seconds.
+  <Accordion title="Responda rápido">
+    Retorne uma resposta 2xx o mais rápido possível. Se precisar, processe os
+    dados do webhook de forma assíncrona. As requisições expiram após 10 segundos.
   </Accordion>
-  <Accordion title="Handle duplicates">
-    Use the `id` field in the payload to deduplicate events. In rare cases, the
-    same event may be delivered more than once.
+  <Accordion title="Trate duplicidades">
+    Use o campo `id` do payload para deduplicar eventos. Em casos raros, o mesmo
+    evento pode ser entregue mais de uma vez.
   </Accordion>
-  <Accordion title="Verify signatures">
-    Always verify the `X-UseSend-Signature` header to ensure requests are from
-    Madmail and haven't been tampered with.
+  <Accordion title="Verifique as assinaturas">
+    Sempre verifique o cabeçalho `X-UseSend-Signature` para garantir que as
+    requisições vêm do Madmail e não foram adulteradas.
   </Accordion>
-  <Accordion title="Check timestamps">
-    The SDK rejects signatures older than 5 minutes by default. This prevents
-    replay attacks.
+  <Accordion title="Confira os timestamps">
+    Por padrão, o SDK rejeita assinaturas com mais de 5 minutos. Isso evita
+    ataques de replay.
   </Accordion>
   <Accordion title="Use HTTPS">
-    Always use HTTPS endpoints in production to encrypt webhook data in transit.
+    Sempre use endpoints HTTPS em produção para criptografar os dados do webhook
+    em trânsito.
   </Accordion>
 </AccordionGroup>
 
-## Testing webhooks
+## Testando webhooks
 
-You can send a test webhook from the dashboard to verify your endpoint is working correctly:
+Você pode enviar um webhook de teste pelo dashboard para verificar se o seu endpoint está funcionando corretamente:
 
-1. Go to [Webhooks](https://app.usesend.com/webhooks)
-2. Click on your webhook
-3. Click "Send Test" to send a test event
+1. Acesse [Webhooks](https://app.madmail.com.br/webhooks)
+2. Clique no seu webhook
+3. Clique em "Send Test" para enviar um evento de teste
 
-The test event will have type `webhook.test` with the following payload:
+O evento de teste terá o tipo `webhook.test` com o seguinte payload:
 
 ```json
 {
@@ -324,35 +325,35 @@ The test event will have type `webhook.test` with the following payload:
 }
 ```
 
-## Troubleshooting
+## Solução de problemas
 
 <AccordionGroup>
-  <Accordion title="Webhook not receiving events">
-    - Verify your endpoint URL is correct and publicly accessible - Check that
-    your endpoint returns a 2xx status code - Ensure the webhook is set to
-    ACTIVE status in the dashboard - Check if the webhook was auto-disabled due
-    to consecutive failures
+  <Accordion title="O webhook não está recebendo eventos">
+    - Confirme que a URL do endpoint está correta e acessível publicamente -
+    Verifique se o endpoint retorna um status 2xx - Garanta que o webhook está
+    com status ACTIVE no dashboard - Veja se o webhook foi desativado
+    automaticamente por falhas consecutivas
   </Accordion>
-  <Accordion title="Signature verification failing">
-    - Use the raw request body, not parsed JSON - Ensure you're using the
-    correct webhook secret - Check that the timestamp hasn't expired (5 minute
-    window) - Verify you're computing the HMAC correctly: `HMAC-SHA256(secret,
-    "${timestamp}.${rawBody}")`
+  <Accordion title="A verificação de assinatura está falhando">
+    - Use o corpo bruto da requisição, não o JSON já convertido - Confirme que
+    está usando o secret correto do webhook - Verifique se o timestamp não
+    expirou (janela de 5 minutos) - Confirme que está calculando o HMAC
+    corretamente: `HMAC-SHA256(secret, "${timestamp}.${rawBody}")`
   </Accordion>
-  <Accordion title="Webhook auto-disabled">
-    After 30 consecutive failed calls, webhooks are automatically disabled. Fix
-    the issue with your endpoint, then re-enable the webhook from the dashboard.
-    The failure counter resets on the next successful delivery.
+  <Accordion title="Webhook desativado automaticamente">
+    Depois de 30 chamadas falhas consecutivas, os webhooks são desativados
+    automaticamente. Corrija o problema no seu endpoint e reative o webhook pelo
+    dashboard. O contador de falhas é zerado na próxima entrega bem-sucedida.
   </Accordion>
 </AccordionGroup>
 
-## Event data details
+## Detalhes dos dados de evento
 
-This section documents the `data` field structure for each event type.
+Esta seção documenta a estrutura do campo `data` para cada tipo de evento.
 
-### Email events
+### Eventos de e-mail
 
-Most email events share a common base structure:
+A maioria dos eventos de e-mail compartilha uma estrutura base comum:
 
 ```typescript
 {
@@ -372,7 +373,7 @@ Most email events share a common base structure:
 
 #### email.bounced
 
-Includes additional bounce details:
+Inclui detalhes adicionais do bounce:
 
 ```typescript
 {
@@ -388,7 +389,7 @@ Includes additional bounce details:
 
 #### email.failed
 
-Includes failure reason:
+Inclui o motivo da falha:
 
 ```typescript
 {
@@ -401,7 +402,7 @@ Includes failure reason:
 
 #### email.suppressed
 
-Includes suppression details:
+Inclui detalhes da supressão:
 
 ```typescript
 {
@@ -416,7 +417,7 @@ Includes suppression details:
 
 #### email.opened
 
-Includes open tracking details:
+Inclui detalhes do rastreamento de abertura:
 
 ```typescript
 {
@@ -432,7 +433,7 @@ Includes open tracking details:
 
 #### email.clicked
 
-Includes click tracking details:
+Inclui detalhes do rastreamento de cliques:
 
 ```typescript
 {
@@ -447,9 +448,9 @@ Includes click tracking details:
 }
 ```
 
-### Contact events
+### Eventos de contato
 
-All contact events (`contact.created`, `contact.updated`, `contact.deleted`) include:
+Todos os eventos de contato (`contact.created`, `contact.updated`, `contact.deleted`) incluem:
 
 ```typescript
 {
@@ -465,9 +466,9 @@ All contact events (`contact.created`, `contact.updated`, `contact.deleted`) inc
 }
 ```
 
-### Domain events
+### Eventos de domínio
 
-All domain events (`domain.created`, `domain.verified`, `domain.updated`, `domain.deleted`) include:
+Todos os eventos de domínio (`domain.created`, `domain.verified`, `domain.updated`, `domain.deleted`) incluem:
 
 ```typescript
 {

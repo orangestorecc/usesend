@@ -1,29 +1,29 @@
 ---
-title: "Changelog"
-description: "Product updates and announcements from Madmail"
+title: "Novidades"
+description: "Atualizações e anúncios do produto Madmail"
 ---
 
-<Update label="March 2026" description="v1.9.0">
+<Update label="Março de 2026" description="v1.9.0">
 
-### Campaign Personalization with Contact Books
+### Personalização de campanhas com listas de contatos
 
-Campaigns now support contact-book variables for personalization, so you can tailor each message with richer subscriber data.
+As campanhas agora suportam variáveis vindas da lista de contatos, para você personalizar cada mensagem com dados mais ricos de cada inscrito.
 
-### Double Opt-In Customization
+### Personalização do double opt-in
 
-Double opt-in now supports customizable confirmation flows and copy, making it easier to match your onboarding experience and compliance requirements.
+O double opt-in agora permite personalizar o fluxo e os textos de confirmação, ficando mais fácil alinhar a experiência de boas-vindas e os requisitos de conformidade.
 
-### API and SDK Coverage
+### Cobertura na API e nos SDKs
 
-Contact book support has been expanded in the SDK, dashboard analytics is now available in both the public API and SDK, and a public endpoint to delete campaigns has been added.
+O suporte a listas de contatos foi ampliado no SDK, as análises do dashboard passaram a estar disponíveis na API pública e no SDK, e foi adicionado um endpoint público para excluir campanhas.
 
-### Webhook Filtering by Domain
+### Filtro de webhooks por domínio
 
-Webhooks now support multi-domain filtering, making it easier to route, monitor, and manage events across different projects.
+Os webhooks agora suportam filtro por múltiplos domínios, facilitando o roteamento, o monitoramento e a gestão de eventos entre projetos diferentes.
 
 </Update>
 
-<Update label="February 2025" description="v1.8.0">
+<Update label="Fevereiro de 2025" description="v1.8.0">
 
 <Frame>
   <img src="/images/changelog/webhook.png" alt="Schedule Campaigns" />
@@ -31,57 +31,57 @@ Webhooks now support multi-domain filtering, making it easier to route, monitor,
 
 ### Webhooks
 
-You can now receive real-time notifications for email events via webhooks. Configure webhook endpoints to track deliveries, bounces, complaints, and more. [Learn more](https://docs.usesend.com/guides/webhooks)
+Agora você pode receber notificações em tempo real de eventos de e-mail via webhooks. Configure endpoints de webhook para acompanhar entregas, bounces, reclamações e mais. [Saiba mais](https://docs.madmail.com.br/guides/webhooks)
 
-### Contact Books API
+### API de listas de contatos
 
-Manage your contact books programmatically with the new public API. Create, update, and organize contacts at scale.
+Gerencie suas listas de contatos de forma programática com a nova API pública. Crie, atualize e organize contatos em escala.
 
-### Idempotency Support
+### Suporte a idempotência
 
-API requests now support idempotency keys, ensuring safe retries without duplicate sends.
+As requisições da API agora aceitam chaves de idempotência, garantindo retentativas seguras sem envios duplicados.
 
-### Other improvements
+### Outras melhorias
 
-- Export contact books to CSV for offline use.
-- Security fixes for CVE-2025-55184 and CVE-2025-55183.
-- Various bug fixes and performance improvements.
+- Exporte listas de contatos em CSV para uso offline.
+- Correções de segurança para as CVE-2025-55184 e CVE-2025-55183.
+- Diversas correções de bugs e melhorias de performance.
 
 </Update>
 
-<Update label="October 2024" description="v1.7.0">
+<Update label="Outubro de 2024" description="v1.7.0">
 
 <Frame>
   <img src="/images/changelog/schedule-campaign.png" alt="Schedule Campaigns" />
 </Frame>
 
-### Schedule Campaigns
+### Agendamento de campanhas
 
-You can now Schedule campaigns with natural language like "tomorrow at 9am" or "next Monday at 10am".
+Agora você pode agendar campanhas usando linguagem natural, como "amanhã às 9h" ou "próxima segunda às 10h".
 
-### Campaigns API
+### API de campanhas
 
-We're doubling down on APIs. Now you can create, schedule campaign emails from API. check [API documentation](/api-reference/introduction)
+Estamos investindo cada vez mais nas APIs. Agora você pode criar e agendar e-mails de campanha pela API. Confira a [documentação da API](/api-reference/introduction)
 
-### Other improvements
+### Outras melhorias
 
-- Camapign Emails are now sent in batches instead of a burst of emails.
-- You can bulk upload large amounts of contacts without ui slowness.
-- Added delete domain API.
+- Os e-mails de campanha agora são enviados em lotes, em vez de uma rajada única.
+- Você pode importar grandes volumes de contatos sem lentidão na interface.
+- Adicionada a API de exclusão de domínio.
 
 </Update>
 
-<Update label="September 2024" description="v1.6.0">
+<Update label="Setembro de 2024" description="v1.6.0">
 <Frame>
-    <img src="https://usesend.com/hero-dark.webp" alt="Rebranded Madmail hero" />
+    <img src="https://www.madmail.com.br/hero-dark.webp" alt="Rebranded Madmail hero" />
 </Frame>
 
-### Suppression List
+### Lista de supressão
 
-Hard bounce and complained email addresses are automatically added to the suppression list. Works for both transactional and marketing emails.
+Endereços com hard bounce ou que marcaram o e-mail como spam são adicionados automaticamente à lista de supressão. Vale tanto para e-mails transacionais quanto de marketing.
 
-### Rebranding to Madmail
+### Rebranding para Madmail
 
-From now on we [Madmail](https://usesend.com). Make sure to update your docker image and sdks.
+A partir de agora somos [Madmail](https://www.madmail.com.br). Não se esqueça de atualizar sua imagem Docker e seus SDKs.
 
 </Update>

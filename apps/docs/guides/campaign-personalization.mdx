@@ -1,73 +1,74 @@
 ---
-title: Campaign Personalization
-description: "Use contact variables to personalize campaign content for each recipient"
+title: Personalização de campanhas
+description: "Use variáveis de contato para personalizar o conteúdo da campanha para cada destinatário"
 ---
 
-## Overview
+## Visão geral
 
-Campaign personalization lets you pull values from your contacts into campaign emails. You can use built-in fields like `{{firstName}}` and `{{email}}`, plus custom variables such as `{{company}}`, `{{plan}}`, or `{{registrationCode}}`.
+A personalização de campanhas permite trazer valores dos seus contatos para dentro dos e-mails. Você pode usar campos nativos como `{{firstName}}` e `{{email}}`, além de variáveis personalizadas como `{{company}}`, `{{plan}}` ou `{{registrationCode}}`.
 
-## How it works
+## Como funciona
 
 <Steps>
-  <Step title="Register variables on the contact book">
-    Add the custom variable names you want to use, such as `company` or `plan`,
-    on the contact book.
+  <Step title="Cadastre as variáveis na lista de contatos">
+    Adicione na lista de contatos os nomes das variáveis personalizadas que você
+    quer usar, como `company` ou `plan`.
   </Step>
-  <Step title="Store values on each contact">
-    Save the matching values on each contact through the dashboard, CSV import,
-    or API.
+  <Step title="Salve os valores em cada contato">
+    Guarde os valores correspondentes em cada contato pelo dashboard, por
+    importação de CSV ou pela API.
   </Step>
-  <Step title="Use variables in your campaign">
-    Select that contact book in your campaign and insert variables into the
-    subject or email content.
+  <Step title="Use as variáveis na campanha">
+    Selecione essa lista de contatos na sua campanha e insira as variáveis no
+    assunto ou no conteúdo do e-mail.
   </Step>
-  <Step title="Send the campaign">
-    Madmail replaces each variable with that contact's value when the campaign
-    is rendered.
+  <Step title="Envie a campanha">
+    O Madmail substitui cada variável pelo valor daquele contato na hora de
+    renderizar a campanha.
   </Step>
 </Steps>
 
-## Available variables
+## Variáveis disponíveis
 
-These built-in variables are always available in campaigns:
+Estas variáveis nativas estão sempre disponíveis nas campanhas:
 
 - `{{email}}`
 - `{{firstName}}`
 - `{{lastName}}`
 - `{{usesend_unsubscribe_url}}`
 
-Custom variables come from the contact book's variable list.
+As variáveis personalizadas vêm da lista de variáveis da lista de contatos.
 
-Every campaign must include an unsubscribe link. Use the recipient-specific
-`{{usesend_unsubscribe_url}}` variable as the link destination:
+Toda campanha precisa incluir um link de descadastro. Use a variável
+`{{usesend_unsubscribe_url}}`, específica para cada destinatário, como destino do link:
 
 ```html
 <a href="{{usesend_unsubscribe_url}}">Unsubscribe</a>
 ```
 
 <Warning>
-  Custom variables must be added to the contact book before they can be used in
-  a campaign. Variable names can only contain letters, numbers, and underscores.
+  As variáveis personalizadas precisam ser adicionadas à lista de contatos antes
+  de serem usadas em uma campanha. Os nomes de variáveis só podem conter letras,
+  números e underscores.
 </Warning>
 
-## Set up personalization in the dashboard
+## Configurar a personalização pelo dashboard
 
-### 1. Add variables to your contact book
+### 1. Adicione variáveis à sua lista de contatos
 
-1. Go to [Contacts](https://app.usesend.com/contacts)
-2. Create a new contact book or open an existing one
-3. Add your variables as a comma-separated list, for example:
+1. Acesse [Contatos](https://app.madmail.com.br/contacts)
+2. Crie uma nova lista de contatos ou abra uma existente
+3. Adicione suas variáveis como uma lista separada por vírgulas, por exemplo:
 
 ```text
 company, plan, registrationCode
 ```
 
-### 2. Add values to your contacts
+### 2. Adicione valores aos seus contatos
 
-For each contact, save values for the variables you registered.
+Para cada contato, salve os valores das variáveis que você cadastrou.
 
-For example, a contact might look like this:
+Por exemplo, um contato pode ficar assim:
 
 ```json
 {
@@ -82,19 +83,19 @@ For example, a contact might look like this:
 }
 ```
 
-You can add these values:
+Você pode adicionar esses valores:
 
-- manually from the contact editor
-- through CSV import using matching column names
-- through the Contacts API using `properties`
+- manualmente pelo editor de contatos
+- por importação de CSV, usando nomes de colunas correspondentes
+- pela API de Contatos, usando `properties`
 
-### 3. Insert variables in your campaign
+### 3. Insira as variáveis na sua campanha
 
-1. Open or create a campaign
-2. Select the contact book that contains your variables
-3. Insert variables into the subject or email body
+1. Abra ou crie uma campanha
+2. Selecione a lista de contatos que contém suas variáveis
+3. Insira as variáveis no assunto ou no corpo do e-mail
 
-Examples:
+Exemplos:
 
 ```text
 Subject: Welcome to {{company}}
@@ -105,25 +106,25 @@ You're currently on the {{plan}} plan.
 Your registration code is {{registrationCode}}.
 ```
 
-If a contact book is selected, the campaign editor will suggest the available
-variables automatically.
+Com uma lista de contatos selecionada, o editor de campanhas sugere
+automaticamente as variáveis disponíveis.
 
-## Fallback values
+## Valores padrão (fallback)
 
-If a variable might be empty, you can provide a fallback value:
+Se uma variável puder vir vazia, você pode definir um valor padrão:
 
 ```text
 Hi {{firstName,fallback=there}},
 ```
 
-This renders `there` when `firstName` is empty.
+Isso renderiza `there` quando `firstName` estiver vazio.
 
-## Using the API
+## Usando a API
 
-### Create a contact book with variables
+### Criar uma lista de contatos com variáveis
 
 ```bash
-curl -X POST https://app.usesend.com/api/v1/contactBooks \
+curl -X POST https://app.madmail.com.br/api/v1/contactBooks \
   -H "Authorization: Bearer us_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -132,10 +133,10 @@ curl -X POST https://app.usesend.com/api/v1/contactBooks \
   }'
 ```
 
-### Create a contact with variable values
+### Criar um contato com valores de variáveis
 
 ```bash
-curl -X POST https://app.usesend.com/api/v1/contactBooks/{contactBookId}/contacts \
+curl -X POST https://app.madmail.com.br/api/v1/contactBooks/{contactBookId}/contacts \
   -H "Authorization: Bearer us_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -149,10 +150,10 @@ curl -X POST https://app.usesend.com/api/v1/contactBooks/{contactBookId}/contact
   }'
 ```
 
-### Create a campaign that uses variables
+### Criar uma campanha que usa variáveis
 
 ```bash
-curl -X POST https://app.usesend.com/api/v1/campaigns \
+curl -X POST https://app.madmail.com.br/api/v1/campaigns \
   -H "Authorization: Bearer us_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -164,11 +165,11 @@ curl -X POST https://app.usesend.com/api/v1/campaigns \
   }'
 ```
 
-## Best practices
+## Boas práticas
 
-| Best practice                                | Why it helps                                                         |
-| -------------------------------------------- | -------------------------------------------------------------------- |
-| Register variables before importing contacts | Keeps CSV columns and API properties aligned with the contact book   |
-| Keep variable names simple                   | Makes templates easier to read and maintain                          |
-| Use fallbacks for optional data              | Prevents awkward empty spaces when a contact is missing a value      |
-| Test with a small segment first              | Helps you verify rendered output before sending to a larger audience |
+| Boa prática                                     | Por que ajuda                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------------- |
+| Cadastre as variáveis antes de importar contatos | Mantém as colunas do CSV e as properties da API alinhadas com a lista       |
+| Use nomes de variáveis simples                  | Deixa os templates mais fáceis de ler e manter                             |
+| Use fallbacks para dados opcionais              | Evita espaços vazios estranhos quando um contato não tem o valor           |
+| Teste primeiro com um grupo pequeno             | Ajuda a conferir o resultado renderizado antes de enviar para toda a base  |

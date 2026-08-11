@@ -1,34 +1,34 @@
 ---
-title: SMTP support
-description: "A guide to integrate Madmail with SMTP"
+title: Suporte a SMTP
+description: "Um guia para integrar o Madmail via SMTP"
 icon: envelope  
 ---
 
-## Prerequisites 
+## Pré-requisitos 
 
-You will need an API key and a verified domain to get the most out of this guide:
+Você vai precisar de uma API key e de um domínio verificado para aproveitar melhor este guia:
 
-- [API Key](https://app.usesend.com/dev-settings/api-keys)
-- [Verified Domain](https://app.usesend.com/domains)
+- [API Key](https://app.madmail.com.br/dev-settings/api-keys)
+- [Domínio verificado](https://app.madmail.com.br/domains)
 
-## SMTP credentials
+## Credenciais SMTP
 
-To set up your SMTP integration, you'll need to provide the following credentials:
+Para configurar sua integração SMTP, use as credenciais abaixo:
 
-- **Host:** ```smtp.usesend.com```
-- **Port:** ```465```, ```587```, ```2465```, or ```2587```
-- **Username:** ```usesend```
-- **Password:** ```YOUR-API-KEY```
+- **Host:** ```smtp.madmail.com.br```
+- **Porta:** ```465```, ```587```, ```2465``` ou ```2587```
+- **Usuário:** ```usesend```
+- **Senha:** ```SUA-API-KEY```
 
-## Example with Nodemailer
+## Exemplo com Nodemailer
 
-Following example with Nodemailer shows how you can send mails with SMTP support from Madmail and Nodemailer.
+O exemplo a seguir mostra como enviar e-mails pelo SMTP do Madmail usando o Nodemailer.
 
 ```javascript
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.usesend.com",
+  host: "smtp.madmail.com.br",
   port: 465,
   secure: false,
   auth: {
@@ -44,8 +44,8 @@ const mailOptions = {
   to: "sender@example.com",
   from: "hello@example.com",
   subject: "Testing SMTP",
-  html: "<strong>THIS IS USING SMTP,</strong><p>Madmail is the best open source sending platform<p><p>check out <a href='https://usesend.com'>usesend.com</a>",
-  text: "hello,\n\nMadmail is the best open source sending platform",
+  html: "<strong>THIS IS USING SMTP,</strong><p>Madmail is the best sending platform<p><p>check out <a href='https://www.madmail.com.br'>madmail.com.br</a>",
+  text: "hello,\n\nMadmail is the best sending platform",
 };
 
 transporter.sendMail(mailOptions, (error, info) => {
