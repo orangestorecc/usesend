@@ -84,7 +84,14 @@ if npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
   mkdir -p "$APP/apps/docs/site"
   unzip -q -o export.zip -d "$APP/apps/docs/site"
   rm -f export.zip
-  echo "  export: $(du -sh "$APP/apps/docs/site" | cut -f1)"
+
+  # A busca do export depende de um serviço do Mintlify (app.mintlify.com) e
+  # não há índice local, então o botão nunca responderia. Botão morto é pior
+  # que ausência de busca: escondemos por CSS.
+  find "$APP/apps/docs/site" -name '*.html' -print0 | xargs -0 -r sed -i \
+    's#</head>#<style>[aria-label="Open search"],[aria-label="Abrir busca"]{display:none !important}</style></head>#'
+
+  echo "  export: $(du -sh "$APP/apps/docs/site" | cut -f1) (busca ocultada)"
 else
   echo "  build da documentação falhou (o app segue no ar):"
   tail -10 "$LOGS/build-docs.log" | sed 's/^/    /'
