@@ -93,7 +93,9 @@ export default withSentryConfig(config, {
   // debug, que só serve em desenvolvimento.
   disableLogger: true,
 
-  // O `register()` de `instrumentation.ts` roda em toda inicialização; o
-  // Sentry não precisa instrumentar de novo o startup do Vercel Cron.
-  automaticVercelMonitors: false,
+  webpack: {
+    // O `register()` de `instrumentation.ts` roda em toda inicialização; o
+    // Sentry não precisa instrumentar de novo o startup do Vercel Cron.
+    automaticVercelMonitors: false,
+  },
 });
