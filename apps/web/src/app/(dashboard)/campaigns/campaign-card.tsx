@@ -61,7 +61,7 @@ export default function CampaignCard({ campaign }: CampaignCardProps) {
                 <div className="">
                   Em{" "}
                   <strong>
-                    {format(new Date(campaign.scheduledAt), "MMM do, hh:mm a")}
+                    {format(new Date(campaign.scheduledAt), "dd 'de' MMM, HH:mm")}
                   </strong>
                 </div>
               )

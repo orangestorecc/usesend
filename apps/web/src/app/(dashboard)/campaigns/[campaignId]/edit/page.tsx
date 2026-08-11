@@ -7,6 +7,7 @@ import { Input } from "@usesend/ui/src/input";
 import { Editor } from "@usesend/email-editor";
 import type { TiptapEditor } from "@usesend/email-editor";
 import { EditorToolbar } from "~/components/editor-toolbar";
+import { EmailHeaderBar } from "~/components/editor/EmailHeaderBar";
 import { use, useMemo, useState } from "react";
 import { Campaign } from "@prisma/client";
 import {
@@ -145,6 +146,26 @@ function CampaignEditor({
     1000,
   );
 
+  /**
+   * Salva um campo do cabeçalho. Se o servidor recusar, avisa e desfaz a
+   * mudança local — senão a tela mostraria um valor que não foi gravado.
+   */
+  function saveCampaignField(
+    data: Record<string, unknown>,
+    revert: () => void,
+  ) {
+    if (isApiCampaign) return;
+    updateCampaignMutation.mutate(
+      { campaignId: campaign.id, ...data } as never,
+      {
+        onError: (e) => {
+          toast.error(`${e.message}. Revertendo alterações.`);
+          revert();
+        },
+      },
+    );
+  }
+
   const handleFileChange = async (file: File) => {
     if (file.size > IMAGE_SIZE_LIMIT) {
       throw new Error(
@@ -220,7 +241,7 @@ function CampaignEditor({
               ) : (
                 <div className="h-2 w-2 bg-emerald-500 rounded-full" />
               )}
-              {formatDistanceToNow(campaign.updatedAt) === "less than a minute"
+              {Date.now() - new Date(campaign.updatedAt).getTime() < 60_000
                 ? "agora mesmo"
                 : `há ${formatDistanceToNow(campaign.updatedAt)}`}
             </div>
@@ -445,25 +466,62 @@ function CampaignEditor({
             atualizado via API.
           </p>
         ) : (
-          <div className=" rounded-lg bg-gray-50 w-[700px] mx-auto p-10">
-            <div className="w-[600px] mx-auto">
-              <EditorToolbar editor={editorInstance} />
-              <Editor
-                key={`campaign-editor-${contactBookId ?? "none"}-${editorVariables.join(",")}`}
-                initialContent={json}
-                onCreate={(ed) => setEditorInstance(ed)}
-                onUpdate={(content) => {
-                  setJson(content.getJSON());
-                  setIsSaving(true);
-                  deboucedUpdateCampaign();
-                }}
-                variables={editorVariables}
-                variableSuggestionsHelperText={variableSuggestionsHelperText}
-                uploadImage={
-                  campaign.imageUploadSupported ? handleFileChange : undefined
-                }
-              />
-            </div>
+          <div className="rounded-lg border bg-gray-50">
+            <Editor
+              key={`campaign-editor-${contactBookId ?? "none"}-${editorVariables.join(",")}`}
+              showBlockPalette
+              showPropertiesPanel
+              header={
+                <EmailHeaderBar
+                  from={{
+                    value: from,
+                    onChange: (v) => {
+                      setFrom(v);
+                      saveCampaignField({ from: v }, () => setFrom(campaign.from));
+                    },
+                  }}
+                  replyTo={{
+                    value: replyTo ?? "",
+                    onChange: (v) => {
+                      setReplyTo(v);
+                      saveCampaignField({ replyTo: v ? [v] : [] }, () =>
+                        setReplyTo(campaign.replyTo[0]),
+                      );
+                    },
+                  }}
+                  subject={{
+                    value: subject,
+                    onChange: (v) => {
+                      setSubject(v);
+                      saveCampaignField({ subject: v }, () =>
+                        setSubject(campaign.subject),
+                      );
+                    },
+                  }}
+                  previewText={{
+                    value: previewText ?? "",
+                    onChange: (v) => {
+                      setPreviewText(v);
+                      saveCampaignField({ previewText: v }, () =>
+                        setPreviewText(campaign.previewText),
+                      );
+                    },
+                  }}
+                />
+              }
+              initialContent={json}
+              onCreate={(ed) => setEditorInstance(ed)}
+              onUpdate={(content) => {
+                setJson(content.getJSON());
+                setIsSaving(true);
+                deboucedUpdateCampaign();
+              }}
+              variables={editorVariables}
+              variableSuggestionsHelperText={variableSuggestionsHelperText}
+              uploadImage={
+                campaign.imageUploadSupported ? handleFileChange : undefined
+              }
+            />
           </div>
         )}
       </div>

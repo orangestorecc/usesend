@@ -4,6 +4,7 @@ import { api } from "~/trpc/react";
 import { Spinner } from "@usesend/ui/src/spinner";
 import { Input } from "@usesend/ui/src/input";
 import { Editor } from "@usesend/email-editor";
+import { EmailHeaderBar } from "~/components/editor/EmailHeaderBar";
 import { useState } from "react";
 import { Template } from "@prisma/client";
 import { toast } from "@usesend/ui/src/toaster";
@@ -156,61 +157,48 @@ function TemplateEditor({
               ) : (
                 <div className="h-2 w-2 bg-green rounded-full" />
               )}
-              {formatDistanceToNow(template.updatedAt) === "less than a minute"
+              {Date.now() - new Date(template.updatedAt).getTime() < 60_000
                 ? "agora mesmo"
                 : `há ${formatDistanceToNow(template.updatedAt)}`}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col mt-4 mb-4 p-4 w-full sm:w-[700px] mx-auto z-50">
-          <div className="flex items-center gap-4">
-            <label className="block text-sm  w-[80px] text-muted-foreground">
-              Assunto
-            </label>
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => {
-                setSubject(e.target.value);
-              }}
-              onBlur={() => {
-                if (subject === template.subject || !subject) {
-                  return;
-                }
-                updateTemplateMutation.mutate(
-                  {
-                    templateId: template.id,
-                    subject,
+        <div className="rounded-lg border bg-gray-50">
+          <Editor
+            showBlockPalette
+            showPropertiesPanel
+            header={
+              <EmailHeaderBar
+                subject={{
+                  value: subject,
+                  onChange: (v) => {
+                    setSubject(v);
+                    if (!v || v === template.subject) return;
+                    updateTemplateMutation.mutate(
+                      { templateId: template.id, subject: v },
+                      {
+                        onError: (e) => {
+                          toast.error(`${e.message}. Revertendo alterações.`);
+                          setSubject(template.subject);
+                        },
+                      },
+                    );
                   },
-                  {
-                    onError: (e) => {
-                      toast.error(`${e.message}. Revertendo alterações.`);
-                      setSubject(template.subject);
-                    },
-                  },
-                );
-              }}
-              className="mt-1 py-1 text-sm block w-full outline-none border-b border-transparent  focus:border-border bg-transparent"
-            />
-          </div>
-        </div>
-
-        <div className=" rounded-lg bg-gray-50 w-full sm:w-[700px] mx-auto p-4 sm:p-10">
-          <div className="w-full sm:w-[600px] mx-auto">
-            <Editor
-              initialContent={json}
-              onUpdate={(content) => {
-                setJson(content.getJSON());
-                setIsSaving(true);
-                deboucedUpdateTemplate();
-              }}
-              variables={["email", "firstName", "lastName"]}
-              uploadImage={
-                template.imageUploadSupported ? handleFileChange : undefined
-              }
-            />
-          </div>
+                }}
+              />
+            }
+            initialContent={json}
+            onUpdate={(content) => {
+              setJson(content.getJSON());
+              setIsSaving(true);
+              deboucedUpdateTemplate();
+            }}
+            variables={["email", "firstName", "lastName"]}
+            uploadImage={
+              template.imageUploadSupported ? handleFileChange : undefined
+            }
+          />
         </div>
       </div>
     </div>

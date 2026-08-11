@@ -243,7 +243,7 @@ export const ScheduleCampaign: React.FC<{
               <div className="font-mono mt-4 rounded p-2 text-primary border border-border text-sm">
                 {selectedDate ? (
                   <span className="">
-                    {format(selectedDate, "MMMM do, h:mm a")}
+                    {format(selectedDate, "dd 'de' MMMM, HH:mm")}
                   </span>
                 ) : (
                   <span className="">Nenhuma data selecionada</span>
