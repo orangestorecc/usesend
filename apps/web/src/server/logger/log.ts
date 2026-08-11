@@ -3,6 +3,8 @@ import pino from "pino";
 import pinoPretty from "pino-pretty";
 import { AsyncLocalStorage } from "node:async_hooks";
 
+import { logMethodComSentry } from "./sentry-bridge";
+
 const isDev = process.env.NODE_ENV !== "production";
 
 type Store = { logger: pino.Logger }; // what we stash per request
@@ -12,6 +14,8 @@ export const rootLogger = pino(
   {
     level: process.env.LOG_LEVEL ?? (isDev ? "debug" : "info"),
     base: { service: "next-app" },
+    // Espelha error/fatal no Sentry. Herdado por todo child logger.
+    hooks: { logMethod: logMethodComSentry },
   },
   isDev
     ? pinoPretty({

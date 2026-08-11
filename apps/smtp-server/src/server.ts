@@ -4,8 +4,12 @@ import dotenv from "dotenv";
 import { simpleParser } from "mailparser";
 import { readFileSync, watch, FSWatcher } from "fs";
 import { extractForwardedHeaders } from "./email-headers";
+import { drenar, iniciarSentry, reportar } from "./sentry";
 
 dotenv.config();
+
+// Depois do `dotenv.config()`, senão o SENTRY_DSN do .env ainda não existe.
+iniciarSentry();
 
 const AUTH_USERNAME = process.env.SMTP_AUTH_USERNAME ?? "usesend";
 const BASE_URL =
@@ -49,6 +53,10 @@ async function sendEmailToUseSend(emailData: any, apiKey: string) {
     const responseData = await response.json();
     console.log("useSend API response:", responseData);
   } catch (error) {
+    // Falha ao repassar para a API é o modo de falha que mais dói: o cliente
+    // acha que entregou o email e ele nunca saiu.
+    reportar(error, { etapa: "encaminhar-para-api", baseUrl: BASE_URL });
+
     if (error instanceof Error) {
       console.error("Error message:", error.message);
       throw new Error(`Failed to send email: ${error.message}`);
@@ -81,6 +89,7 @@ const serverOptions: SMTPServerOptions = {
     simpleParser(stream, (err, parsed) => {
       if (err) {
         console.error("Failed to parse email data:", err.message);
+        reportar(err, { etapa: "parse-email", remoteAddress: session.remoteAddress });
         return callback(err);
       }
 
@@ -156,6 +165,7 @@ function startServers() {
 
       server.on("error", (err) => {
         console.error(`Error occurred on port ${port}:`, err);
+        reportar(err, { etapa: "servidor-smtp", port, modo: "implicit-tls" });
       });
 
       servers.push(server);
@@ -172,6 +182,7 @@ function startServers() {
 
     server.on("error", (err) => {
       console.error(`Error occurred on port ${port}:`, err);
+      reportar(err, { etapa: "servidor-smtp", port, modo: "starttls" });
     });
 
     servers.push(server);
@@ -186,7 +197,10 @@ function startServers() {
           console.log("TLS certificates reloaded");
         }
       } catch (err) {
+        // Certificado que para de recarregar vira expiração silenciosa dias
+        // depois; queremos saber na primeira falha.
         console.error("Failed to reload TLS certificates", err);
+        reportar(err, { etapa: "recarregar-certificado" });
       }
     };
 
@@ -203,7 +217,8 @@ function shutdown() {
   console.log("Shutting down SMTP server...");
   watchers.forEach((w) => w.close());
   servers.forEach((s) => s.close());
-  process.exit(0);
+  // Dá ao Sentry a chance de despachar o que ficou na fila antes de sair.
+  drenar().finally(() => process.exit(0));
 }
 
 ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((signal) => {

@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@sentry/node": "^10.70.0",
     "@types/mailparser": "^3.4.5",
     "@types/smtp-server": "^3.5.10",
     "dotenv": "^16.5.0",

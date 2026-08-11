@@ -4,6 +4,8 @@
  */
 await import("./src/env.js");
 
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import("next").NextConfig} */
 const config = {
   output: process.env.DOCKER_OUTPUT ? "standalone" : undefined,
@@ -57,4 +59,41 @@ const config = {
   },
 };
 
-export default config;
+/**
+ * O plugin do Sentry injeta a instrumentação no build e, quando há
+ * `SENTRY_AUTH_TOKEN`, sobe os sourcemaps para que o stack trace em produção
+ * apareça legível em vez de minificado.
+ *
+ * Sem DSN configurado o wrapper é inócuo, então o build de quem roda self-host
+ * sem Sentry segue idêntico.
+ */
+const uploadSourcemaps = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+);
+
+export default withSentryConfig(config, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  silent: !process.env.CI,
+  telemetry: false,
+
+  sourcemaps: {
+    disable: !uploadSourcemaps,
+    // Sourcemap publicado deixa o código-fonte do app aberto no browser.
+    deleteSourcemapsAfterUpload: true,
+  },
+
+  // Faz o tunelamento dos eventos do browser por uma rota do próprio app, para
+  // que bloqueador de anúncio não engula o relatório de erro.
+  tunnelRoute: "/monitoring",
+
+  // Corta o SDK de erro do lado do cliente pela metade removendo o código de
+  // debug, que só serve em desenvolvimento.
+  disableLogger: true,
+
+  // O `register()` de `instrumentation.ts` roda em toda inicialização; o
+  // Sentry não precisa instrumentar de novo o startup do Vercel Cron.
+  automaticVercelMonitors: false,
+});

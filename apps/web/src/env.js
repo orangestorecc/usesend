@@ -81,6 +81,19 @@ export const env = createEnv({
     PAYMENTS_SANDBOX: z.string().optional(),
     PAYMENTS_WEBHOOK_TOKEN: z.string().optional(),
     PAYMENT_LOG_RETENTION_DAYS: z.string().optional(),
+
+    /**
+     * Sentry. Tudo opcional: sem `SENTRY_DSN` o SDK não inicializa e a
+     * aplicação roda exatamente como antes — importante para quem faz
+     * self-host e não quer telemetria externa.
+     */
+    SENTRY_DSN: z.string().url().optional(),
+    SENTRY_ENVIRONMENT: z.string().optional(),
+    SENTRY_TRACES_SAMPLE_RATE: z.string().optional(),
+    /** Usados só no build, para subir os sourcemaps. */
+    SENTRY_ORG: z.string().optional(),
+    SENTRY_PROJECT: z.string().optional(),
+    SENTRY_AUTH_TOKEN: z.string().optional(),
   },
 
   /**
@@ -96,6 +109,11 @@ export const env = createEnv({
       .transform((str) => str === "true"),
     NEXT_PUBLIC_APP_VERSION: z.string().optional(),
     NEXT_PUBLIC_GIT_SHA: z.string().optional(),
+
+    /** DSN do browser. Pode ser o mesmo do servidor; é público por natureza. */
+    NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+    NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().optional(),
+    NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: z.string().optional(),
   },
 
   /**
@@ -149,6 +167,16 @@ export const env = createEnv({
     PAYMENTS_SANDBOX: process.env.PAYMENTS_SANDBOX,
     PAYMENTS_WEBHOOK_TOKEN: process.env.PAYMENTS_WEBHOOK_TOKEN,
     PAYMENT_LOG_RETENTION_DAYS: process.env.PAYMENT_LOG_RETENTION_DAYS,
+    SENTRY_DSN: process.env.SENTRY_DSN,
+    SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT,
+    SENTRY_TRACES_SAMPLE_RATE: process.env.SENTRY_TRACES_SAMPLE_RATE,
+    SENTRY_ORG: process.env.SENTRY_ORG,
+    SENTRY_PROJECT: process.env.SENTRY_PROJECT,
+    SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
+    NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE:
+      process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

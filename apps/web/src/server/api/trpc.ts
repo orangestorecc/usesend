@@ -7,6 +7,7 @@
  * need to use are documented accordingly near the end.
  */
 
+import * as Sentry from "@sentry/nextjs";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { z, ZodError } from "zod";
@@ -15,6 +16,7 @@ import { env } from "~/env";
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
 import { getChildLogger, logger, withLogger } from "../logger/log";
+import { criarSentryMiddleware } from "./sentry-middleware";
 import { randomUUID } from "crypto";
 
 /**
@@ -88,7 +90,7 @@ export const createTRPCRouter = t.router;
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure;
+export const publicProcedure = t.procedure.use(criarSentryMiddleware() as any);
 
 /**
  * Authenticated (session-required) procedure
@@ -96,7 +98,7 @@ export const publicProcedure = t.procedure;
  * Ensures a session exists but does not enforce waitlist status. Useful for flows where waitlisted
  * users should still have access (e.g., waitlist management).
  */
-export const authedProcedure = t.procedure.use(({ ctx, next }) => {
+export const authedProcedure = publicProcedure.use(({ ctx, next }) => {
   if (!ctx.session || !ctx.session.user) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
@@ -134,10 +136,16 @@ export const teamProcedure = protectedProcedure.use(async ({ ctx, next }) => {
     throw new TRPCError({ code: "NOT_FOUND", message: "Time não encontrado" });
   }
 
+  const requestId = randomUUID();
+
+  // Dá ao Sentry o mesmo recorte que o log tem: qual time e qual request.
+  Sentry.setTag("teamId", String(teamUser.team.id));
+  Sentry.setTag("requestId", requestId);
+
   return withLogger(
     getChildLogger({
       teamId: teamUser.team.id,
-      requestId: randomUUID(),
+      requestId,
     }),
     async () => {
       return next({
