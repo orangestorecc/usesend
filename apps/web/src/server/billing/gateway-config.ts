@@ -22,10 +22,98 @@ export type RedeConfig = {
    * habilita conscientemente (juros/prazo de repasse mudam por parcela).
    */
   installments?: string;
+  /** Juros por parcela: "2:1.99,3:1.99" (parcelas : % ao mês). */
+  installmentRates?: string;
 };
 
 /** Número máximo de parcelas ofertável. */
 export const MAX_INSTALLMENTS = 12;
+
+/**
+ * Juros por parcela, no formato "2:1.99;3:1.99;6:2.5" — parcelas : taxa ao
+ * mês em %. Parcela sem entrada na lista é sem juros.
+ *
+ * O separador é ponto e vírgula, não vírgula: em pt-BR a vírgula é decimal, e
+ * "2:1,99" seria lido como 1% em vez de 1,99% — cobrança errada e silenciosa.
+ */
+export function parseInstallmentRates(raw?: string): Record<number, number> {
+  const mapa: Record<number, number> = {};
+  if (!raw) return mapa;
+  for (const par of raw.split(";")) {
+    const [n, taxa] = par.split(":").map((s) => s.trim());
+    const parcelas = Number(n);
+    const juros = Number(String(taxa).replace(",", "."));
+    if (
+      Number.isInteger(parcelas) &&
+      parcelas > 1 &&
+      parcelas <= MAX_INSTALLMENTS &&
+      Number.isFinite(juros) &&
+      juros > 0
+    ) {
+      mapa[parcelas] = juros;
+    }
+  }
+  return mapa;
+}
+
+export function serializeInstallmentRates(
+  mapa: Record<number, number>,
+): string {
+  return Object.entries(mapa)
+    .filter(([, taxa]) => Number(taxa) > 0)
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
+    .map(([n, taxa]) => `${n}:${taxa}`)
+    .join(";");
+}
+
+export type InstallmentOption = {
+  parcelas: number;
+  /** Juros ao mês aplicado (0 = sem juros). */
+  jurosAoMes: number;
+  /** Valor de cada parcela, em centavos. */
+  valorParcelaCents: number;
+  /** Total a pagar, em centavos. */
+  totalCents: number;
+  semJuros: boolean;
+};
+
+/**
+ * Calcula o valor das parcelas pela Tabela Price, que é como o mercado
+ * brasileiro expressa juros de cartão ("1,99% a.m.").
+ *
+ *   parcela = PV × i / (1 − (1+i)^−n)
+ *
+ * Sem juros, divide o total igualmente e joga a sobra de centavos na
+ * primeira parcela — senão a soma das parcelas não fecha com o total.
+ */
+export function calcularParcela(
+  amountCents: number,
+  parcelas: number,
+  jurosAoMesPercent: number,
+): InstallmentOption {
+  if (parcelas <= 1 || jurosAoMesPercent <= 0) {
+    const valor = Math.round(amountCents / parcelas);
+    return {
+      parcelas,
+      jurosAoMes: 0,
+      valorParcelaCents: valor,
+      totalCents: amountCents,
+      semJuros: true,
+    };
+  }
+
+  const i = jurosAoMesPercent / 100;
+  const fator = i / (1 - Math.pow(1 + i, -parcelas));
+  const valorParcela = Math.round(amountCents * fator);
+
+  return {
+    parcelas,
+    jurosAoMes: jurosAoMesPercent,
+    valorParcelaCents: valorParcela,
+    totalCents: valorParcela * parcelas,
+    semJuros: false,
+  };
+}
 
 /**
  * Lê as parcelas habilitadas da config. Sempre inclui 1x (à vista não pode ser

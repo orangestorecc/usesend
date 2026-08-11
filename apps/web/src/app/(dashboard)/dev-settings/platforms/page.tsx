@@ -2,6 +2,7 @@
 
 import AddPlatform from "./add-platform";
 import PlatformList from "./platform-list";
+import { CatalogoPlataformas } from "./catalog";
 
 export default function PlatformsPage() {
   return (
@@ -10,14 +11,16 @@ export default function PlatformsPage() {
         <div>
           <h2 className="text-base font-semibold">Plataformas</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Conecte plataformas externas (e-commerce, analytics) e importe
-            clientes como contatos automaticamente. A primeira integração puxa
-            os clientes da OrangeStore e sincroniza no intervalo escolhido.
+            Conecte sua loja para importar clientes como contatos
+            automaticamente, e mantenha a base sincronizada no intervalo que
+            você escolher.
           </p>
         </div>
         <AddPlatform />
       </div>
+
       <PlatformList />
+      <CatalogoPlataformas />
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { db } from "~/server/db";
 import {
   createCheckout,
   getEnabledInstallments,
+  getInstallmentOptions,
+  resolveAmount,
 } from "~/server/billing/payment-service";
 
 const cardSchema = z.object({
@@ -66,6 +68,23 @@ export const paymentsRouter = createTRPCRouter({
   installmentOptions: teamProcedure.query(async () => {
     return getEnabledInstallments();
   }),
+
+  /**
+   * Parcelas com juros já calculados para o plano escolhido — é o que o
+   * checkout exibe e o que será cobrado.
+   */
+  installmentPlan: teamProcedure
+    .input(
+      z.object({
+        product: z.enum(["transactional", "marketing"]),
+        planKey: z.string(),
+        promoCode: z.string().optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { amountCents } = await resolveAmount(input);
+      return getInstallmentOptions(amountCents);
+    }),
 
   paymentMethods: teamProcedure.query(async ({ ctx }) => {
     return db.paymentMethod.findMany({

@@ -59,8 +59,6 @@ function CheckoutInner() {
   const [cardHolder, setCardHolder] = useState("");
   const [saveCard, setSaveCard] = useState(true);
   const [installments, setInstallments] = useState(1);
-  const { data: installmentOptions } =
-    api.payments.installmentOptions.useQuery();
 
   // Resultado pendente (PIX / boleto)
   const [chargeId, setChargeId] = useState<string | null>(null);
@@ -72,6 +70,20 @@ function CheckoutInner() {
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<Promo | null>(null);
   const validatePromo = api.promoCode.validate.useMutation();
+
+  // Parcelas com juros já calculados no servidor. Depende do cupom: o desconto
+  // muda a base do cálculo.
+  const { data: installmentOptions } = api.payments.installmentPlan.useQuery(
+    {
+      product,
+      planKey: plan?.key ?? "",
+      promoCode: promo?.code,
+    },
+    { enabled: Boolean(plan?.key) },
+  );
+  const opcaoEscolhida = installmentOptions?.find(
+    (o) => o.parcelas === installments,
+  );
 
   const checkout = api.payments.checkout.useMutation();
 
@@ -435,13 +447,23 @@ function CheckoutInner() {
                             setInstallments(Number(e.target.value))
                           }
                         >
-                          {installmentOptions.map((n) => (
-                            <option key={n} value={n}>
-                              {n}x de {brl(total / n)}
-                              {n === 1 ? " (à vista)" : " sem juros"}
+                          {installmentOptions.map((o) => (
+                            <option key={o.parcelas} value={o.parcelas}>
+                              {o.parcelas}x de {brl(o.valorParcelaCents / 100)}
+                              {o.parcelas === 1
+                                ? " à vista"
+                                : o.semJuros
+                                  ? " sem juros"
+                                  : ` com juros — total ${brl(o.totalCents / 100)}`}
                             </option>
                           ))}
                         </select>
+                        {opcaoEscolhida && !opcaoEscolhida.semJuros ? (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Juros de {opcaoEscolhida.jurosAoMes}% ao mês. Você
+                            paga {brl(opcaoEscolhida.totalCents / 100)} no total.
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                     <label className="flex items-center gap-2 text-sm text-muted-foreground">

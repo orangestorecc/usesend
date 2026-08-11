@@ -6,12 +6,31 @@ import {
 } from "~/lib/constants/plan-catalog";
 import * as rede from "./rede";
 import * as inter from "./inter";
-import { getGatewayConfig, parseInstallments } from "./gateway-config";
+import {
+  getGatewayConfig,
+  parseInstallments,
+  parseInstallmentRates,
+  calcularParcela,
+  type InstallmentOption,
+} from "./gateway-config";
 
 /** Parcelas habilitadas hoje pelo admin (1x sempre ativa). */
 export async function getEnabledInstallments(): Promise<number[]> {
   const row = await getGatewayConfig("rede");
   return parseInstallments(row?.config.installments);
+}
+
+/**
+ * Opções de parcelamento já com juros calculados, para o checkout exibir.
+ * O valor cobrado é o `totalCents` da opção escolhida — não o preço do plano.
+ */
+export async function getInstallmentOptions(
+  amountCents: number,
+): Promise<InstallmentOption[]> {
+  const row = await getGatewayConfig("rede");
+  const habilitadas = parseInstallments(row?.config.installments);
+  const taxas = parseInstallmentRates(row?.config.installmentRates);
+  return habilitadas.map((n) => calcularParcela(amountCents, n, taxas[n] ?? 0));
 }
 
 export type Product = "transactional" | "marketing";
@@ -261,12 +280,19 @@ export async function createCheckout(
       );
     }
 
+    // Com juros, o valor cobrado é o total parcelado — não o preço do plano.
+    // O cálculo é refeito aqui no servidor de propósito: confiar no que o
+    // navegador mandou permitiria pagar menos escolhendo outra parcela.
+    const opcoes = await getInstallmentOptions(amountCents);
+    const opcao = opcoes.find((o) => o.parcelas === installments);
+    const totalCobrado = opcao?.totalCents ?? amountCents;
+
     const charge = await db.charge.create({
       data: {
         teamId: input.teamId,
         method: "card",
         provider: "rede",
-        amountCents,
+        amountCents: totalCobrado,
         status: "pending",
         planKey: input.planKey,
         product: input.product,
@@ -276,7 +302,7 @@ export async function createCheckout(
 
     const result = input.cardToken
       ? await rede.chargeWithToken({
-          amountCents,
+          amountCents: totalCobrado,
           reference: charge.id,
           cardToken: input.cardToken,
           installments,
@@ -284,7 +310,7 @@ export async function createCheckout(
           softDescriptor: "MADMAIL",
         })
       : await rede.chargeWithCard({
-          amountCents,
+          amountCents: totalCobrado,
           reference: charge.id,
           installments,
           softDescriptor: "MADMAIL",

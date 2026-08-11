@@ -162,9 +162,13 @@ function FileField({
 function InstallmentsField({
   value,
   onChange,
+  rates,
+  onRatesChange,
 }: {
   value: string;
   onChange: (v: string) => void;
+  rates: string;
+  onRatesChange: (v: string) => void;
 }) {
   const enabled = new Set(
     (value || "1")
@@ -210,6 +214,79 @@ function InstallmentsField({
             </button>
           );
         })}
+      </div>
+
+      <JurosPorParcela
+        parcelas={[...enabled].filter((n) => n > 1).sort((a, b) => a - b)}
+        value={rates}
+        onChange={onRatesChange}
+      />
+    </div>
+  );
+}
+
+/** Lê "2:1.99,3:2.5" em um mapa de parcelas para juros ao mês. */
+function parseRates(raw: string): Record<number, string> {
+  const mapa: Record<number, string> = {};
+  for (const par of (raw || "").split(";")) {
+    const [n, taxa] = par.split(":");
+    if (n && taxa) mapa[Number(n)] = taxa.trim();
+  }
+  return mapa;
+}
+
+/**
+ * Juros por parcela, em % ao mês — como o mercado brasileiro expressa. O
+ * checkout calcula pela Tabela Price e cobra o total resultante.
+ */
+function JurosPorParcela({
+  parcelas,
+  value,
+  onChange,
+}: {
+  parcelas: number[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const mapa = parseRates(value);
+
+  const set = (n: number, taxa: string) => {
+    const novo = { ...mapa };
+    const limpo = taxa.replace(",", ".").trim();
+    if (!limpo || Number(limpo) <= 0) delete novo[n];
+    else novo[n] = limpo;
+    onChange(
+      Object.entries(novo)
+        .sort((a, b) => Number(a[0]) - Number(b[0]))
+        .map(([k, v]) => `${k}:${v}`)
+        .join(";"),
+    );
+  };
+
+  if (parcelas.length === 0) return null;
+
+  return (
+    <div className="mt-4 rounded-lg border bg-muted/20 p-3">
+      <Label className="text-xs">Juros por parcela (% ao mês)</Label>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Deixe vazio para parcelar sem juros. O cálculo usa a Tabela Price, e o
+        cliente vê o valor da parcela e o total antes de confirmar.
+      </p>
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {parcelas.map((n) => (
+          <div key={n} className="flex items-center gap-1.5">
+            <span className="w-7 shrink-0 text-xs text-muted-foreground">
+              {n}x
+            </span>
+            <Input
+              className="h-8 text-xs"
+              placeholder="0"
+              inputMode="decimal"
+              defaultValue={mapa[n] ?? ""}
+              onBlur={(e) => set(n, e.target.value)}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -335,6 +412,10 @@ function GatewayCard({
           <InstallmentsField
             value={values.installments ?? "1"}
             onChange={(v) => setValues({ ...values, installments: v })}
+            rates={values.installmentRates ?? ""}
+            onRatesChange={(v) =>
+              setValues({ ...values, installmentRates: v })
+            }
           />
         ) : null}
 
