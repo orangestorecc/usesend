@@ -91,8 +91,20 @@ else
 fi
 cd "$APP"
 
+log "Servidor MCP"
+# Fica fora do workspace pnpm e roda com tsx (sem etapa de build), por isso
+# instala com npm e SEM --omit=dev: o tsx é uma devDependency.
+cd "$APP/mcp"
+if npm install --no-audit --no-fund > "$LOGS/build-mcp.log" 2>&1; then
+  echo "  dependências ok"
+else
+  echo "  instalação do MCP falhou (os outros serviços seguem):"
+  tail -8 "$LOGS/build-mcp.log" | sed 's/^/    /'
+fi
+cd "$APP"
+
 log "Reiniciando os serviços"
-sudo supervisorctl restart madmail-web madmail-site madmail-docs
+sudo supervisorctl restart madmail-web madmail-site madmail-docs madmail-mcp
 
 log "Verificando"
 for i in $(seq 1 45); do
@@ -111,6 +123,8 @@ curl -sf --max-time 5 http://127.0.0.1:3001/ >/dev/null 2>&1 \
   && echo "  site respondendo" || echo "  site NAO respondeu"
 curl -sf --max-time 5 http://127.0.0.1:3002/ >/dev/null 2>&1 \
   && echo "  documentação respondendo" || echo "  documentação NAO respondeu"
+curl -sf --max-time 5 http://127.0.0.1:8787/health >/dev/null 2>&1 \
+  && echo "  MCP respondendo" || echo "  MCP NAO respondeu"
 
 sudo supervisorctl status | sed 's/^/  /'
 echo

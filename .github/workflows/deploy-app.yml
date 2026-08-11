@@ -8,6 +8,8 @@ on:
     paths:
       - "apps/web/**"
       - "apps/marketing/**"
+      - "apps/docs/**"
+      - "mcp/**"
       - "packages/**"
       - "infra/deploy.sh"
       - "package.json"
