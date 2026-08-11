@@ -11,7 +11,7 @@ dotenv.config();
 // Depois do `dotenv.config()`, senão o SENTRY_DSN do .env ainda não existe.
 iniciarSentry();
 
-const AUTH_USERNAME = process.env.SMTP_AUTH_USERNAME ?? "usesend";
+const AUTH_USERNAME = process.env.SMTP_AUTH_USERNAME ?? "madmail";
 const BASE_URL =
   process.env.USESEND_BASE_URL ??
   process.env.UNSEND_BASE_URL ??

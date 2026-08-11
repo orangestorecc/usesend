@@ -154,7 +154,7 @@ export function EditWebhookDialog({
                     <FormLabel>URL do endpoint</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="https://example.com/webhooks/usesend"
+                        placeholder="https://example.com/webhooks/madmail"
                         {...field}
                       />
                     </FormControl>

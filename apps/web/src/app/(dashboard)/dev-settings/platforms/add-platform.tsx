@@ -119,7 +119,7 @@ export default function AddPlatform() {
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex.: Bicisport"
+              placeholder="Ex.: Minha Loja"
             />
           </div>
 
@@ -128,7 +128,7 @@ export default function AddPlatform() {
             <Input
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="https://bicisport.api.orangestore.cc"
+              placeholder="https://sualoja.api.orangestore.cc"
             />
           </div>
 

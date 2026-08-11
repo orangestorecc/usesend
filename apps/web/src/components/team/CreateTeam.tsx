@@ -55,8 +55,12 @@ export default function CreateTeam() {
     <div className="flex items-center justify-center min-h-screen ">
       <div className=" w-[400px] flex flex-col gap-8">
         <JoinTeam showCreateTeam />
-        <div>
-          <h1 className=" font-semibold text-center">Criar time</h1>
+        <div className="space-y-2 text-center">
+          <h1 className="text-xl font-semibold">Como se chama o seu negócio?</h1>
+          <p className="text-sm text-muted-foreground">
+            Esse nome identifica sua conta no Madmail e aparece para quem você
+            convidar depois. Use o nome da sua empresa ou marca.
+          </p>
         </div>
         <Form {...form}>
           <form
@@ -70,7 +74,7 @@ export default function CreateTeam() {
                 <FormItem>
                   <FormControl>
                     <Input
-                      placeholder="Nome do time"
+                      placeholder="Ex: Loja do João, Acme Ltda"
                       className="w-full"
                       {...field}
                     />
@@ -79,7 +83,7 @@ export default function CreateTeam() {
                     <FormMessage />
                   ) : (
                     <FormDescription>
-                      Peça ao administrador para entrar em um time existente
+                      Dá para mudar depois em Configurações.
                     </FormDescription>
                   )}
                 </FormItem>
@@ -89,7 +93,7 @@ export default function CreateTeam() {
               {createTeam.isPending ? (
                 <Spinner className="w-5 h-5" />
               ) : (
-                "Criar"
+                "Criar conta do negócio"
               )}
             </Button>
           </form>

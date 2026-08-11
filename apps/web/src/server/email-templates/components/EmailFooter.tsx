@@ -8,7 +8,7 @@ interface EmailFooterProps {
 
 export function EmailFooter({
   companyName = "Madmail",
-  supportUrl = "mailto:hey@usesend.com",
+  supportUrl = "mailto:suporte@madmail.com.br",
 }: EmailFooterProps) {
   return (
     <Container

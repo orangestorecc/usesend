@@ -441,7 +441,7 @@ export class TeamService {
     try {
       await Promise.all(
         recipients.map((to) =>
-          sendMail(to, subject, text, html, "hey@usesend.com"),
+          sendMail(to, subject, text, html, "suporte@madmail.com.br"),
         ),
       );
       logger.info(
@@ -549,7 +549,7 @@ export class TeamService {
     try {
       await Promise.all(
         recipients.map((to) =>
-          sendMail(to, subject, text, html, "hey@usesend.com"),
+          sendMail(to, subject, text, html, "suporte@madmail.com.br"),
         ),
       );
       logger.info(

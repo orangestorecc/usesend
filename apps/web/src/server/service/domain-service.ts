@@ -321,7 +321,7 @@ async function sendDomainStatusNotification({
 
   await Promise.all(
     recipients.map((email) =>
-      sendMail(email, subject, textLines.join("\n"), html, "hey@usesend.com"),
+      sendMail(email, subject, textLines.join("\n"), html, "suporte@madmail.com.br"),
     ),
   );
 }

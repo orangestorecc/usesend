@@ -117,8 +117,8 @@ export const domainRouter = createTRPCRouter({
         to: user.email,
         from: `hello@${domain.name}`,
         subject: "E-mail de teste do Madmail",
-        text: "hello,\n\nMadmail is the best open source sending platform\n\ncheck out https://usesend.com",
-        html: "<p>hello,</p><p>Madmail is the best open source sending platform<p><p>check out <a href='https://usesend.com'>usesend.com</a>",
+        text: "hello,\n\nMadmail — plataforma de envio de e-mail\n\nconheça https://madmail.com.br",
+        html: "<p>hello,</p><p>Madmail — plataforma de envio de e-mail<p><p>conheça <a href='https://madmail.com.br'>madmail.com.br</a>",
       });
     }
   ),

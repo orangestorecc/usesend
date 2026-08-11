@@ -68,8 +68,8 @@ export const env = createEnv({
     STRIPE_BASIC_USAGE_PRICE_ID: z.string().optional(),
     STRIPE_LEGACY_BASIC_PRICE_ID: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
-    SMTP_HOST: z.string().default("smtp.usesend.com"),
-    SMTP_USER: z.string().default("usesend"),
+    SMTP_HOST: z.string().default("smtp.madmail.com.br"),
+    SMTP_USER: z.string().default("madmail"),
     CONTACT_BOOK_ID: z.string().optional(),
     EMAIL_CLEANUP_DAYS: z
         .string()
