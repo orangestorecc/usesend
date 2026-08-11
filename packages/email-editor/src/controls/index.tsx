@@ -13,8 +13,9 @@ export function ColorField({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
-  const [text, setText] = useState(value ?? "");
-  useEffect(() => setText(value ?? ""), [value]);
+  const hex = toHex(value);
+  const [text, setText] = useState(hex ?? value ?? "");
+  useEffect(() => setText(toHex(value) ?? value ?? ""), [value]);
 
   const commit = (v: string) => {
     const t = v.trim();
@@ -33,7 +34,7 @@ export function ColorField({
           />
           <input
             type="color"
-            value={value || placeholder}
+            value={hex || placeholder}
             onChange={(e) => onChange(e.target.value)}
             className="absolute inset-0 cursor-pointer opacity-0"
           />
@@ -47,6 +48,119 @@ export function ColorField({
           className="w-full bg-transparent font-mono text-xs outline-none"
         />
       </div>
+    </Row>
+  );
+}
+
+/**
+ * Normaliza para hex. Vários blocos guardam cor como `rgb(0, 0, 0)` (default
+ * histórico das extensões) e `<input type="color">` só aceita `#rrggbb`.
+ */
+export function toHex(v?: string): string | undefined {
+  if (!v) return undefined;
+  const t = v.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(t)) return t.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(t)) {
+    return `#${t
+      .slice(1)
+      .split("")
+      .map((c) => c + c)
+      .join("")}`.toLowerCase();
+  }
+  const m = t.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (!m) return undefined;
+  return `#${m
+    .slice(1, 4)
+    .map((n) => Number(n).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+/** Campo de texto de uma linha. */
+export function TextField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value?: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const [text, setText] = useState(value ?? "");
+  useEffect(() => setText(value ?? ""), [value]);
+  return (
+    <Row label={label}>
+      <input
+        value={text}
+        placeholder={placeholder}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => onChange(text)}
+        onKeyDown={(e) => e.key === "Enter" && onChange(text)}
+        className="h-8 flex-1 rounded-md bg-muted px-2 text-xs outline-none"
+      />
+    </Row>
+  );
+}
+
+/** Campo de texto multilinha; commita ao sair do foco. */
+export function TextAreaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows = 5,
+}: {
+  label?: string;
+  value?: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  const [text, setText] = useState(value ?? "");
+  useEffect(() => setText(value ?? ""), [value]);
+  return (
+    <div className="space-y-1.5">
+      {label ? (
+        <span className="text-xs text-muted-foreground">{label}</span>
+      ) : null}
+      <textarea
+        value={text}
+        rows={rows}
+        placeholder={placeholder}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => onChange(text)}
+        className="w-full rounded-md bg-muted p-2 font-mono text-xs outline-none"
+      />
+    </div>
+  );
+}
+
+/** Select simples com as opções dadas. */
+export function SelectField<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value?: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <Row label={label}>
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value as T)}
+        className="h-8 flex-1 rounded-md bg-muted px-2 text-xs outline-none"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
     </Row>
   );
 }
