@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -12,9 +13,10 @@ import { Button } from "@usesend/ui/src/button";
 import { Switch } from "@usesend/ui/src/switch";
 import { Badge } from "@usesend/ui/src/badge";
 import { toast } from "@usesend/ui/src/toaster";
-import { RefreshCw, Trash2 } from "lucide-react";
+import { Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "~/trpc/react";
+import EditPlatform from "./edit-platform";
 
 function StatusBadge({
   status,
@@ -31,6 +33,8 @@ function StatusBadge({
 }
 
 export default function PlatformList() {
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+
   const utils = api.useUtils();
   const listQuery = api.platformIntegration.list.useQuery();
   const booksQuery = api.platformIntegration.contactBooks.useQuery();
@@ -69,6 +73,8 @@ export default function PlatformList() {
       </div>
     );
   }
+
+  const editando = listQuery.data.find((i) => i.id === editandoId);
 
   return (
     <div className="mt-6 rounded-lg border shadow-sm">
@@ -132,6 +138,14 @@ export default function PlatformList() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => setEditandoId(i.id)}
+                    title="Editar"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       if (confirm(`Remover a integração "${i.name}"?`)) {
                         deleteMutation.mutate({ id: i.id });
@@ -147,6 +161,13 @@ export default function PlatformList() {
           ))}
         </TableBody>
       </Table>
+
+      {editando ? (
+        <EditPlatform
+          integration={editando}
+          onClose={() => setEditandoId(null)}
+        />
+      ) : null}
     </div>
   );
 }

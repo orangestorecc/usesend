@@ -75,6 +75,8 @@ export const platformIntegrationRouter = createTRPCRouter({
         subscribeMode: subscribeModeSchema,
         contactBookId: z.string().optional(),
         newContactBookName: z.string().optional(),
+        /** Só vale para lista nova: pede confirmação por e-mail aos importados. */
+        doubleOptInEnabled: z.boolean().default(false),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -92,6 +94,13 @@ export const platformIntegrationRouter = createTRPCRouter({
           input.newContactBookName,
         );
         contactBookId = book.id;
+
+        if (input.doubleOptInEnabled) {
+          await db.contactBook.update({
+            where: { id: book.id },
+            data: { doubleOptInEnabled: true },
+          });
+        }
       } else {
         const book = await db.contactBook.findFirst({
           where: { id: contactBookId, teamId: ctx.team.id },
@@ -121,6 +130,16 @@ export const platformIntegrationRouter = createTRPCRouter({
       await PlatformSyncQueueService.enqueue(created.id, ctx.team.id);
 
       return toSafe(created);
+    }),
+
+  syncRuns: teamProcedure
+    .input(z.object({ id: z.string(), limit: z.number().min(1).max(100).default(20) }))
+    .query(async ({ ctx, input }) => {
+      return db.platformSyncRun.findMany({
+        where: { integrationId: input.id, teamId: ctx.team.id },
+        orderBy: { startedAt: "desc" },
+        take: input.limit,
+      });
     }),
 
   update: teamProcedure

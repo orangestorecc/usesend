@@ -610,6 +610,33 @@ model PlatformIntegration {
   @@index([teamId])
 }
 
+/**
+ * Histórico de cada rodada de sincronização.
+ *
+ * Os campos lastSync* da integração guardam só o último resultado; sem este
+ * registro não há como responder "o que a integração trouxe na semana
+ * passada?" nem investigar uma importação que deu errado ontem.
+ */
+model PlatformSyncRun {
+  id            String    @id @default(cuid())
+  integrationId String
+  teamId        Int
+  status        String // ok | error
+  /** Contatos criados nesta rodada. */
+  created       Int       @default(0)
+  /** Contatos que já existiam e foram atualizados. */
+  updated       Int       @default(0)
+  /** Registros ignorados (sem e-mail, duplicados na origem). */
+  skipped       Int       @default(0)
+  error         String?
+  durationMs    Int?
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+
+  @@index([integrationId, startedAt])
+  @@index([teamId])
+}
+
 // E-mail recebido (inbound) via SES Receipt Rule + S3.
 model InboundEmail {
   id         String   @id @default(cuid())

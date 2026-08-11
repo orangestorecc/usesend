@@ -81,6 +81,7 @@ async function processSyncJob(job: PlatformSyncJob) {
     const modifiedAfter = integration.cursorModifiedAt ?? undefined;
     let page = 1;
     let total = 0;
+    let ignorados = 0;
 
     while (page <= MAX_PAGES) {
       const customers = await fetchCustomersPage({
@@ -92,9 +93,14 @@ async function processSyncJob(job: PlatformSyncJob) {
       });
       if (customers.length === 0) break;
 
-      const contacts = customers
-        .map((c) => mapCustomer(c, integration.subscribeMode as SubscribeMode))
-        .filter((c): c is NonNullable<typeof c> => c !== null);
+      const mapeados = customers.map((c) =>
+        mapCustomer(c, integration.subscribeMode as SubscribeMode),
+      );
+      const contacts = mapeados.filter(
+        (c): c is NonNullable<typeof c> => c !== null,
+      );
+      // Sem e-mail válido não dá para virar contato — conta para o histórico.
+      ignorados += mapeados.length - contacts.length;
 
       if (contacts.length > 0) {
         await ContactQueueService.addBulkContactJobs(
@@ -120,6 +126,15 @@ async function processSyncJob(job: PlatformSyncJob) {
       },
     });
 
+    await registrarRodada({
+      integrationId,
+      teamId: integration.teamId,
+      status: "ok",
+      total,
+      ignorados,
+      startedAt,
+    });
+
     logger.info(
       { integrationId, teamId: integration.teamId, total },
       "[PlatformSyncQueueService]: Sync concluído",
@@ -134,11 +149,57 @@ async function processSyncJob(job: PlatformSyncJob) {
         lastSyncError: message.slice(0, 500),
       },
     });
+    await registrarRodada({
+      integrationId,
+      teamId: integration.teamId,
+      status: "error",
+      total: 0,
+      ignorados: 0,
+      startedAt,
+      erro: message,
+    });
+
     logger.error(
       { integrationId, error },
       "[PlatformSyncQueueService]: Falha no sync",
     );
     throw error;
+  }
+}
+
+/**
+ * Grava a rodada no histórico. Nunca lança: o registro é para auditoria, e
+ * falhar aqui não pode desfazer uma sincronização que deu certo.
+ */
+async function registrarRodada(dados: {
+  integrationId: string;
+  teamId: number;
+  status: "ok" | "error";
+  total: number;
+  ignorados: number;
+  startedAt: Date;
+  erro?: string;
+}) {
+  try {
+    const fim = new Date();
+    await db.platformSyncRun.create({
+      data: {
+        integrationId: dados.integrationId,
+        teamId: dados.teamId,
+        status: dados.status,
+        // A importação é assíncrona (fila de contatos), então aqui sabemos
+        // quantos foram enviados, não quantos eram novos de fato.
+        created: dados.total,
+        updated: 0,
+        skipped: dados.ignorados,
+        error: dados.erro?.slice(0, 500),
+        durationMs: fim.getTime() - dados.startedAt.getTime(),
+        startedAt: dados.startedAt,
+        finishedAt: fim,
+      },
+    });
+  } catch (err) {
+    logger.error({ err }, "[PlatformSyncQueueService]: Falha ao gravar histórico");
   }
 }
 

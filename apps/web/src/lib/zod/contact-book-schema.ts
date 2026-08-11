@@ -29,11 +29,11 @@ export const ContactBookSchema = z.object({
   doubleOptInFrom: z.string().nullable().optional().openapi({
     description:
       "Remetente usado nos e-mails de double opt-in (precisa usar um domínio verificado)",
-    example: "Newsletter <hello@example.com>",
+    example: "Newsletter <contato@seudominio.com.br>",
   }),
   doubleOptInSubject: z.string().nullable().optional().openapi({
     description: "Assunto usado no e-mail de confirmação do double opt-in",
-    example: "Please confirm your subscription",
+    example: "Confirme sua inscrição",
   }),
   doubleOptInContent: z.string().nullable().optional().openapi({
     description:

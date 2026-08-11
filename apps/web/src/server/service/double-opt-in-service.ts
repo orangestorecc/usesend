@@ -145,7 +145,7 @@ export async function sendDoubleOptInConfirmationEmail({
       "[DoubleOptInService]: Failed to render custom template, using fallback HTML",
     );
 
-    html = `<p>Please confirm your subscription by clicking <a href="${confirmationUrl}">this link</a>.</p>`;
+    html = `<p>Confirme sua inscrição clicando <a href="${confirmationUrl}">neste link</a>.</p>`;
   }
 
   const subject = replaceTemplateTokens(

@@ -226,7 +226,7 @@ function DoubleOptInEditor({
                   },
                 );
               }}
-              placeholder="Nome amigável<hello@example.com>"
+              placeholder="Nome amigável <contato@seudominio.com.br>"
               className="mt-1 py-1 text-sm block w-full outline-none border-b border-transparent focus:border-border bg-transparent"
             />
           </div>

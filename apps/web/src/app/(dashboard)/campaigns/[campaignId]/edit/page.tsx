@@ -308,7 +308,7 @@ function CampaignEditor({
                       setFrom(e.target.value);
                     }}
                     className="mt-1 py-1 w-full text-sm outline-none border-b border-transparent  focus:border-border bg-transparent"
-                    placeholder="Nome amigável<hello@example.com>"
+                    placeholder="Nome amigável <contato@seudominio.com.br>"
                     onBlur={() => {
                       if (isApiCampaign) {
                         return;
@@ -344,7 +344,7 @@ function CampaignEditor({
                       setReplyTo(e.target.value);
                     }}
                     className="mt-1 py-1 text-sm block w-full outline-none border-b border-transparent bg-transparent focus:border-border"
-                    placeholder="hello@example.com"
+                    placeholder="respostas@seudominio.com.br"
                     onBlur={() => {
                       if (isApiCampaign) {
                         return;

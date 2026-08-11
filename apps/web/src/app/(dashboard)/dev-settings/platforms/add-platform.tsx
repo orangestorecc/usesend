@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from "@usesend/ui/src/select";
 import { toast } from "@usesend/ui/src/toaster";
-import { Plus } from "lucide-react";
+import { Switch } from "@usesend/ui/src/switch";
+import { AlertTriangle, Info, Plus } from "lucide-react";
 import { api } from "~/trpc/react";
 
 const NEW_BOOK = "__new__";
@@ -33,6 +34,7 @@ export default function AddPlatform() {
   const [newBookName, setNewBookName] = useState("");
   const [interval, setInterval] = useState("15");
   const [subscribeMode, setSubscribeMode] = useState("newsletter");
+  const [doubleOptIn, setDoubleOptIn] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
 
   const utils = api.useUtils();
@@ -48,6 +50,7 @@ export default function AddPlatform() {
     setNewBookName("");
     setInterval("15");
     setSubscribeMode("newsletter");
+    setDoubleOptIn(false);
     setTestResult(null);
   }
 
@@ -87,6 +90,7 @@ export default function AddPlatform() {
         subscribeMode: subscribeMode as "newsletter" | "all" | "none",
         contactBookId: bookChoice === NEW_BOOK ? undefined : bookChoice,
         newContactBookName: bookChoice === NEW_BOOK ? newBookName : undefined,
+        doubleOptInEnabled: bookChoice === NEW_BOOK ? doubleOptIn : false,
       },
       {
         onSuccess: () => {
@@ -182,6 +186,31 @@ export default function AddPlatform() {
             ) : null}
           </div>
 
+          {bookChoice === NEW_BOOK ? (
+            <div
+              className={
+                doubleOptIn
+                  ? "rounded-lg border border-amber-500/50 bg-amber-500/10 p-3"
+                  : "rounded-lg border bg-muted/40 p-3"
+              }
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    Confirmação de inscrição (double opt-in)
+                  </Label>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    {doubleOptIn
+                      ? "Atenção: cada cliente importado vai receber um e-mail pedindo para confirmar a inscrição, e só passa a receber suas campanhas depois de clicar no link. Você precisa de um domínio verificado para isso funcionar."
+                      : "Desligado: os clientes importados entram direto na lista, sem e-mail de confirmação."}
+                  </p>
+                </div>
+                <Switch checked={doubleOptIn} onCheckedChange={setDoubleOptIn} />
+              </div>
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Sincronizar a cada</Label>
@@ -212,6 +241,17 @@ export default function AddPlatform() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="flex gap-2 rounded-lg border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              A primeira sincronização começa{" "}
+              <strong>assim que você criar a integração</strong>, importando
+              todos os clientes da loja. Depois disso ela se repete no intervalo
+              escolhido, trazendo apenas quem foi criado ou alterado desde a
+              última vez.
+            </span>
           </div>
 
           <div className="flex justify-end pt-2">

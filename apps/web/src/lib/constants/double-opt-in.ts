@@ -1,4 +1,4 @@
-export const DEFAULT_DOUBLE_OPT_IN_SUBJECT = "Please confirm your subscription";
+export const DEFAULT_DOUBLE_OPT_IN_SUBJECT = "Confirme sua inscrição";
 
 const DEFAULT_DOUBLE_OPT_IN_CONTENT_JSON = {
   type: "doc",
@@ -9,7 +9,7 @@ const DEFAULT_DOUBLE_OPT_IN_CONTENT_JSON = {
       content: [
         {
           type: "text",
-          text: "Hello, Thank you for signing up. Please confirm that you want to receive emails from us.",
+          text: "Olá! Obrigado por se inscrever. Confirme que você quer receber nossos e-mails.",
         },
       ],
     },
@@ -19,7 +19,7 @@ const DEFAULT_DOUBLE_OPT_IN_CONTENT_JSON = {
       content: [
         {
           type: "text",
-          text: "If you did not request this, you can ignore this email.",
+          text: "Se você não fez essa solicitação, é só ignorar este e-mail.",
         },
       ],
     },
@@ -27,7 +27,7 @@ const DEFAULT_DOUBLE_OPT_IN_CONTENT_JSON = {
       type: "button",
       attrs: {
         component: "button",
-        text: "Confirm",
+        text: "Confirmar inscrição",
         url: "{{doubleOptInUrl}}",
         alignment: "left",
         borderRadius: "8",
@@ -46,7 +46,7 @@ const DEFAULT_DOUBLE_OPT_IN_CONTENT_JSON = {
       content: [
         {
           type: "text",
-          text: "You are receiving this email because you opted in via our site.",
+          text: "Você recebeu este e-mail porque se inscreveu em nosso site.",
         },
       ],
     },
