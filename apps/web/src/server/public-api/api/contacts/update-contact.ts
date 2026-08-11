@@ -45,7 +45,7 @@ const route = createRoute({
           schema: z.object({ contactId: z.string().optional() }),
         },
       },
-      description: "Retrieve the user",
+      description: "Recupera o usuário",
     },
   },
 });

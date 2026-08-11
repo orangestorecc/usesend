@@ -98,7 +98,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Retrieve a list of emails",
+      description: "Recupera uma lista de e-mails",
     },
   },
 });

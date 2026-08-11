@@ -41,7 +41,7 @@ const route = createRoute({
           schema: z.object({ contactId: z.string() }),
         },
       },
-      description: "Contact upserted successfully",
+      description: "Contato criado ou atualizado com sucesso",
     },
   },
 });

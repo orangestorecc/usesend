@@ -26,7 +26,7 @@ const route = createRoute({
           schema: DomainSchema,
         },
       },
-      description: "Create a new domain",
+      description: "Cria um novo domínio",
     },
   },
 });

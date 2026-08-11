@@ -28,7 +28,7 @@ const route = createRoute({
 					}),
 				},
 			},
-			description: "Contact book deleted successfully",
+			description: "Lista de contatos excluída com sucesso",
 		},
 		403: {
 			content: {
@@ -38,7 +38,7 @@ const route = createRoute({
 					}),
 				},
 			},
-			description: "Forbidden - API key doesn't have access",
+			description: "Proibido - a chave de API não tem acesso",
 		},
 		404: {
 			content: {
@@ -48,7 +48,7 @@ const route = createRoute({
 					}),
 				},
 			},
-			description: "Contact book not found",
+			description: "Lista de contatos não encontrada",
 		},
 	},
 });

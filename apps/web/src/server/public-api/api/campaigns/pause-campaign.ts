@@ -23,7 +23,7 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "Pause a campaign",
+      description: "Pausa uma campanha",
       content: {
         "application/json": {
           schema: z.object({

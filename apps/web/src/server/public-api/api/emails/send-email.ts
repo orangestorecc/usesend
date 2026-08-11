@@ -16,13 +16,13 @@ const route = createRoute({
           .max(256)
           .optional()
           .openapi({
-            description: `Pass the optional Idempotency-Key header to make the request safe to retry. The key can be up to 256 characters. The server stores the canonical request body and behaves as follows:
+            description: `Envie o cabeçalho opcional Idempotency-Key para tornar a requisição segura para novas tentativas. A chave pode ter até 256 caracteres. O servidor armazena o corpo canônico da requisição e se comporta da seguinte forma:
 
-- Same key + same request body → returns the original emailId with 200 OK without re-sending.
-- Same key + different request body → returns 409 Conflict with code: NOT_UNIQUE so you can detect the mismatch.
-- Same key while another request is still being processed → returns 409 Conflict; retry after a short delay or once the first request completes.
+- Mesma chave + mesmo corpo de requisição → retorna o emailId original com 200 OK, sem reenviar.
+- Mesma chave + corpo de requisição diferente → retorna 409 Conflict com code: NOT_UNIQUE para que você possa detectar a divergência.
+- Mesma chave enquanto outra requisição ainda está sendo processada → retorna 409 Conflict; tente novamente após um curto intervalo ou quando a primeira requisição terminar.
 
-Entries expire after 24 hours. Use a unique key per logical send (for example, an order or signup ID).`,
+Os registros expiram após 24 horas. Use uma chave única por envio lógico (por exemplo, um ID de pedido ou de cadastro).`,
           }),
       })
       .partial(),
@@ -42,7 +42,7 @@ Entries expire after 24 hours. Use a unique key per logical send (for example, a
           schema: z.object({ emailId: z.string().optional() }),
         },
       },
-      description: "Retrieve the user",
+      description: "Recupera o usuário",
     },
   },
 });

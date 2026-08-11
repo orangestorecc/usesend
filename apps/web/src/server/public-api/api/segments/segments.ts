@@ -57,7 +57,7 @@ export default function registerSegments(app: PublicAPIApp) {
       responses: {
         200: {
           content: { "application/json": { schema: segmentSchema } },
-          description: "Create a segment",
+          description: "Cria um segmento",
         },
       },
     }),
@@ -102,7 +102,7 @@ export default function registerSegments(app: PublicAPIApp) {
       responses: {
         200: {
           content: { "application/json": { schema: z.array(segmentSchema) } },
-          description: "List segments",
+          description: "Lista os segmentos",
         },
       },
     }),
@@ -137,7 +137,7 @@ export default function registerSegments(app: PublicAPIApp) {
               schema: z.object({ count: z.number(), sample: z.array(z.any()) }),
             },
           },
-          description: "Preview matching contacts (count + sample)",
+          description: "Prévia dos contatos correspondentes (total + amostra)",
         },
       },
     }),
@@ -180,7 +180,7 @@ export default function registerSegments(app: PublicAPIApp) {
               }),
             },
           },
-          description: "Materialize segment into a new contact book",
+          description: "Materializa o segmento em uma nova lista de contatos",
         },
       },
     }),
@@ -210,7 +210,7 @@ export default function registerSegments(app: PublicAPIApp) {
           content: {
             "application/json": { schema: z.object({ success: z.boolean() }) },
           },
-          description: "Delete a segment",
+          description: "Exclui um segmento",
         },
       },
     }),

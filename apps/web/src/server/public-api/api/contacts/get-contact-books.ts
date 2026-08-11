@@ -13,7 +13,7 @@ const route = createRoute({
           schema: z.array(ContactBookSchema),
         },
       },
-      description: "Retrieve contact books accessible by the API key",
+      description: "Recupera as listas de contatos acessíveis pela chave de API",
     },
   },
 });

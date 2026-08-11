@@ -299,7 +299,7 @@ export default function EmailsList() {
                             Agendado para{" "}
                             {formatDate(
                               email.scheduledAt,
-                              "MMM dd'th', hh:mm a",
+                              "dd 'de' MMM, HH:mm",
                             )}
                           </TooltipContent>
                         </Tooltip>
@@ -315,7 +315,7 @@ export default function EmailsList() {
                     {email.latestStatus !== "SCHEDULED"
                       ? formatDate(
                           email.scheduledAt ?? email.createdAt,
-                          "MMM do, hh:mm a",
+                          "dd 'de' MMM, HH:mm",
                         )
                       : "--"}
                   </TableCell>

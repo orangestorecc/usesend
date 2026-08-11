@@ -8,13 +8,13 @@ const route = createRoute({
   request: {
     query: z.object({
       domainId: z.string().optional().openapi({
-        description: "Filter by domain ID",
+        description: "Filtrar por ID do domínio",
       }),
     }),
   },
   responses: {
     200: {
-      description: "Retrieve reputation metrics data",
+      description: "Recupera as métricas de reputação",
       content: {
         "application/json": {
           schema: z.object({

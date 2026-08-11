@@ -2,50 +2,50 @@ import { z } from "zod";
 
 export const ContactBookSchema = z.object({
   id: z.string().openapi({
-    description: "The ID of the contact book",
+    description: "ID da lista de contatos",
     example: "clx1234567890",
   }),
   name: z.string().openapi({
-    description: "The name of the contact book",
+    description: "Nome da lista de contatos",
     example: "Newsletter Subscribers",
   }),
-  teamId: z.number().openapi({ description: "The ID of the team", example: 1 }),
+  teamId: z.number().openapi({ description: "ID do time", example: 1 }),
   properties: z.record(z.string()).openapi({
-    description: "Custom properties for the contact book",
+    description: "Propriedades personalizadas da lista de contatos",
     example: { customField1: "value1" },
   }),
   variables: z.array(z.string()).openapi({
-    description: "Allowed personalization variables for contacts in this book",
+    description: "Variáveis de personalização permitidas para os contatos desta lista",
     example: ["registrationCode", "company"],
   }),
   emoji: z.string().openapi({
-    description: "The emoji associated with the contact book",
+    description: "Emoji associado à lista de contatos",
     example: "📙",
   }),
   doubleOptInEnabled: z.boolean().optional().openapi({
-    description: "Whether double opt-in is enabled for new contacts",
+    description: "Indica se o double opt-in está ativo para novos contatos",
     example: true,
   }),
   doubleOptInFrom: z.string().nullable().optional().openapi({
     description:
-      "From address used for double opt-in emails (must use a verified domain)",
+      "Remetente usado nos e-mails de double opt-in (precisa usar um domínio verificado)",
     example: "Newsletter <hello@example.com>",
   }),
   doubleOptInSubject: z.string().nullable().optional().openapi({
-    description: "Subject line used for double opt-in confirmation email",
+    description: "Assunto usado no e-mail de confirmação do double opt-in",
     example: "Please confirm your subscription",
   }),
   doubleOptInContent: z.string().nullable().optional().openapi({
     description:
-      "Email editor JSON content used for double opt-in confirmation",
+      "Conteúdo JSON do editor usado na confirmação do double opt-in",
   }),
-  createdAt: z.string().openapi({ description: "The creation timestamp" }),
-  updatedAt: z.string().openapi({ description: "The last update timestamp" }),
+  createdAt: z.string().openapi({ description: "Data e hora de criação" }),
+  updatedAt: z.string().openapi({ description: "Data e hora da última atualização" }),
   _count: z
     .object({
       contacts: z
         .number()
-        .openapi({ description: "The number of contacts in the contact book" }),
+        .openapi({ description: "Quantidade de contatos na lista" }),
     })
     .optional(),
 });

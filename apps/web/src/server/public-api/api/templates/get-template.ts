@@ -22,7 +22,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Get a template by id",
+      description: "Obtém um template pelo id",
     },
   },
 });

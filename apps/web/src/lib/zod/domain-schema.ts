@@ -5,38 +5,38 @@ export const DomainStatusSchema = z.nativeEnum(DomainStatus);
 
 export const DomainDnsRecordSchema = z.object({
   type: z.enum(["MX", "TXT"]).openapi({
-    description: "DNS record type",
+    description: "Tipo do registro DNS",
     example: "TXT",
   }),
   name: z
     .string()
-    .openapi({ description: "DNS record name", example: "mail" }),
+    .openapi({ description: "Nome do registro DNS", example: "mail" }),
   value: z
     .string()
     .openapi({
-      description: "DNS record value",
+      description: "Valor do registro DNS",
       example: "v=spf1 include:amazonses.com ~all",
     }),
   ttl: z
     .string()
-    .openapi({ description: "DNS record TTL", example: "Auto" }),
+    .openapi({ description: "TTL do registro DNS", example: "Auto" }),
   priority: z
     .string()
     .nullish()
-    .openapi({ description: "DNS record priority", example: "10" }),
+    .openapi({ description: "Prioridade do registro DNS", example: "10" }),
   status: DomainStatusSchema,
   recommended: z
     .boolean()
     .optional()
-    .openapi({ description: "Whether the record is recommended" }),
+    .openapi({ description: "Indica se o registro é recomendado" }),
 });
 
 export const DomainSchema = z.object({
-  id: z.number().openapi({ description: "The ID of the domain", example: 1 }),
+  id: z.number().openapi({ description: "ID do domínio", example: 1 }),
   name: z
     .string()
-    .openapi({ description: "The name of the domain", example: "example.com" }),
-  teamId: z.number().openapi({ description: "The ID of the team", example: 1 }),
+    .openapi({ description: "Nome do domínio", example: "example.com" }),
+  teamId: z.number().openapi({ description: "ID do time", example: 1 }),
   status: DomainStatusSchema,
   region: z.string().default("us-east-1"),
   clickTracking: z.boolean().default(false),

@@ -36,7 +36,7 @@ const route = createRoute({
           schema: ContactBookSchema,
         },
       },
-      description: "Create a new contact book",
+      description: "Cria uma nova lista de contatos",
     },
   },
 });

@@ -26,7 +26,7 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "Create a campaign",
+      description: "Cria uma campanha",
       content: {
         "application/json": {
           schema: campaignResponseSchema,

@@ -44,7 +44,7 @@ const route = createRoute({
           ),
         },
       },
-      description: "Retrieve multiple contacts",
+      description: "Recupera múltiplos contatos",
     },
   },
 });

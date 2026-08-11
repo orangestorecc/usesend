@@ -271,7 +271,7 @@ export function AppSidebar() {
             ) : null}
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Documentação">
-                <Link href="https://docs.usesend.com" target="_blank">
+                <Link href="https://docs.madmail.com.br" target="_blank">
                   <BookOpenText />
                   <span>Documentação</span>
                 </Link>

@@ -35,7 +35,7 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "Schedule a campaign",
+      description: "Agenda uma campanha",
       content: {
         "application/json": {
           schema: z.object({

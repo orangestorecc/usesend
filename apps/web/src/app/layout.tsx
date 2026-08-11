@@ -7,6 +7,9 @@ import { Toaster } from "@usesend/ui/src/toaster";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { Metadata } from "next";
+import { DateLocaleSetup } from "~/components/DateLocaleSetup";
+// Aplica o locale pt-BR também no runtime do servidor.
+import "~/utils/date-locale";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -51,6 +54,7 @@ export default async function RootLayout({
           defaultTheme="dark"
           enableSystem
         >
+          <DateLocaleSetup />
           <Toaster />
           <TRPCReactProvider>{children}</TRPCReactProvider>
         </ThemeProvider>

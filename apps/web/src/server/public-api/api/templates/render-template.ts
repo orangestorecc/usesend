@@ -21,7 +21,7 @@ const route = createRoute({
           schema: z.object({ html: z.string() }),
         },
       },
-      description: "Render editor JSON to HTML (sem salvar)",
+      description: "Renderiza o JSON do editor em HTML (sem salvar)",
     },
   },
 });

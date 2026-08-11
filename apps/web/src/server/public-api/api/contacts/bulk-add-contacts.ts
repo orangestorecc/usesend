@@ -49,7 +49,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Bulk add contacts to a contact book",
+      description: "Adiciona contatos em massa a uma lista de contatos",
     },
   },
 });

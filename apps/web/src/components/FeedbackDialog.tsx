@@ -34,6 +34,7 @@ const FeedbackSchema = z.object({
 export function FeedbackDialog({ trigger }: { trigger?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const form = useForm<z.infer<typeof FeedbackSchema>>({
     resolver: zodResolver(FeedbackSchema),
@@ -44,9 +45,8 @@ export function FeedbackDialog({ trigger }: { trigger?: ReactNode }) {
 
   const feedbackMutation = api.feedback.send.useMutation({
     onSuccess: () => {
-      toast.success("Obrigado por compartilhar seu feedback!");
+      setSent(true);
       form.reset();
-      setOpen(false);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -65,6 +65,8 @@ export function FeedbackDialog({ trigger }: { trigger?: ReactNode }) {
     setOpen(nextOpen);
     if (!nextOpen) {
       form.reset();
+      // Deixa a tela de agradecimento sair só depois do fecha, sem piscar.
+      setTimeout(() => setSent(false), 200);
     }
   }
 
@@ -92,6 +94,40 @@ export function FeedbackDialog({ trigger }: { trigger?: ReactNode }) {
         )}
       </DialogTrigger>
       <DialogContent className="max-w-lg">
+        {sent ? (
+          <div className="flex flex-col items-center gap-4 py-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-6 w-6 text-primary"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path
+                  d="M20 6 9 17l-5-5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div>
+              <DialogTitle>Obrigado pelo seu feedback!</DialogTitle>
+              <DialogDescription className="mt-2">
+                Recebemos sua mensagem e ela já está registrada. A gente lê
+                tudo — se fizer sentido, voltamos a falar com você.
+              </DialogDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setSent(false)}>
+                Enviar outro
+              </Button>
+              <Button onClick={() => handleOpenChange(false)}>Fechar</Button>
+            </div>
+          </div>
+        ) : (
+          <>
         <DialogHeader>
           <DialogTitle>Enviar feedback</DialogTitle>
           <DialogDescription>
@@ -158,6 +194,8 @@ export function FeedbackDialog({ trigger }: { trigger?: ReactNode }) {
             </DialogFooter>
           </form>
         </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

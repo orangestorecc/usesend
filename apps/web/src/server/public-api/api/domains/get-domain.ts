@@ -23,7 +23,7 @@ const route = createRoute({
           schema: DomainSchema,
         },
       },
-      description: "Retrieve the domain",
+      description: "Recupera o domínio",
     },
   },
 });

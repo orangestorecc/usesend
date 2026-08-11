@@ -42,7 +42,7 @@ const route = createRoute({
           schema: ContactBookSchema,
         },
       },
-      description: "Update the contact book",
+      description: "Atualiza a lista de contatos",
     },
     403: {
       content: {
@@ -53,7 +53,7 @@ const route = createRoute({
         },
       },
       description:
-        "Forbidden - API key doesn't have access to this contact book",
+        "Proibido - a chave de API não tem acesso a esta lista de contatos",
     },
     404: {
       content: {
@@ -63,7 +63,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Contact book not found",
+      description: "Lista de contatos não encontrada",
     },
   },
 });

@@ -13,7 +13,7 @@ const route = createRoute({
           schema: z.array(DomainSchema),
         },
       },
-      description: "Retrieve domains accessible by the API key",
+      description: "Recupera os domínios acessíveis pela chave de API",
     },
   },
 });

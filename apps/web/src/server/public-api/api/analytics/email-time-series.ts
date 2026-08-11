@@ -8,17 +8,17 @@ const route = createRoute({
   request: {
     query: z.object({
       days: z.enum(["7", "30"]).optional().openapi({
-        description: "Number of days to retrieve data for (default: 30)",
+        description: "Número de dias para recuperar os dados (padrão: 30)",
         example: "30",
       }),
       domainId: z.string().optional().openapi({
-        description: "Filter by domain ID",
+        description: "Filtrar por ID do domínio",
       }),
     }),
   },
   responses: {
     200: {
-      description: "Retrieve email time series data",
+      description: "Recupera a série temporal de dados de e-mail",
       content: {
         "application/json": {
           schema: z.object({

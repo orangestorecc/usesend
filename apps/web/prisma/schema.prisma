@@ -91,11 +91,43 @@ model User {
   sessions         Session[]
   teamUsers        TeamUser[]
   webhookEndpoints Webhook[]
+  feedbacks        Feedback[]
 }
 
 enum Plan {
   FREE
   BASIC
+}
+
+enum FeedbackStatus {
+  NEW
+  IN_REVIEW
+  DONE
+  ARCHIVED
+}
+
+model Feedback {
+  id        Int            @id @default(autoincrement())
+  message   String
+  status    FeedbackStatus @default(NEW)
+  /// Notas internas do time (não visíveis para quem enviou)
+  note      String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  teamId Int?
+  team   Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  /// Cópia dos dados de quem enviou, preservada mesmo se o usuário/time sumir
+  userName  String?
+  userEmail String?
+  teamName  String?
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([teamId])
 }
 
 model Team {
@@ -126,6 +158,7 @@ model Team {
   webhookEndpoints Webhook[]
   webhookCalls     WebhookCall[]
   mcpKeys          McpKey[]
+  feedbacks        Feedback[]
 }
 
 model TeamInvite {

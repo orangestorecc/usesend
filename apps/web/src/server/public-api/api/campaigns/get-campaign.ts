@@ -22,7 +22,7 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "Get campaign details",
+      description: "Obtém os detalhes da campanha",
       content: {
         "application/json": {
           schema: campaignResponseSchema,

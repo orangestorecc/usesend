@@ -45,7 +45,7 @@ export const campaignCreateSchema = z
       .string()
       .optional()
       .describe(
-        "Timestamp in ISO 8601 format or natural language (e.g., 'tomorrow 9am', 'next monday 10:30')"
+        "Data e hora no formato ISO 8601 ou em linguagem natural em inglês (ex.: 'tomorrow 9am', 'next monday 10:30')"
       ),
     batchSize: z.number().int().min(1).max(100_000).optional(),
   })
@@ -59,7 +59,7 @@ export const campaignScheduleSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Timestamp in ISO 8601 format or natural language (e.g., 'tomorrow 9am', 'next monday 10:30')"
+      "Data e hora no formato ISO 8601 ou em linguagem natural em inglês (ex.: 'tomorrow 9am', 'next monday 10:30')"
     ),
   batchSize: z.number().int().min(1).max(100_000).optional(),
 });

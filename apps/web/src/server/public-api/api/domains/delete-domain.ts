@@ -29,7 +29,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Domain deleted successfully",
+      description: "Domínio excluído com sucesso",
     },
     403: {
       content: {
@@ -39,7 +39,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Forbidden - API key doesn't have access",
+      description: "Proibido - a chave de API não tem acesso",
     },
     404: {
       content: {
@@ -49,7 +49,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Domain not found",
+      description: "Domínio não encontrado",
     },
   },
 });

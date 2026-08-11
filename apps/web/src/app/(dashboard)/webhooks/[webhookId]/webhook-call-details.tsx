@@ -110,7 +110,7 @@ export function WebhookCallDetails({ callId }: { callId: string }) {
               Data e hora
             </span>
             <span className="text-sm font-mono">
-              {formatDate(call.createdAt, "MMM dd, yyyy HH:mm:ss")}
+              {formatDate(call.createdAt, "dd/MM/yyyy HH:mm:ss")}
             </span>
           </div>
 

@@ -43,7 +43,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Retrieve the contact",
+      description: "Recupera o contato",
     },
   },
 });

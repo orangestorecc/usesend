@@ -38,7 +38,7 @@ const route = createRoute({
           schema: z.object({ emailId: z.string().optional() }),
         },
       },
-      description: "Retrieve the user",
+      description: "Recupera o usuário",
     },
   },
 });

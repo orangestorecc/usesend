@@ -32,7 +32,7 @@ const route = createRoute({
           schema: z.object({ success: z.boolean() }),
         },
       },
-      description: "Contact deleted successfully",
+      description: "Contato excluído com sucesso",
     },
   },
 });

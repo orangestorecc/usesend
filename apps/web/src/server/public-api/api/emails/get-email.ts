@@ -50,7 +50,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Retrieve the email",
+      description: "Recupera o e-mail",
     },
   },
 });

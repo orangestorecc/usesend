@@ -11,22 +11,22 @@ const route = createRoute({
 	request: {
 		query: z.object({
 			page: z.string().optional().openapi({
-				description: "Page number for pagination (default: 1)",
+				description: "Número da página para paginação (padrão: 1)",
 				example: "1",
 			}),
 			status: z.enum(statuses).optional().openapi({
-				description: "Filter campaigns by status",
+				description: "Filtrar campanhas por status",
 				example: "DRAFT",
 			}),
 			search: z.string().optional().openapi({
-				description: "Search campaigns by name or subject",
+				description: "Buscar campanhas por nome ou assunto",
 				example: "newsletter",
 			}),
 		}),
 	},
 	responses: {
 		200: {
-			description: "Get list of campaigns",
+			description: "Obtém a lista de campanhas",
 			content: {
 				"application/json": {
 					schema: z.object({

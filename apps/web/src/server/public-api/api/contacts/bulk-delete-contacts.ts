@@ -43,7 +43,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Bulk delete contacts from a contact book",
+      description: "Exclui contatos em massa de uma lista de contatos",
     },
   },
 });

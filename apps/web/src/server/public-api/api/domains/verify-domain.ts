@@ -25,7 +25,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Verify domain",
+      description: "Verifica o domínio",
     },
     403: {
       content: {
@@ -35,7 +35,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Forbidden - API key doesn't have access to this domain",
+      description: "Proibido - a chave de API não tem acesso a este domínio",
     },
     404: {
       content: {
@@ -45,7 +45,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Domain not found",
+      description: "Domínio não encontrado",
     },
   },
 });

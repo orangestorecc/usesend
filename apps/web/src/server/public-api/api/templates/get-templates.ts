@@ -20,7 +20,7 @@ const route = createRoute({
           ),
         },
       },
-      description: "List templates for the team",
+      description: "Lista os templates do time",
     },
   },
 });

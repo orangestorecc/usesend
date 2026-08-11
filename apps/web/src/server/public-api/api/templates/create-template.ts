@@ -33,7 +33,7 @@ const route = createRoute({
           }),
         },
       },
-      description: "Create a template",
+      description: "Cria um template",
     },
   },
 });

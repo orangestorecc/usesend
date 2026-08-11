@@ -8,10 +8,10 @@ export const emailSchema = z
     to: z.string().or(z.array(z.string())),
     from: z.string(),
     subject: z.string().min(1).optional().openapi({
-      description: "Optional when templateId is provided",
+      description: "Opcional quando templateId é informado",
     }),
     templateId: z.string().optional().openapi({
-      description: "ID of a template from the dashboard",
+      description: "ID de um template do painel",
     }),
     variables: z.record(z.string()).optional(),
     replyTo: z.string().or(z.array(z.string())).optional(),
@@ -20,7 +20,7 @@ export const emailSchema = z
     text: z.string().min(1).optional().nullable(),
     html: z.coerce.string().min(1).optional().nullable(),
     headers: z.record(z.string().min(1)).optional().openapi({
-      description: "Custom headers to included with the emails",
+      description: "Cabeçalhos personalizados a serem incluídos nos e-mails",
     }),
     attachments: z
       .array(

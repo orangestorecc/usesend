@@ -21,6 +21,9 @@ export default function AdminLayout({
         <SettingsNavButton href="/admin/brand">
           Brand
         </SettingsNavButton>
+        <SettingsNavButton href="/admin/feedback">
+          Feedback
+        </SettingsNavButton>
         {isCloud() ? (
           <SettingsNavButton href="/admin/teams">
             Clientes
