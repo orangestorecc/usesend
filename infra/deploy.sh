@@ -37,13 +37,28 @@ log "Build"
 rm -rf "$WEB/.next.bak"
 [ -d "$WEB/.next" ] && cp -r "$WEB/.next" "$WEB/.next.bak"
 
+# Restaura também se o processo for interrompido (queda de SSH, timeout,
+# kill). Sem isso, um build morto no meio deixava .next incompleto e o app
+# servindo 404 — foi o que aconteceu em 11/08.
+restaurar_se_interrompido() {
+  if [ -d "$WEB/.next.bak" ]; then
+    echo "  interrompido: restaurando a versão anterior" >&2
+    rm -rf "$WEB/.next"
+    mv "$WEB/.next.bak" "$WEB/.next"
+    sudo supervisorctl restart madmail-web >/dev/null 2>&1 || true
+  fi
+}
+trap restaurar_se_interrompido INT TERM HUP
+
 export NEXT_PUBLIC_IS_CLOUD=true
 export NODE_OPTIONS="--max-old-space-size=3072"
 
 if npx next build > "$LOGS/build.log" 2>&1; then
   echo "  BUILD_ID: $(cat "$WEB/.next/BUILD_ID")"
+  trap - INT TERM HUP
   rm -rf "$WEB/.next.bak"
 else
+  trap - INT TERM HUP
   echo "  BUILD FALHOU — restaurando a versão anterior:"
   tail -15 "$LOGS/build.log" | sed 's/^/    /'
   rm -rf "$WEB/.next"

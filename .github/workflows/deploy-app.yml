@@ -46,10 +46,38 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes \
-              -p "${DEPLOY_PORT:-2203}" \
-              "$DEPLOY_USER@$DEPLOY_HOST" \
-              'bash -lc "/opt/madmail/deploy.sh"'
+          # O build leva minutos sem imprimir nada (a saída vai para um
+          # arquivo), e a sessão SSH caía por inatividade — matando o build no
+          # meio e deixando o .next incompleto. Duas defesas:
+          #  1. keepalive, para a conexão não ser considerada ociosa;
+          #  2. o deploy roda DESACOPLADO (setsid/nohup) e aqui só
+          #     acompanhamos o log, então uma queda de rede não derruba nada.
+          SSH="ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes
+               -o ServerAliveInterval=30 -o ServerAliveCountMax=20
+               -p ${DEPLOY_PORT:-2203} $DEPLOY_USER@$DEPLOY_HOST"
+
+          $SSH 'rm -f /opt/madmail/deploy.status /opt/madmail/deploy.out;
+                setsid nohup bash -lc "/opt/madmail/deploy.sh > /opt/madmail/deploy.out 2>&1;
+                echo \$? > /opt/madmail/deploy.status" >/dev/null 2>&1 &
+                sleep 2; echo "deploy iniciado no servidor"'
+
+          # Acompanha até terminar (limite de 20 min).
+          for i in $(seq 1 120); do
+            STATUS=$($SSH 'cat /opt/madmail/deploy.status 2>/dev/null' || true)
+            if [ -n "$STATUS" ]; then
+              $SSH 'cat /opt/madmail/deploy.out'
+              if [ "$STATUS" = "0" ]; then
+                echo "deploy concluído"
+                exit 0
+              fi
+              echo "::error::deploy falhou no servidor (código $STATUS)"
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "::error::deploy não terminou em 20 minutos"
+          $SSH 'tail -40 /opt/madmail/deploy.out 2>/dev/null' || true
+          exit 1
 
       - name: Conferir se está no ar
         run: |
