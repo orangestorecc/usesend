@@ -2,9 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 // Replaced StatusBadge with external status badge image
 
-const REPO = "usesend/usesend";
-const REPO_URL = `https://github.com/${REPO}`;
-const APP_URL = "https://app.usesend.com";
+const APP_URL = "https://app.madmail.com.br";
 
 export function SiteFooter() {
   return (
@@ -47,17 +45,7 @@ export function SiteFooter() {
                   </li>
                   <li>
                     <a
-                      href={REPO_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-foreground text-xs"
-                    >
-                      GitHub
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="https://docs.usesend.com"
+                      href="https://docs.madmail.com.br"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-foreground text-xs"
@@ -75,7 +63,7 @@ export function SiteFooter() {
                 <ul className="space-y-2 text-muted-foreground">
                   <li>
                     <a
-                      href="mailto:hey@usesend.com"
+                      href="mailto:contato@madmail.com.br"
                       className="hover:text-foreground text-xs"
                     >
                       Email
