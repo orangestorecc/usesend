@@ -13,6 +13,21 @@ import { validateDomainFromEmail } from "./domain-service";
 
 const DOUBLE_OPT_IN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * O time ligou double opt-in sem ter domínio verificado nem remetente
+ * configurado. É estado de configuração do cliente, não defeito do sistema —
+ * e é o que distingue "precisa avisar o time" de "precisa acordar alguém".
+ *
+ * Existe como classe própria para que quem captura consiga fazer essa
+ * separação; antes era um Error genérico e virava issue no Sentry.
+ */
+export class ConfiguracaoDoubleOptInAusente extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConfiguracaoDoubleOptInAusente";
+  }
+}
+
 function createDoubleOptInHash(contactId: string, expiresAt: number) {
   return createHash("sha256")
     .update(`${contactId}-${expiresAt}-${env.NEXTAUTH_SECRET}`)
@@ -102,7 +117,7 @@ export async function sendDoubleOptInConfirmationEmail({
     });
 
     if (!domain) {
-      throw new Error(
+      throw new ConfiguracaoDoubleOptInAusente(
         "Double opt-in requires at least one verified domain to send confirmation emails",
       );
     }
