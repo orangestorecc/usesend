@@ -57,7 +57,20 @@ export async function addApiKey({
 }
 
 export async function getTeamAndApiKey(apiKey: string) {
-  const [, clientId, token] = apiKey.split("_") as [string, string, string];
+  const [, clientId, token] = apiKey.split("_") as [
+    string | undefined,
+    string | undefined,
+    string | undefined,
+  ];
+
+  // Token fora do formato `prefixo_clientId_segredo` não é chave inválida: é
+  // texto qualquer. Sem esta guarda o findUnique recebia clientId undefined,
+  // o Prisma lançava erro de validação e o cliente levava 500 em vez de 403 —
+  // que no relay SMTP virava "tente de novo mais tarde" e fazia o remetente
+  // reenviar para sempre com a senha errada.
+  if (!clientId || !token) {
+    return null;
+  }
 
   const apiKeyRow = await db.apiKey.findUnique({
     where: {
