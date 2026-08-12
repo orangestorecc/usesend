@@ -1,34 +1,43 @@
 # Preços do Madmail — planos em reais
 
-> Comece de graça e cresça quando o disparo crescer. Sem surpresa no fim do mês,
-> sem cartão para começar. Você paga só o que envia.
+> Comece de graça e pague só quando o volume crescer. Preço fixo por faixa de
+> volume, em reais, com nota fiscal. Sem cartão para começar.
 
-## Planos
+## Transacional (por volume de envio)
 
-- **Free — R$ 0/mês (para sempre)**: 3.000 e-mails/mês, 100/dia, 1 domínio,
-  1 lista de contatos, retenção de dados de 1 dia.
-- **Pro — R$ 100/mês (mais popular)**: 50.000 e-mails/mês, domínios ilimitados,
-  retenção de 3 dias, editor + automações, conector de IA (MCP).
-- **Scale — R$ 450/mês**: 100.000 e-mails/mês, retenção de 7 dias, IPs
-  dedicados sob demanda, suporte prioritário, membros ilimitados.
-- **Enterprise**: sob consulta — contato@madmail.com.br.
+- **Free — R$ 0/mês**: 3.000 e-mails/mês, limite de 100 por dia, 1 domínio,
+  retenção de dados por 30 dias, 5 créditos de IA/mês.
+- **Pro — R$ 100 a R$ 175/mês**: 50.000 a 100.000 e-mails/mês, 10 domínios,
+  100 créditos de IA/mês, sem limite diário. Excedente: R$ 4,50 por mil.
+- **Scale — R$ 450 a R$ 5.750/mês**: 100.000 a 2.500.000 e-mails/mês, 1.000
+  domínios, 500 créditos de IA/mês, suporte via Slack e ticket, IP dedicado
+  como add-on. Excedente: de R$ 4,50 a R$ 2,30 por mil, conforme o volume.
+- **Enterprise**: acima de 3.000.000/mês, sob consulta —
+  contato@madmail.com.br.
 
-## Uso por e-mail
+## Marketing (por número de contatos)
 
-Além do plano, o volume é cobrado por e-mail enviado, com tarifas diferentes
-para marketing e transacional e um gasto mínimo mensal. A calculadora na página
-estima o custo pelo seu volume.
+Nos planos de marketing o envio de campanhas é ilimitado; o que conta é o
+tamanho da base.
+
+- **Free — R$ 0/mês**: 1.000 contatos, 3 segmentos, 1 domínio.
+- **Pro marketing — R$ 200 a R$ 3.250/mês**: 5.000 a 150.000 contatos,
+  segmentos e domínios ilimitados, análises de marketing, 100 créditos de
+  IA/mês.
+- **Enterprise**: acima de 200.000 contatos, sob consulta.
+
+## Infraestrutura
+
+A entrega é feita pela infraestrutura da AWS, via Amazon SES.
 
 ## Perguntas frequentes
 
-- **Cobrança**: planos mensais em reais + cobrança por e-mail conforme o volume.
-- **Excedente**: cobrado pela tarifa por e-mail, sem bloqueio surpresa.
-- **Domínios**: 1 no Free; ilimitados no Pro e no Scale.
-- **Conector de IA**: incluso a partir do Pro, sem custo por assistente.
+- **Cobrança**: mensal, em reais, com nota fiscal. Preço fixo por faixa de
+  volume — sem tarifa por e-mail e sem gasto mínimo.
+- **Excedente**: cobrado por mil e-mails, sem bloqueio surpresa. A tarifa cai
+  conforme o plano cresce.
+- **Domínios**: 1 no Free, 10 no Pro, 1.000 no Scale, quantos precisar no
+  Enterprise.
+- **Conector de IA (MCP)**: incluso a partir do Free, com créditos por plano.
 - **Cartão**: não é preciso para começar no Free.
 - **Cancelamento**: a qualquer momento, sem multa nem fidelidade.
-
-## Links
-
-- Página: https://www.madmail.com.br/pricing
-- App: https://app.madmail.com.br

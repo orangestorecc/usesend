@@ -30,12 +30,24 @@ campanhas rápido, sem aprender mais uma ferramenta.
 
 ## Preços (BRL)
 
-- **Free — R$ 0/mês**: 3.000 e-mails/mês, 100/dia, 1 domínio, 1 lista.
-- **Pro — R$ 100/mês**: 50.000 e-mails/mês, domínios ilimitados, editor,
-  automações e conector de IA (MCP).
-- **Scale — R$ 450/mês**: 100.000 e-mails/mês, IPs dedicados sob demanda,
-  suporte prioritário.
+Transacional, por volume de envio:
+
+- **Free — R$ 0/mês**: 3.000 e-mails/mês, 100 por dia, 1 domínio.
+- **Pro — de R$ 100 a R$ 175/mês**: 50.000 a 100.000 e-mails/mês, 10 domínios,
+  sem limite diário.
+- **Scale — de R$ 450 a R$ 5.750/mês**: 100.000 a 2.500.000 e-mails/mês, 1.000
+  domínios, IP dedicado como add-on, suporte via Slack.
 - **Enterprise**: sob consulta — contato@madmail.com.br.
+
+Marketing, por número de contatos:
+
+- **Free — R$ 0/mês**: 1.000 contatos.
+- **Pro marketing — de R$ 200 a R$ 3.250/mês**: 5.000 a 150.000 contatos,
+  segmentos e domínios ilimitados.
+- **Enterprise**: sob consulta.
+
+Envio de campanhas ilimitado nos planos de marketing. Entrega pela
+infraestrutura da AWS, via Amazon SES.
 
 ## Links
 

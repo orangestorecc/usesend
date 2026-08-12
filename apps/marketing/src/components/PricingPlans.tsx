@@ -190,7 +190,14 @@ const CARDS_MARKETING: Card[] = [
   },
 ];
 
-export function PricingPlans() {
+export function PricingPlans({
+  comoSecao = false,
+  ancora,
+}: {
+  /** Na home o titulo e h2: o h1 da pagina ja e o do hero. */
+  comoSecao?: boolean;
+  ancora?: string;
+} = {}) {
   const [produto, setProduto] = React.useState<Produto>("transactional");
   const [passo, setPasso] = React.useState(0);
 
@@ -205,11 +212,27 @@ export function PricingPlans() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:py-20">
+    <section
+      id={ancora}
+      className={`mx-auto w-full max-w-6xl px-4 py-16 sm:py-20 ${
+        comoSecao ? "border-t border-border" : ""
+      }`}
+    >
       <div className="text-center">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Preços em real, sem surpresa no câmbio
-        </h1>
+        {comoSecao ? (
+          <>
+            <div className="text-sm uppercase tracking-wider text-muted-foreground">
+              Preços
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight">
+              Preços em real, sem surpresa no câmbio
+            </h2>
+          </>
+        ) : (
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Preços em real, sem surpresa no câmbio
+          </h1>
+        )}
         <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
           Comece de graça e pague só quando o volume crescer. Arraste para ver o
           plano que atende o seu envio.
