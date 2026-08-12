@@ -19,6 +19,7 @@ import {
   MARKETING_PLANS,
   priceLabel,
 } from "~/lib/constants/plan-catalog";
+import { precoNoPasso } from "~/lib/constants/plan-pricing";
 
 type Promo = {
   code: string;
@@ -46,7 +47,22 @@ function CheckoutInner() {
   const product =
     sp.get("product") === "marketing" ? "marketing" : "transactional";
   const plans = product === "marketing" ? MARKETING_PLANS : TRANSACTIONAL_PLANS;
-  const plan = plans.find((p) => p.key === sp.get("plan")) ?? null;
+  const passo = Number(sp.get("tier") ?? 0);
+  const planoBase = plans.find((p) => p.key === sp.get("plan")) ?? null;
+
+  // O preço do card depende do passo do slider. Sem aplicar isso aqui, o
+  // checkout mostraria sempre o valor da faixa inicial.
+  const faixa = planoBase ? precoNoPasso(planoBase.key, passo) : null;
+  const plan = planoBase
+    ? faixa
+      ? {
+          ...planoBase,
+          priceBRL: faixa.precoBRL,
+          volume: faixa.volume,
+          extra: faixa.extra ?? planoBase.extra,
+        }
+      : planoBase
+    : null;
 
   const [email, setEmail] = useState("");
   void email;
@@ -77,6 +93,7 @@ function CheckoutInner() {
     {
       product,
       planKey: plan?.key ?? "",
+      tier: passo,
       promoCode: promo?.code,
     },
     { enabled: Boolean(plan?.key) },
@@ -159,6 +176,7 @@ function CheckoutInner() {
       {
         product,
         planKey: plan.key,
+        tier: passo,
         method,
         promoCode: promo?.code,
         saveCard: method === "card" ? saveCard : undefined,

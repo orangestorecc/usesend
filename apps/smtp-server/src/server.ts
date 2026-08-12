@@ -148,13 +148,32 @@ const serverOptions: SMTPServerOptions = {
   size: 10485760,
 };
 
+/**
+ * Portas configuráveis.
+ *
+ * Rodando como usuário sem privilégio não dá para abrir porta abaixo de 1024:
+ * o processo tentaria 25/465/587 e levaria EACCES em todas. Por isso as
+ * portas vêm do ambiente — em produção o serviço escuta nas altas (2465/2587)
+ * e o proxy da borda mapeia 465/587 para elas.
+ */
+function portasDoAmbiente(variavel: string, padrao: number[]): number[] {
+  const bruto = process.env[variavel];
+  if (!bruto) return padrao;
+  return bruto
+    .split(",")
+    .map((p) => Number(p.trim()))
+    .filter((p) => Number.isInteger(p) && p > 0 && p < 65536);
+}
+
+const PORTAS_TLS = portasDoAmbiente("SMTP_TLS_PORTS", [465, 2465]);
+const PORTAS_STARTTLS = portasDoAmbiente("SMTP_STARTTLS_PORTS", [25, 587, 2587]);
+
 function startServers() {
   const servers: SMTPServer[] = [];
   const watchers: FSWatcher[] = [];
 
   if (SSL_KEY_PATH && SSL_CERT_PATH) {
-    // Implicit SSL/TLS for ports 465 and 2465
-    [465, 2465].forEach((port) => {
+    PORTAS_TLS.forEach((port) => {
       const server = new SMTPServer({ ...serverOptions, secure: true });
 
       server.listen(port, () => {
@@ -172,8 +191,7 @@ function startServers() {
     });
   }
 
-  // STARTTLS for ports 25, 587, and 2587
-  [25, 587, 2587].forEach((port) => {
+  PORTAS_STARTTLS.forEach((port) => {
     const server = new SMTPServer(serverOptions);
 
     server.listen(port, () => {

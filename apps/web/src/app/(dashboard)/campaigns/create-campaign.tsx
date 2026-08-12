@@ -27,6 +27,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "@usesend/ui/src/toaster";
 import { useRouter } from "next/navigation";
 import Spinner from "@usesend/ui/src/spinner";
+import FromAddressField from "~/components/from-address-field";
+import DomainStatusAlert, {
+  estadoDosDominios,
+} from "~/components/domain-status-alert";
 
 const campaignSchema = z.object({
   name: z.string({ required_error: "O nome é obrigatório" }).min(1, {
@@ -45,6 +49,15 @@ export default function CreateCampaign() {
   const [open, setOpen] = useState(false);
 
   const createCampaignMutation = api.campaign.createCampaign.useMutation();
+  const dominiosQuery = api.domain.domains.useQuery();
+
+  const estadoDominios = estadoDosDominios(
+    dominiosQuery.data,
+    dominiosQuery.isLoading,
+  );
+  const dominiosVerificados = (dominiosQuery.data ?? [])
+    .filter((d) => d.status === "SUCCESS")
+    .map((d) => d.name);
 
   const campaignForm = useForm<z.infer<typeof campaignSchema>>({
     resolver: zodResolver(campaignSchema),
@@ -112,16 +125,22 @@ export default function CreateCampaign() {
                   </FormItem>
                 )}
               />
+              <DomainStatusAlert
+                estado={estadoDominios}
+                dominios={dominiosQuery.data}
+              />
+
               <FormField
                 control={campaignForm.control}
                 name="from"
                 render={({ field, formState }) => (
                   <FormItem>
-                    <FormLabel>De</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Nome amigável <from@example.com>"
-                        {...field}
+                      <FromAddressField
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        dominiosVerificados={dominiosVerificados}
+                        disabled={estadoDominios !== "ok"}
                       />
                     </FormControl>
                     {formState.errors.from ? <FormMessage /> : null}
@@ -148,7 +167,18 @@ export default function CreateCampaign() {
                 <Button
                   className=" w-[100px]"
                   type="submit"
-                  disabled={createCampaignMutation.isPending}
+                  disabled={
+                    createCampaignMutation.isPending ||
+                    estadoDominios === "nenhum" ||
+                    estadoDominios === "em-verificacao"
+                  }
+                  title={
+                    estadoDominios === "nenhum"
+                      ? "Verifique um domínio antes de criar campanhas"
+                      : estadoDominios === "em-verificacao"
+                        ? "Aguarde a verificação do domínio terminar"
+                        : undefined
+                  }
                 >
                   {createCampaignMutation.isPending ? (
                     <Spinner className="w-4 h-4" />

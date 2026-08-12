@@ -22,6 +22,7 @@ export const paymentsRouter = createTRPCRouter({
       z.object({
         product: z.enum(["transactional", "marketing"]),
         planKey: z.string(),
+        tier: z.number().int().min(0).max(20).default(0),
         method: z.enum(["card", "pix", "boleto"]),
         promoCode: z.string().optional(),
         installments: z.number().int().min(1).max(12).optional(),
@@ -38,6 +39,7 @@ export const paymentsRouter = createTRPCRouter({
         teamId: ctx.team.id,
         product: input.product,
         planKey: input.planKey,
+        tier: input.tier,
         method: input.method,
         promoCode: input.promoCode,
         installments: input.installments,
@@ -78,6 +80,7 @@ export const paymentsRouter = createTRPCRouter({
       z.object({
         product: z.enum(["transactional", "marketing"]),
         planKey: z.string(),
+        tier: z.number().int().min(0).max(20).default(0),
         promoCode: z.string().optional(),
       }),
     )

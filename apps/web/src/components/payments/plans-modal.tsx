@@ -10,6 +10,7 @@ import {
 import { Button } from "@usesend/ui/src/button";
 import { Check, X } from "lucide-react";
 import { api } from "~/trpc/react";
+import { estadoDoCard } from "~/lib/constants/plan-pricing";
 import {
   TRANSACTIONAL_PLANS,
   MARKETING_PLANS,
@@ -54,7 +55,9 @@ export function PlansModal({
   };
 
   const goToCheckout = (plan: CatalogPlan) => {
-    window.location.href = `/checkout?product=${product}&plan=${plan.key}`;
+    // O passo vai junto porque é ele que define o preço; o servidor
+    // recalcula a partir do par (plano, passo) e nunca confia no valor da tela.
+    window.location.href = `/checkout?product=${product}&plan=${plan.key}&tier=${tier}`;
   };
 
   const gridCols =
@@ -144,23 +147,45 @@ export function PlansModal({
             className={`mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 ${gridCols}`}
           >
             {plans.map((plan) => {
-              const isCurrent = plan.priceBRL === 0;
-              const isCustom = plan.priceBRL === null;
+              const estado = estadoDoCard(
+                product,
+                plan.key,
+                tier,
+                plan.priceBRL,
+                plan.volume,
+              );
+              const vigente: CatalogPlan = {
+                ...plan,
+                priceBRL: estado.precoBRL,
+                volume: estado.volume,
+                extra: estado.extra ?? plan.extra,
+              };
+              const isCurrent = estado.precoBRL === 0;
+              const isCustom = estado.precoBRL === null;
               return (
                 <div
                   key={plan.key}
-                  className={`flex flex-col rounded-2xl border p-6 ${
-                    plan.highlight ? "border-foreground/40 shadow-lg" : ""
-                  }`}
+                  className={`flex flex-col rounded-2xl border p-6 transition-opacity ${
+                    estado.recomendado
+                      ? "border-foreground/40 bg-muted/30 shadow-lg"
+                      : ""
+                  } ${estado.esmaecido ? "opacity-40" : ""}`}
                 >
                   <div className="text-center text-sm font-medium text-muted-foreground">
                     {plan.name}
                   </div>
+                  {estado.recomendado ? (
+                    <div className="mt-2 text-center">
+                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600">
+                        Recomendado
+                      </span>
+                    </div>
+                  ) : null}
                   <div className="py-5 text-center">
                     <span className="text-4xl font-semibold tracking-tight">
-                      {priceLabel(plan)}
+                      {priceLabel(vigente)}
                     </span>
-                    {plan.priceBRL !== null ? (
+                    {estado.precoBRL !== null ? (
                       <span className="text-sm text-muted-foreground">
                         {" "}
                         / mês
@@ -168,10 +193,10 @@ export function PlansModal({
                     ) : null}
                   </div>
                   <div className="min-h-[64px] border-y py-4 text-center">
-                    <p className="text-sm font-medium">{plan.volume}</p>
-                    {plan.extra ? (
+                    <p className="text-sm font-medium">{estado.volume}</p>
+                    {estado.extra ?? plan.extra ? (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {plan.extra}
+                        {estado.extra ?? plan.extra}
                       </p>
                     ) : null}
                   </div>
@@ -203,10 +228,10 @@ export function PlansModal({
                   ) : (
                     <Button
                       className="w-full"
-                      variant={plan.highlight ? "default" : "outline"}
-                      onClick={() => setConfirming(plan)}
+                      variant={estado.recomendado ? "default" : "outline"}
+                      onClick={() => setConfirming(vigente)}
                     >
-                      Mudar para R$ {plan.priceBRL} / mês
+                      Mudar para R$ {estado.precoBRL} / mês
                     </Button>
                   )}
                 </div>

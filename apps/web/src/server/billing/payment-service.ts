@@ -4,6 +4,7 @@ import {
   MARKETING_PLANS,
   type CatalogPlan,
 } from "~/lib/constants/plan-catalog";
+import { precoNoPasso } from "~/lib/constants/plan-pricing";
 import * as rede from "./rede";
 import * as inter from "./inter";
 import {
@@ -36,9 +37,31 @@ export async function getInstallmentOptions(
 export type Product = "transactional" | "marketing";
 export type Method = "card" | "pix" | "boleto";
 
-function resolvePlan(product: Product, planKey: string): CatalogPlan | null {
+/**
+ * Resolve o plano **e o preço do passo do slider**.
+ *
+ * O preço é sempre recalculado aqui a partir do par (plano, passo) — o valor
+ * que a tela mostrou nunca é aceito. É a única forma de garantir que ninguém
+ * cobre a si mesmo o que quiser mexendo na query string.
+ */
+function resolvePlan(
+  product: Product,
+  planKey: string,
+  tier = 0,
+): CatalogPlan | null {
   const plans = product === "marketing" ? MARKETING_PLANS : TRANSACTIONAL_PLANS;
-  return plans.find((p) => p.key === planKey) ?? null;
+  const base = plans.find((p) => p.key === planKey);
+  if (!base) return null;
+
+  const faixa = precoNoPasso(base.key, tier);
+  if (!faixa) return base;
+
+  return {
+    ...base,
+    priceBRL: faixa.precoBRL,
+    volume: faixa.volume,
+    extra: faixa.extra ?? base.extra,
+  };
 }
 
 type PromoRow = {
@@ -77,9 +100,10 @@ function applyPromo(priceCents: number, promo: PromoRow | null): number {
 export async function resolveAmount(input: {
   product: Product;
   planKey: string;
+  tier?: number;
   promoCode?: string;
 }): Promise<{ plan: CatalogPlan; amountCents: number; promo: PromoRow | null }> {
-  const plan = resolvePlan(input.product, input.planKey);
+  const plan = resolvePlan(input.product, input.planKey, input.tier ?? 0);
   if (!plan) throw new Error("Plano não encontrado.");
   if (plan.priceBRL === null)
     throw new Error("Plano personalizado — fale com o time de vendas.");
@@ -215,6 +239,8 @@ export type CheckoutInput = {
   teamId: number;
   product: Product;
   planKey: string;
+  /** Passo do slider — define o preço. Recalculado no servidor. */
+  tier?: number;
   method: Method;
   promoCode?: string;
   installments?: number;

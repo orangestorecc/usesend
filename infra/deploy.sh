@@ -116,8 +116,22 @@ else
 fi
 cd "$APP"
 
+log "Relay SMTP"
+# Faz parte do workspace pnpm, então as dependências já vieram do install lá em
+# cima; falta só compilar.
+if pnpm --filter=smtp-server build > "$LOGS/build-smtp.log" 2>&1; then
+  echo "  build ok"
+else
+  echo "  build do SMTP falhou (os outros serviços seguem):"
+  tail -8 "$LOGS/build-smtp.log" | sed 's/^/    /'
+fi
+
 log "Reiniciando os serviços"
 sudo supervisorctl restart madmail-web madmail-site madmail-docs madmail-mcp
+# O relay é opcional: só reinicia se estiver configurado no supervisord.
+if sudo supervisorctl status madmail-smtp >/dev/null 2>&1; then
+  sudo supervisorctl restart madmail-smtp
+fi
 
 log "Verificando"
 for i in $(seq 1 45); do
