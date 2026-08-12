@@ -87,8 +87,8 @@ function Missao() {
 function Principios() {
   const cards = [
     {
-      title: "Aberto por princípio",
-      body: "Código aberto e SMTP padrão. Nada de lock-in: seus dados e seus contatos são seus, para levar quando quiser.",
+      title: "Do seu jeito, sem amarras",
+      body: "SMTP padrão, API, conector de IA (MCP) ou envio manual pelo painel. Seus dados e seus contatos são seus, para exportar quando quiser.",
     },
     {
       title: "Sem trava, sem letra miúda",

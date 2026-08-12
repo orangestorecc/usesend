@@ -440,8 +440,8 @@ function Controle() {
       body: "Listas, status por lista e opt-in num lugar só. Atualiza sozinho a partir de quedas.",
     },
     {
-      title: "Aberto e sem trava",
-      body: "Código aberto e SMTP padrão. Sem lock-in de fornecedor, com dashboard de gente grande.",
+      title: "Sem trava",
+      body: "SMTP padrão, API, conector de IA (MCP) ou envio manual pelo painel. Você escolhe o caminho e leva seus dados quando quiser.",
     },
   ];
   return (
