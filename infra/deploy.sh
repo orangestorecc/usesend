@@ -17,6 +17,25 @@ log() { printf '\n\033[1;36m==> %s\033[0m\n' "$1"; }
 
 cd "$APP"
 
+log "Ferramentas"
+# git, pnpm e unzip vivem na camada gravável do container e morrem toda vez
+# que ele é recriado (aconteceu duas vezes em 12/08/2026). Sem isso o deploy
+# falha no primeiro comando com "git: command not found". Garantir aqui torna
+# a recuperação automática: basta rodar um deploy.
+FALTANDO=""
+for c in git unzip; do command -v "$c" >/dev/null 2>&1 || FALTANDO="$FALTANDO $c"; done
+if [ -n "$FALTANDO" ]; then
+  echo "  instalando:$FALTANDO"
+  sudo apt-get update -qq >/dev/null 2>&1
+  sudo apt-get install -y -qq $FALTANDO >/dev/null 2>&1
+fi
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "  ativando pnpm"
+  sudo corepack enable >/dev/null 2>&1
+  corepack prepare pnpm@11.11.0 --activate >/dev/null 2>&1
+fi
+echo "  git $(git --version 2>/dev/null | awk '{print $3}') | pnpm $(pnpm -v 2>/dev/null)"
+
 log "Atualizando o código"
 git fetch --depth 1 origin main -q
 BEFORE=$(git rev-parse --short HEAD)
