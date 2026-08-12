@@ -33,9 +33,9 @@ export const metadata: Metadata = {
     siteName: "Madmail",
     images: [
       {
-        url: "https://uploads.usesend.com/logos/og.png",
-        width: 1200,
-        height: 630,
+        url: `${SITE_URL}/brand/madmail-icon-512.png`,
+        width: 512,
+        height: 512,
         alt: TITLE,
         type: "image/png",
       },
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
-    images: ["https://uploads.usesend.com/logos/og.png"],
+    images: [`${SITE_URL}/brand/madmail-icon-512.png`],
   },
   robots: {
     index: true,
