@@ -7,11 +7,15 @@ import {
 import { logger } from "../logger/log";
 import { createWorkerHandler, TeamJob } from "../queue/bullmq-context";
 import { addOrUpdateContact, ContactInput } from "./contact-service";
+import { registrarProgresso } from "./contact-import-progress";
+import { db } from "../db";
 
 type ContactJobData = {
   contactBookId: string;
   contact: ContactInput;
   teamId?: number;
+  /** Quando o contato veio de uma importação por arquivo, para contar progresso. */
+  importId?: string;
 };
 
 type ContactJob = TeamJob<ContactJobData>;
@@ -67,6 +71,7 @@ class ContactQueueService {
     contactBookId: string,
     contacts: ContactInput[],
     teamId?: number,
+    importId?: string,
   ) {
     const jobs = contacts.map((contact) => ({
       name: `add-contact-${contact.email}`,
@@ -74,6 +79,7 @@ class ContactQueueService {
         contactBookId,
         contact,
         teamId,
+        importId,
       },
       opts: DEFAULT_QUEUE_OPTIONS,
     }));
@@ -101,7 +107,7 @@ class ContactQueueService {
 }
 
 async function processContactJob(job: ContactJob) {
-  const { contactBookId, contact, teamId } = job.data;
+  const { contactBookId, contact, teamId, importId } = job.data;
 
   logger.info(
     { contactEmail: contact.email, contactBookId },
@@ -109,12 +115,25 @@ async function processContactJob(job: ContactJob) {
   );
 
   try {
+    const existente = await db.contact.findFirst({
+      where: { contactBookId, email: contact.email },
+      select: { id: true },
+    });
+
     await addOrUpdateContact(contactBookId, contact, teamId);
+
+    if (importId) {
+      await registrarProgresso(importId, existente ? "updated" : "created");
+    }
+
     logger.info(
       { contactEmail: contact.email },
       "[ContactQueueService]: Successfully processed contact job",
     );
   } catch (error) {
+    if (importId) {
+      await registrarProgresso(importId, "skipped");
+    }
     logger.error(
       { contactEmail: contact.email, error },
       "[ContactQueueService]: Failed to process contact job",
