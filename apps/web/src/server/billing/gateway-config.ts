@@ -22,7 +22,10 @@ export type RedeConfig = {
    * habilita conscientemente (juros/prazo de repasse mudam por parcela).
    */
   installments?: string;
-  /** Juros por parcela: "2:1.99,3:1.99" (parcelas : % ao mês). */
+  /**
+   * Juros por parcela: "1:0,99;2:1,99" (parcelas : % ao mês), separados por
+   * ponto e vírgula. Em 1x o valor funciona como acréscimo sobre o total.
+   */
   installmentRates?: string;
 };
 
@@ -45,7 +48,7 @@ export function parseInstallmentRates(raw?: string): Record<number, number> {
     const juros = Number(String(taxa).replace(",", "."));
     if (
       Number.isInteger(parcelas) &&
-      parcelas > 1 &&
+      parcelas >= 1 &&
       parcelas <= MAX_INSTALLMENTS &&
       Number.isFinite(juros) &&
       juros > 0
@@ -91,7 +94,11 @@ export function calcularParcela(
   parcelas: number,
   jurosAoMesPercent: number,
 ): InstallmentOption {
-  if (parcelas <= 1 || jurosAoMesPercent <= 0) {
+  // Em 1x a fórmula da Tabela Price se reduz a `valor × (1 + i)`, ou seja, um
+  // acréscimo simples — que é exatamente o que se espera de "juros no à
+  // vista". Por isso 1x não é mais tratada como caso especial: só a taxa zero
+  // é que dispensa o cálculo.
+  if (jurosAoMesPercent <= 0) {
     const valor = Math.round(amountCents / parcelas);
     return {
       parcelas,

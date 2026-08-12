@@ -69,6 +69,34 @@ else
   log "AVISO: S3 não configurado; o backup ficou só no disco do container"
 fi
 
+# ------------------------------------------------------------- segredos
+# O dump sozinho não basta: as credenciais de terceiros ficam no banco
+# cifradas com o NEXTAUTH_SECRET, que vive no .env. Em 12/08/2026 o banco
+# sobreviveu à recriação do container e o .env não — e as credenciais de
+# gateway viraram texto ilegível. Banco e segredo precisam ser salvos juntos.
+#
+# Cifrado porque o bucket guarda credencial de produção. A senha vem do
+# ambiente e PRECISA estar guardada fora daqui (gerenciador de senhas): se ela
+# se perder junto com a máquina, o arquivo é irrecuperável.
+if [ -n "${BACKUP_ENV_PASSPHRASE:-}" ]; then
+  ENV_CIFRADO="$BACKUP_DIR/env-$STAMP.enc"
+  if openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt        -in "$ENV_FILE" -out "$ENV_CIFRADO"        -pass env:BACKUP_ENV_PASSPHRASE 2>/dev/null; then
+    chmod 600 "$ENV_CIFRADO"
+    if [ -n "${S3_COMPATIBLE_API_URL:-}" ] && [ -n "${S3_COMPATIBLE_BUCKET:-}" ]; then
+      if node "$STACK_DIR/app/infra/backup-s3.mjs" "$ENV_CIFRADO"            "backups/env/env-$STAMP.enc" >/dev/null; then
+        log "segredos cifrados enviados"
+      else
+        log "AVISO: falha ao enviar os segredos cifrados"
+      fi
+    fi
+    find "$BACKUP_DIR" -name 'env-*.enc' -mtime "+$RETENCAO_LOCAL_DIAS" -delete
+  else
+    log "AVISO: não consegui cifrar o .env"
+  fi
+else
+  log "AVISO: BACKUP_ENV_PASSPHRASE ausente; os segredos NÃO estão sendo salvos"
+fi
+
 # -------------------------------------------------------------------- limpeza
 find "$BACKUP_DIR" -name 'madmail-*.sql.gz' -mtime "+$RETENCAO_LOCAL_DIAS" -delete
 log "backups locais mantidos: $(find "$BACKUP_DIR" -name 'madmail-*.sql.gz' | wc -l)"

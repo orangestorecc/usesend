@@ -217,7 +217,7 @@ function InstallmentsField({
       </div>
 
       <JurosPorParcela
-        parcelas={[...enabled].filter((n) => n > 1).sort((a, b) => a - b)}
+        parcelas={[...enabled].sort((a, b) => a - b)}
         value={rates}
         onChange={onRatesChange}
       />
@@ -225,7 +225,7 @@ function InstallmentsField({
   );
 }
 
-/** Lê "2:1.99,3:2.5" em um mapa de parcelas para juros ao mês. */
+/** Lê "1:0.99;2:1.99" em um mapa de parcelas para juros ao mês. */
 function parseRates(raw: string): Record<number, string> {
   const mapa: Record<number, string> = {};
   for (const par of (raw || "").split(";")) {
@@ -268,9 +268,13 @@ function JurosPorParcela({
   return (
     <div className="mt-4 rounded-lg border bg-muted/20 p-3">
       <Label className="text-xs">Juros por parcela (% ao mês)</Label>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Deixe vazio para parcelar sem juros. O cálculo usa a Tabela Price, e o
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        Deixe vazio para não cobrar juros. O cálculo usa a Tabela Price, e o
         cliente vê o valor da parcela e o total antes de confirmar.
+      </p>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        Em <strong>1x</strong> não há prazo, então o percentual funciona como
+        acréscimo sobre o total: 2% em R$ 100,00 cobra R$ 102,00.
       </p>
       <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
         {parcelas.map((n) => (

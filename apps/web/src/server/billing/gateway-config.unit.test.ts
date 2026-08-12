@@ -81,3 +81,31 @@ describe("cálculo da parcela", () => {
     expect(caro.totalCents).toBeGreaterThan(barato.totalCents);
   });
 });
+
+describe("juros no à vista (1x)", () => {
+  it("aceita taxa configurada para 1x", () => {
+    expect(parseInstallmentRates("1:0,99;2:1,99")).toEqual({ 1: 0.99, 2: 1.99 });
+  });
+
+  it("aplica o acréscimo sobre o total", () => {
+    // Em 1x a Tabela Price vira `valor × (1 + i)`: 100,00 com 2% = 102,00.
+    const o = calcularParcela(10000, 1, 2);
+    expect(o.valorParcelaCents).toBe(10200);
+    expect(o.totalCents).toBe(10200);
+    expect(o.semJuros).toBe(false);
+  });
+
+  it("segue sem juros quando a taxa é zero", () => {
+    const o = calcularParcela(10000, 1, 0);
+    expect(o.valorParcelaCents).toBe(10000);
+    expect(o.semJuros).toBe(true);
+  });
+
+  it("não muda o comportamento das demais parcelas", () => {
+    // 2x a 1,99% ao mês: fator da Price, não metade simples.
+    const o = calcularParcela(10000, 2, 1.99);
+    expect(o.semJuros).toBe(false);
+    expect(o.valorParcelaCents).toBeGreaterThan(5000);
+    expect(o.totalCents).toBeGreaterThan(10000);
+  });
+});
