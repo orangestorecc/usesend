@@ -1,7 +1,6 @@
 import { SiteFooter } from "~/components/SiteFooter";
 import { TopNav } from "~/components/TopNav";
 import { Button } from "@usesend/ui/src/button";
-import { PricingCalculator } from "~/components/PricingCalculator";
 
 // Links de produto — confirmar domínios finais com o time.
 const APP_URL = "https://app.madmail.com.br";
@@ -480,8 +479,8 @@ function Pricing() {
         "3.000 e-mails por mês",
         "100 e-mails por dia",
         "1 domínio",
-        "1 lista de contatos",
-        "Retenção de dados de 1 dia",
+        "Retenção de dados por 30 dias",
+        "5 créditos de IA por mês",
       ],
       cta: "Começar grátis",
     },
@@ -492,10 +491,10 @@ function Pricing() {
       destaque: true,
       perks: [
         "50.000 e-mails por mês",
-        "Domínios ilimitados",
-        "Retenção de dados de 3 dias",
-        "Editor + automações",
-        "Conector de IA (MCP)",
+        "Sem limite diário",
+        "10 domínios",
+        "100 créditos de IA por mês",
+        "Editor, automações e conector de IA (MCP)",
       ],
       cta: "Assinar o Pro",
     },
@@ -506,10 +505,10 @@ function Pricing() {
       destaque: false,
       perks: [
         "100.000 e-mails por mês",
-        "Retenção de dados de 7 dias",
-        "IPs dedicados sob demanda",
-        "Suporte prioritário",
-        "Membros ilimitados",
+        "1.000 domínios",
+        "500 créditos de IA por mês",
+        "IP dedicado como add-on",
+        "Suporte via Slack e ticket",
       ],
       cta: "Assinar o Scale",
     },
@@ -576,12 +575,15 @@ function Pricing() {
           ))}
         </div>
 
-        <div className="mt-10">
-          <PricingCalculator />
-        </div>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Precisa de mais volume?{" "}
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Volume maior?{" "}
+          <a href="/pricing" className="text-foreground underline underline-offset-4">
+            Veja todos os planos e simule o seu volume
+          </a>
+          .
+        </p>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Precisa de algo sob medida?{" "}
           <a href="mailto:contato@madmail.com.br" className="text-foreground underline underline-offset-4">
             Fale com a gente
           </a>{" "}

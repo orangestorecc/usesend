@@ -21,7 +21,7 @@ import {
   MARKETING_PLANS,
   priceLabel,
 } from "~/lib/constants/plan-catalog";
-import { precoNoPasso } from "~/lib/constants/plan-pricing";
+import { precoNoPasso } from "@usesend/lib/src/pricing";
 
 type Promo = {
   code: string;

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SiteFooter } from "~/components/SiteFooter";
 import { TopNav } from "~/components/TopNav";
 import { Button } from "@usesend/ui/src/button";
-import { PricingCalculator } from "~/components/PricingCalculator";
+import { PricingPlans } from "~/components/PricingPlans";
 
 // Links de produto — confirmar domínios finais com o time.
 const APP_URL = "https://app.madmail.com.br";
@@ -12,7 +12,7 @@ const SITE_URL = "https://www.madmail.com.br";
 export const metadata: Metadata = {
   title: "Preços do Madmail — planos em R$ para o varejo",
   description:
-    "Comece de graça e cresça quando o disparo crescer. Planos Free, Pro e Scale em reais, calculadora de custo por e-mail e respostas sobre cobrança, domínios e cancelamento.",
+    "Comece de graça e pague só quando o volume crescer. Planos Free, Pro, Scale e Enterprise em reais, com nota fiscal e sem fidelidade.",
   alternates: { canonical: `${SITE_URL}/pricing` },
 };
 
@@ -20,163 +20,13 @@ export default function PricingPage() {
   return (
     <main className="min-h-screen bg-background font-sans text-foreground">
       <TopNav />
-      <Planos />
-      <Calculadora />
+      <PricingPlans />
       <Faq />
       <SiteFooter />
     </main>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Planos                                                              */
-/* ------------------------------------------------------------------ */
-
-function Planos() {
-  const planos = [
-    {
-      nome: "Free",
-      preco: "R$ 0",
-      nota: "para sempre",
-      destaque: false,
-      perks: [
-        "3.000 e-mails por mês",
-        "100 e-mails por dia",
-        "1 domínio",
-        "1 lista de contatos",
-        "Retenção de dados de 1 dia",
-      ],
-      cta: "Começar grátis",
-    },
-    {
-      nome: "Pro",
-      preco: "R$ 100",
-      nota: "por mês",
-      destaque: true,
-      perks: [
-        "50.000 e-mails por mês",
-        "Domínios ilimitados",
-        "Retenção de dados de 3 dias",
-        "Editor + automações",
-        "Conector de IA (MCP)",
-      ],
-      cta: "Assinar o Pro",
-    },
-    {
-      nome: "Scale",
-      preco: "R$ 450",
-      nota: "por mês",
-      destaque: false,
-      perks: [
-        "100.000 e-mails por mês",
-        "Retenção de dados de 7 dias",
-        "IPs dedicados sob demanda",
-        "Suporte prioritário",
-        "Membros ilimitados",
-      ],
-      cta: "Assinar o Scale",
-    },
-  ];
-
-  return (
-    <section className="pt-16 sm:pt-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <div className="text-sm uppercase tracking-wider text-muted-foreground">
-            Preços
-          </div>
-          <h1 className="mt-3 text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
-            Simples como o resto
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Comece de graça. Cresça quando o disparo crescer. Sem surpresa no
-            fim do mês, sem cartão para começar.
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-4 lg:grid-cols-3">
-          {planos.map((p) => (
-            <div
-              key={p.nome}
-              className={`flex flex-col rounded-2xl border p-6 ${
-                p.destaque
-                  ? "border-primary/60 bg-primary/[0.04]"
-                  : "border-border"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="font-medium">{p.nome}</h2>
-                {p.destaque ? (
-                  <span className="rounded-full border border-primary/50 px-2 py-0.5 text-[11px] text-primary">
-                    Mais popular
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-4 flex items-end gap-1">
-                <span className="text-4xl font-semibold tracking-tight">
-                  {p.preco}
-                </span>
-                <span className="mb-1 text-xs text-muted-foreground">
-                  {p.nota}
-                </span>
-              </div>
-              <ul className="mt-6 space-y-2 text-sm">
-                {p.perks.map((perk) => (
-                  <li key={perk} className="flex items-start gap-2">
-                    <Check /> <span>{perk}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8 pt-2">
-                <Button
-                  className="w-full"
-                  variant={p.destaque ? "default" : "outline"}
-                >
-                  <a href={SIGNUP_URL}>{p.cta}</a>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Precisa de mais volume?{" "}
-          <a
-            href="mailto:contato@madmail.com.br"
-            className="text-foreground underline underline-offset-4"
-          >
-            Fale com a gente
-          </a>{" "}
-          sobre o plano Enterprise.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Calculadora                                                         */
-/* ------------------------------------------------------------------ */
-
-function Calculadora() {
-  return (
-    <section className="py-16">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">
-            Faça a conta do seu volume
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
-            Você paga só o que envia. Arraste os controles e veja a estimativa.
-          </p>
-        </div>
-        <div className="mt-10">
-          <PricingCalculator />
-        </div>
-      </div>
-    </section>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /* FAQ                                                                 */
