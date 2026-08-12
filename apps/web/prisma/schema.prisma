@@ -903,6 +903,15 @@ model BillingContact {
   documento    String?
   /** Razao social ou nome completo que sai na nota. */
   razaoSocial  String?
+  /** Nome fantasia, quando a consulta de CNPJ devolve. */
+  nomeFantasia String?
+  cep          String?
+  logradouro   String?
+  numero       String?
+  complemento  String?
+  bairro       String?
+  cidade       String?
+  uf           String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

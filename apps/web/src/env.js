@@ -58,6 +58,11 @@ export const env = createEnv({
     DISCORD_WEBHOOK_URL: z.string().optional(),
     REDIS_URL: z.string(),
     REDIS_KEY_PREFIX: z.string().default(""),
+    /**
+     * Token do plano pago da ReceitaWS (consulta de CNPJ).
+     * Sem ele a consulta usa o plano gratuito, limitado a 3 por minuto.
+     */
+    RECEITAWS_API_TOKEN: z.string().optional(),
     S3_COMPATIBLE_ACCESS_KEY: z.string().optional(),
     S3_COMPATIBLE_SECRET_KEY: z.string().optional(),
     S3_COMPATIBLE_API_URL: z.string().optional(),
@@ -147,6 +152,7 @@ export const env = createEnv({
     REDIS_URL: process.env.REDIS_URL,
     REDIS_KEY_PREFIX: process.env.REDIS_KEY_PREFIX,
     FROM_EMAIL: process.env.FROM_EMAIL,
+    RECEITAWS_API_TOKEN: process.env.RECEITAWS_API_TOKEN,
     S3_COMPATIBLE_ACCESS_KEY: process.env.S3_COMPATIBLE_ACCESS_KEY,
     S3_COMPATIBLE_SECRET_KEY: process.env.S3_COMPATIBLE_SECRET_KEY,
     S3_COMPATIBLE_API_URL: process.env.S3_COMPATIBLE_API_URL,
