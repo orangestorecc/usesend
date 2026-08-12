@@ -159,6 +159,7 @@ model Team {
   webhookCalls     WebhookCall[]
   mcpKeys          McpKey[]
   feedbacks        Feedback[]
+  billingContact   BillingContact?
 }
 
 model TeamInvite {
@@ -884,4 +885,26 @@ model ContactImport {
 
   @@index([contactBookId, startedAt])
   @@index([teamId])
+}
+
+// Responsavel financeiro do time: para quem vai a nota fiscal e os avisos de
+// cobranca. Fica em tabela propria, e nao em colunas do Team, porque a
+// natureza do dado e outra -- e cadastro fiscal, com historico de alteracao
+// que um dia vai importar, e nao configuracao do time.
+model BillingContact {
+  id           String   @id @default(cuid())
+  teamId       Int      @unique
+  /** Nome da pessoa responsavel pelo financeiro. */
+  responsavel  String
+  email        String
+  /** WhatsApp com DDD, so digitos. */
+  whatsapp     String
+  /** CPF ou CNPJ para a nota fiscal. Opcional ate a NF ser obrigatoria. */
+  documento    String?
+  /** Razao social ou nome completo que sai na nota. */
+  razaoSocial  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 }

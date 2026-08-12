@@ -13,7 +13,9 @@ import {
 } from "@usesend/ui/src/tabs";
 import { toast } from "@usesend/ui/src/toaster";
 import { ArrowLeft, CreditCard, QrCode, Barcode, Check, Copy } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
+import BillingContactBlock from "~/components/payments/billing-contact-block";
 import {
   TRANSACTIONAL_PLANS,
   MARKETING_PLANS,
@@ -43,6 +45,7 @@ type BoletoState = { url: string | null; linhaDigitavel: string | null };
 
 function CheckoutInner() {
   const sp = useSearchParams();
+  const { data: session } = useSession();
   const router = useRouter();
   const product =
     sp.get("product") === "marketing" ? "marketing" : "transactional";
@@ -64,8 +67,7 @@ function CheckoutInner() {
       : planoBase
     : null;
 
-  const [email, setEmail] = useState("");
-  void email;
+  const [temResponsavel, setTemResponsavel] = useState(false);
   const [method, setMethod] = useState<"card" | "pix" | "boleto">("card");
 
   // Cartão
@@ -393,14 +395,11 @@ function CheckoutInner() {
             </div>
           ) : (
             <>
-              <div className="text-sm font-medium">Dados para contato</div>
+              <div className="text-sm font-medium">Dados de faturamento</div>
               <div className="mt-2">
-                <Label className="text-xs text-muted-foreground">E-mail</Label>
-                <Input
-                  className="mt-1"
-                  type="email"
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="voce@empresa.com"
+                <BillingContactBlock
+                  emailDoMembro={session?.user?.email}
+                  onPreenchidoChange={setTemResponsavel}
                 />
               </div>
 
@@ -525,7 +524,12 @@ function CheckoutInner() {
                 className="mt-8 w-full"
                 size="lg"
                 onClick={submit}
-                disabled={checkout.isPending}
+                disabled={checkout.isPending || !temResponsavel}
+                title={
+                  !temResponsavel
+                    ? "Cadastre o responsável financeiro antes de pagar"
+                    : undefined
+                }
               >
                 {checkout.isPending ? (
                   "Processando…"

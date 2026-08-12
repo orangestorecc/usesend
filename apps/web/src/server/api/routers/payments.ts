@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, teamProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
@@ -34,6 +35,22 @@ export const paymentsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       if (input.method === "card" && !input.cardToken && !input.card) {
         throw new Error("Informe os dados do cartão.");
+      }
+
+      // Vale a cada cobrança iniciada pelo cliente, e não só na primeira: a
+      // trava da tela sozinha nao segura, e sem esses dados nao ha como emitir
+      // nota nem avisar sobre a cobranca. A recorrencia automatica nao passa
+      // por aqui, entao um plano ja ativo nao quebra se o cadastro sumir.
+      const responsavel = await db.billingContact.findUnique({
+        where: { teamId: ctx.team.id },
+        select: { id: true },
+      });
+      if (!responsavel) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cadastre o responsável financeiro antes de pagar. É para onde vai a nota fiscal.",
+        });
       }
       return createCheckout({
         teamId: ctx.team.id,
