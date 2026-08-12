@@ -52,11 +52,14 @@ export function cnpjValido(valor: string): boolean {
   if (cnpj.length !== 14) return false;
   if (/^(\d)\1{13}$/.test(cnpj)) return false;
 
+  // Pesos correm da esquerda para a direita: 5,4,3,2,9,8,7,6,5,4,3,2 para o
+  // primeiro dígito e 6,5,...,2 para o segundo. Ao chegar em 2, volta para 9.
   const digito = (ate: number): number => {
     let soma = 0;
     let peso = ate - 7;
-    for (let i = ate - 1; i >= 0; i--) {
-      soma += Number(cnpj[i]) * peso--;
+    for (let i = 0; i < ate; i++) {
+      soma += Number(cnpj[i]) * peso;
+      peso--;
       if (peso < 2) peso = 9;
     }
     const resto = soma % 11;
