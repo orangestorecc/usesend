@@ -14,7 +14,12 @@
     }
   },
   "fonts": {
-    "family": "IBM Plex Mono"
+    "heading": {
+      "family": "Inter"
+    },
+    "body": {
+      "family": "Inter"
+    }
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -24,7 +29,10 @@
         "groups": [
           {
             "group": "Comece por aqui",
-            "pages": ["introduction", "get-started/smtp"]
+            "pages": [
+              "introduction",
+              "get-started/smtp"
+            ]
           },
           {
             "group": "Guias",
@@ -42,7 +50,9 @@
         "groups": [
           {
             "group": "Referência da API",
-            "pages": ["api-reference/introduction"]
+            "pages": [
+              "api-reference/introduction"
+            ]
           },
           {
             "group": "E-mails",
@@ -109,7 +119,9 @@
           },
           {
             "group": "Eventos",
-            "pages": ["api-reference/events/send-event"]
+            "pages": [
+              "api-reference/events/send-event"
+            ]
           }
         ]
       },
@@ -118,7 +130,9 @@
         "groups": [
           {
             "group": "Atualizações",
-            "pages": ["changelog"]
+            "pages": [
+              "changelog"
+            ]
           }
         ]
       }
@@ -157,14 +171,29 @@
       {
         "header": "Madmail",
         "items": [
-          { "label": "Site", "href": "https://www.madmail.com.br" },
-          { "label": "Entrar", "href": "https://app.madmail.com.br" },
-          { "label": "Suporte", "href": "mailto:hey@madmail.com.br" }
+          {
+            "label": "Site",
+            "href": "https://www.madmail.com.br"
+          },
+          {
+            "label": "Entrar",
+            "href": "https://app.madmail.com.br"
+          },
+          {
+            "label": "Suporte",
+            "href": "mailto:hey@madmail.com.br"
+          }
         ]
       }
     ]
   },
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity"
+    ]
   }
 }
