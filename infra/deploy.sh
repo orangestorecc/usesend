@@ -146,6 +146,18 @@ else
   tail -8 "$LOGS/build-smtp.log" | sed 's/^/    /'
 fi
 
+log "Configurações do supervisord"
+# Ficam versionadas para sobreviverem à recriação do container: em 12/08/2026
+# o container foi recriado, as configs viviam só em /etc/supervisor/conf.d e
+# tudo caiu. Copiar a cada deploy torna a recuperação um `deploy`.
+if sudo cp "$APP"/infra/supervisor/*.conf /etc/supervisor/conf.d/ 2>/dev/null; then
+  sudo supervisorctl reread >/dev/null 2>&1
+  sudo supervisorctl update >/dev/null 2>&1
+  echo "  $(ls "$APP"/infra/supervisor/*.conf | wc -l) arquivos aplicados"
+else
+  echo "  não consegui copiar as configs (segue com as que já estão no ar)"
+fi
+
 log "Reiniciando os serviços"
 sudo supervisorctl restart madmail-web madmail-site madmail-docs madmail-mcp
 # O relay é opcional: só reinicia se estiver configurado no supervisord.
