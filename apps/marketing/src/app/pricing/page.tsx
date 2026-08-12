@@ -36,15 +36,15 @@ function Faq() {
   const qas = [
     {
       q: "Como funciona a cobrança?",
-      a: "Os planos são mensais e em reais. Além do plano, você paga por e-mail enviado conforme o volume — marketing e transacional têm tarifas diferentes, com um gasto mínimo mensal. Use a calculadora acima para estimar.",
+      a: "Os planos são mensais, em reais e com nota fiscal. Você escolhe o volume no seletor acima e paga aquele valor fixo — sem tarifa por e-mail e sem gasto mínimo.",
     },
     {
       q: "O que acontece se eu passar do limite de e-mails?",
-      a: "Nada de bloqueio surpresa. O excedente é cobrado pela tarifa por e-mail do seu plano. Se o volume ficou grande demais, a gente sugere subir de plano para sair mais barato.",
+      a: "Nada de bloqueio surpresa. O excedente é cobrado por mil e-mails, com tarifa que cai conforme o plano cresce — de R$ 4,50 por mil no Pro até R$ 2,30 no Scale de maior volume. Se virou rotina, subir de plano sai mais barato.",
     },
     {
       q: "Posso usar quantos domínios?",
-      a: "No Free você conecta 1 domínio. Nos planos Pro e Scale os domínios são ilimitados — conecte todas as suas marcas e lojas.",
+      a: "Um no Free, dez no Pro e mil no Scale. No Enterprise, quantos a sua operação precisar.",
     },
     {
       q: "O conector de IA está incluso?",

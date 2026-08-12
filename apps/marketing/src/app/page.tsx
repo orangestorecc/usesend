@@ -2,6 +2,7 @@ import { SiteFooter } from "~/components/SiteFooter";
 import { TopNav } from "~/components/TopNav";
 import { Button } from "@usesend/ui/src/button";
 import { AwsSesBadge } from "~/components/AwsSesBadge";
+import { PricingPlans } from "~/components/PricingPlans";
 
 // Links de produto — confirmar domínios finais com o time.
 const APP_URL = "https://app.madmail.com.br";
@@ -471,129 +472,9 @@ function Controle() {
 /* ------------------------------------------------------------------ */
 
 function Pricing() {
-  const planos = [
-    {
-      nome: "Free",
-      preco: "R$ 0",
-      nota: "para sempre",
-      destaque: false,
-      perks: [
-        "3.000 e-mails por mês",
-        "100 e-mails por dia",
-        "1 domínio",
-        "Retenção de dados por 30 dias",
-        "5 créditos de IA por mês",
-      ],
-      cta: "Começar grátis",
-    },
-    {
-      nome: "Pro",
-      preco: "R$ 100",
-      nota: "por mês",
-      destaque: true,
-      perks: [
-        "50.000 e-mails por mês",
-        "Sem limite diário",
-        "10 domínios",
-        "100 créditos de IA por mês",
-        "Editor, automações e conector de IA (MCP)",
-      ],
-      cta: "Assinar o Pro",
-    },
-    {
-      nome: "Scale",
-      preco: "R$ 450",
-      nota: "por mês",
-      destaque: false,
-      perks: [
-        "100.000 e-mails por mês",
-        "1.000 domínios",
-        "500 créditos de IA por mês",
-        "IP dedicado como add-on",
-        "Suporte via Slack e ticket",
-      ],
-      cta: "Assinar o Scale",
-    },
-  ];
-
-  return (
-    <section id="pricing" className="border-t border-border py-20">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="text-center">
-          <div className="text-sm uppercase tracking-wider text-muted-foreground">
-            Preços
-          </div>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-            Simples como o resto
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
-            Comece de graça. Cresça quando o disparo crescer. Sem surpresa no
-            fim do mês.
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-4 lg:grid-cols-3">
-          {planos.map((p) => (
-            <div
-              key={p.nome}
-              className={`flex flex-col rounded-2xl border p-6 ${
-                p.destaque
-                  ? "border-primary/60 bg-primary/[0.04]"
-                  : "border-border"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">{p.nome}</h3>
-                {p.destaque ? (
-                  <span className="rounded-full border border-primary/50 px-2 py-0.5 text-[11px] text-primary">
-                    Mais popular
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-4 flex items-end gap-1">
-                <span className="text-4xl font-semibold tracking-tight">
-                  {p.preco}
-                </span>
-                <span className="mb-1 text-xs text-muted-foreground">
-                  {p.nota}
-                </span>
-              </div>
-              <ul className="mt-6 space-y-2 text-sm">
-                {p.perks.map((perk) => (
-                  <li key={perk} className="flex items-start gap-2">
-                    <Check /> <span>{perk}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8 pt-2">
-                <Button
-                  className="w-full"
-                  variant={p.destaque ? "default" : "outline"}
-                >
-                  <a href={SIGNUP_URL}>{p.cta}</a>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Volume maior?{" "}
-          <a href="/pricing" className="text-foreground underline underline-offset-4">
-            Veja todos os planos e simule o seu volume
-          </a>
-          .
-        </p>
-        <p className="mt-2 text-center text-xs text-muted-foreground">
-          Precisa de algo sob medida?{" "}
-          <a href="mailto:contato@madmail.com.br" className="text-foreground underline underline-offset-4">
-            Fale com a gente
-          </a>{" "}
-          sobre o plano Enterprise.
-        </p>
-      </div>
-    </section>
-  );
+  // Mesmo bloco do /pricing: o cliente ve na home exatamente o preco que vai
+  // encontrar no checkout, com o mesmo slider e as mesmas regras.
+  return <PricingPlans comoSecao ancora="pricing" />;
 }
 
 /* ------------------------------------------------------------------ */
