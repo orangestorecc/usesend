@@ -26,7 +26,7 @@ campanhas rápido, sem aprender mais uma ferramenta.
 - **Contatos e consentimento**: listas, opt-in e supressão automática.
 - **Entregabilidade**: SPF, DKIM, DMARC e IPs cuidados — caixa de entrada, não spam.
 - **Métricas em tempo real**: entregas, aberturas, cliques, quedas, descadastros.
-- **Aberto e sem trava**: código aberto e SMTP padrão, sem lock-in.
+- **Sem trava**: SMTP padrão, API, conector de IA (MCP) ou envio manual pelo painel, sem lock-in.
 
 ## Preços (BRL)
 

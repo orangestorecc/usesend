@@ -11,8 +11,8 @@ usesend.emails.send({
   to: "hello@acme.com",
   from: "hello@company.com",
   subject: "Madmail email",
-  html: "<p>Madmail is the best open source product to send emails</p>",
-  text: "Madmail is the best open source product to send emails",
+  html: "<p>Madmail is the easiest way to send transactional emails</p>",
+  text: "Madmail is the easiest way to send transactional emails",
 });`;
 
 const PY_CODE = `from usesend import UseSend
@@ -23,8 +23,8 @@ data, err = client.emails.send({
     "to": "hello@acme.com",
     "from": "hello@company.com",
     "subject": "Madmail email",
-    "html": "<p>Madmail is the best open source product to send emails</p>",
-    "text": "Madmail is the best open source product to send emails",
+    "html": "<p>Madmail is the easiest way to send transactional emails</p>",
+    "text": "Madmail is the easiest way to send transactional emails",
 })
 
 print(data or err)`;
@@ -41,7 +41,7 @@ import (
 func main() {
     url := "https://app.usesend.com/api/v1/emails"
 
-    payload := strings.NewReader("{\n     \\\"to\\\": \\\"hello@acme.com\\\",\n     \\\"from\\\": \\\"hello@company.com\\\",\n     \\\"subject\\\": \\\"Madmail email\\\",\n     \\\"html\\\": \\\"<p>Madmail is the best open source product to send emails</p>\\\",\n     \\\"text\\\": \\\"Madmail is the best open source product to send emails\\\"\n    }")
+    payload := strings.NewReader("{\n     \\\"to\\\": \\\"hello@acme.com\\\",\n     \\\"from\\\": \\\"hello@company.com\\\",\n     \\\"subject\\\": \\\"Madmail email\\\",\n     \\\"html\\\": \\\"<p>Madmail is the easiest way to send transactional emails</p>\\\",\n     \\\"text\\\": \\\"Madmail is the easiest way to send transactional emails\\\"\n    }")
 
     req, _ := http.NewRequest("POST", url, payload)
     req.Header.Add("Content-Type", "application/json")
@@ -69,8 +69,8 @@ curl_setopt_array($ch, [
     'to' => 'hello@acme.com',
     'from' => 'hello@company.com',
     'subject' => 'Madmail email',
-    'html' => '<p>Madmail is the best open source product to send emails</p>',
-    'text' => 'Madmail is the best open source product to send emails',
+    'html' => '<p>Madmail is the easiest way to send transactional emails</p>',
+    'text' => 'Madmail is the easiest way to send transactional emails',
   ]),
 ]);
 

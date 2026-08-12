@@ -13,7 +13,7 @@ performance voltando em tempo real.
 
 ## No que a gente acredita
 
-- **Aberto por princípio**: código aberto e SMTP padrão, sem lock-in.
+- **Do seu jeito, sem amarras**: SMTP padrão, API, conector de IA (MCP) ou envio manual pelo painel, sem lock-in.
 - **Sem trava, sem letra miúda**: comece grátis, cancele quando quiser, preço em
   reais e transparente.
 - **Feito por quem dispara**: a N49 já cuida do e-mail de varejistas de verdade.
