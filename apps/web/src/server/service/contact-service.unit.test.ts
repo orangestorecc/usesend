@@ -6,6 +6,7 @@ const {
   mockSendDoubleOptInConfirmationEmail,
   mockAddBulkContactJobs,
   mockLogger,
+  ConfiguracaoDoubleOptInAusenteMock,
 } = vi.hoisted(() => ({
   mockDb: {
     contactBook: {
@@ -25,6 +26,15 @@ const {
     warn: vi.fn(),
     error: vi.fn(),
   },
+  // Dentro do hoisted porque o `vi.mock` abaixo é içado acima de qualquer
+  // declaração no corpo do arquivo, e o contact-service faz `instanceof` com
+  // essa classe para separar configuração ausente de falha real.
+  ConfiguracaoDoubleOptInAusenteMock: class extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "ConfiguracaoDoubleOptInAusente";
+    }
+  },
 }));
 
 vi.mock("~/server/db", () => ({
@@ -39,6 +49,7 @@ vi.mock("~/server/service/webhook-service", () => ({
 
 vi.mock("~/server/service/double-opt-in-service", () => ({
   sendDoubleOptInConfirmationEmail: mockSendDoubleOptInConfirmationEmail,
+  ConfiguracaoDoubleOptInAusente: ConfiguracaoDoubleOptInAusenteMock,
 }));
 
 vi.mock("~/server/service/contact-queue-service", () => ({
@@ -459,6 +470,41 @@ describe("contact-service addOrUpdateContact", () => {
         teamId: 7,
       }),
       "[ContactService]: Failed to send double opt-in confirmation email",
+    );
+  });
+
+  it("registra aviso, e nao erro, quando o time nao tem dominio verificado", async () => {
+    mockDb.contactBook.findUnique.mockResolvedValue({
+      doubleOptInEnabled: true,
+      teamId: 7,
+    });
+    mockDb.contact.findUnique.mockResolvedValue(null);
+    mockDb.contact.upsert.mockResolvedValue({
+      id: "contact_5",
+      email: "erin@example.com",
+      contactBookId: "book_1",
+      subscribed: false,
+      properties: {},
+      firstName: null,
+      lastName: null,
+      createdAt,
+      updatedAt: createdAt,
+    });
+    mockSendDoubleOptInConfirmationEmail.mockRejectedValue(
+      new ConfiguracaoDoubleOptInAusenteMock(
+        "Double opt-in requires at least one verified domain to send confirmation emails",
+      ),
+    );
+
+    await expect(
+      addOrUpdateContact("book_1", { email: "erin@example.com" }, 7),
+    ).resolves.toMatchObject({ id: "contact_5" });
+
+    // Nível é o que decide se vira issue no Sentry: warn nao vira.
+    expect(mockLogger.error).not.toHaveBeenCalled();
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ contactId: "contact_5", teamId: 7 }),
+      "[ContactService]: double opt-in nao enviado, time sem dominio verificado",
     );
   });
 

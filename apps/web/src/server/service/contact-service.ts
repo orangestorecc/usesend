@@ -11,7 +11,10 @@ import { db } from "../db";
 import { ContactQueueService } from "./contact-queue-service";
 import { WebhookService } from "./webhook-service";
 import { logger } from "../logger/log";
-import { sendDoubleOptInConfirmationEmail } from "./double-opt-in-service";
+import {
+  ConfiguracaoDoubleOptInAusente,
+  sendDoubleOptInConfirmationEmail,
+} from "./double-opt-in-service";
 
 export type ContactInput = {
   email: string;
@@ -141,15 +144,28 @@ export async function addOrUpdateContact(
         teamId: teamId ?? contactBook.teamId,
       });
     } catch (error) {
-      logger.error(
-        {
-          error,
-          contactId: savedContact.id,
-          contactBookId,
-          teamId: teamId ?? contactBook.teamId,
-        },
-        "[ContactService]: Failed to send double opt-in confirmation email",
-      );
+      const contexto = {
+        error,
+        contactId: savedContact.id,
+        contactBookId,
+        teamId: teamId ?? contactBook.teamId,
+      };
+
+      // Falta de domínio verificado é configuração do time, não defeito: o
+      // contato foi salvo e só a confirmação não saiu. Fica como aviso para
+      // não virar issue no Sentry a cada contato criado por um time que ainda
+      // não terminou de configurar a conta.
+      if (error instanceof ConfiguracaoDoubleOptInAusente) {
+        logger.warn(
+          contexto,
+          "[ContactService]: double opt-in nao enviado, time sem dominio verificado",
+        );
+      } else {
+        logger.error(
+          contexto,
+          "[ContactService]: Failed to send double opt-in confirmation email",
+        );
+      }
     }
   }
 
