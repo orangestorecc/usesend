@@ -5,7 +5,7 @@ import {
   PASSOS_MARKETING,
   PASSOS_TRANSACIONAL,
   precoNoPasso,
-} from "./plan-pricing";
+} from "@usesend/lib/src/pricing";
 
 /**
  * A matriz inteira das seções 2 e 3 de docs-spec/PLANOS-SPEC.md, passo a

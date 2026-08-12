@@ -4,7 +4,7 @@ import {
   MARKETING_PLANS,
   type CatalogPlan,
 } from "~/lib/constants/plan-catalog";
-import { precoNoPasso } from "~/lib/constants/plan-pricing";
+import { precoNoPasso } from "@usesend/lib/src/pricing";
 import * as rede from "./rede";
 import * as inter from "./inter";
 import {

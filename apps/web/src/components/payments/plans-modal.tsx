@@ -10,7 +10,7 @@ import {
 import { Button } from "@usesend/ui/src/button";
 import { Check, X } from "lucide-react";
 import { api } from "~/trpc/react";
-import { estadoDoCard } from "~/lib/constants/plan-pricing";
+import { estadoDoCard } from "@usesend/lib/src/pricing";
 import {
   TRANSACTIONAL_PLANS,
   MARKETING_PLANS,
