@@ -56,6 +56,11 @@ export async function register() {
     );
     await CampaignSchedulerService.start();
 
+    const { AutomationSchedulerService } = await import(
+      "~/server/jobs/automation-scheduler-job"
+    );
+    await AutomationSchedulerService.start();
+
     if (process.env.REDIS_URL) {
       const { initPlatformSyncScheduler } = await import(
         "~/server/jobs/platform-sync-scheduler-job"

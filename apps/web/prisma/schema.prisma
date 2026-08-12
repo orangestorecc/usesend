@@ -160,6 +160,8 @@ model Team {
   mcpKeys          McpKey[]
   feedbacks        Feedback[]
   billingContact   BillingContact?
+  automations      Automation[]
+  customEvents     CustomEvent[]
 }
 
 model TeamInvite {
@@ -373,6 +375,9 @@ model Contact {
   updatedAt         DateTime           @updatedAt
 
   contactBook ContactBook @relation(fields: [contactBookId], references: [id], onDelete: Cascade)
+
+  automationRuns AutomationRun[]
+  customEvents   CustomEvent[]
 
   @@unique([contactBookId, email])
   @@index([contactBookId, id])
@@ -916,4 +921,89 @@ model BillingContact {
   updatedAt    DateTime @updatedAt
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+enum AutomationStatus {
+  DRAFT
+  ENABLED
+  DISABLED
+}
+
+model Automation {
+  id               String            @id @default(cuid())
+  teamId           Int
+  name             String
+  status           AutomationStatus  @default(DRAFT)
+  triggerEventName String
+  steps            Json
+  connections      Json
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  team Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  runs AutomationRun[]
+
+  @@index([teamId])
+  @@index([teamId, triggerEventName, status])
+}
+
+enum AutomationRunStatus {
+  RUNNING
+  WAITING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model AutomationRun {
+  id              String              @id @default(cuid())
+  automationId    String
+  teamId          Int
+  contactId       String
+  currentStepKey  String?
+  status          AutomationRunStatus @default(RUNNING)
+  context         Json                @default("{}")
+  resumeAt        DateTime?
+  waitingForEvent String?
+  error           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  automation Automation          @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  contact    Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  stepRuns   AutomationStepRun[]
+
+  @@index([teamId, automationId])
+  @@index([status, resumeAt])
+  @@index([status, waitingForEvent])
+}
+
+model AutomationStepRun {
+  id         String    @id @default(cuid())
+  runId      String
+  stepKey    String
+  status     String
+  output     Json?
+  error      String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  run AutomationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+}
+
+model CustomEvent {
+  id        String   @id @default(cuid())
+  teamId    Int
+  name      String
+  contactId String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, name])
+  @@index([contactId])
 }

@@ -38,6 +38,7 @@ import createTemplate from "./api/templates/create-template";
 import renderTemplate from "./api/templates/render-template";
 import registerSegments from "./api/segments/segments";
 import mcpMe from "./api/mcp/me";
+import sendEvent from "./api/events/send-event";
 
 
 export const app = getApp();
@@ -98,5 +99,8 @@ registerSegments(app);
 
 /**MCP */
 mcpMe(app);
+
+/**Event related APIs (Automations) */
+sendEvent(app);
 
 export default app;

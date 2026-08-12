@@ -1,0 +1,178 @@
+---
+title: Automações
+description: "Crie fluxos automáticos disparados por eventos customizados, com condições, esperas e ações sobre contatos"
+---
+
+## Visão geral
+
+As Automações permitem criar fluxos de trabalho visuais que reagem a eventos
+da sua aplicação. Um evento customizado (enviado pela [API de eventos](/api-reference/events/send-event))
+dispara uma Automação, que então executa uma sequência de passos: enviar
+e-mails, checar condições, esperar, e atualizar seus contatos.
+
+## Como funciona
+
+<Steps>
+  <Step title="Envie um evento customizado">
+    A partir da sua aplicação, envie um evento pela API, associado a um
+    contato (por `contactId` ou `email`):
+
+    ```bash
+    curl -X POST https://app.madmail.com.br/api/v1/events/send \
+      -H "Authorization: Bearer us_your_api_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "order.completed",
+        "email": "jane@example.com",
+        "payload": { "orderId": "ord_123", "total": 99.9 }
+      }'
+    ```
+
+  </Step>
+  <Step title="A Automação é disparada">
+    Toda Automação com status ENABLED e cujo gatilho seja o evento
+    `order.completed` inicia uma nova execução (run) para o contato.
+  </Step>
+  <Step title="Os passos são executados em sequência">
+    A run avança pelos passos conectados no fluxo, seguindo as conexões que
+    você desenhou no editor visual.
+  </Step>
+</Steps>
+
+## Gatilho (trigger)
+
+Toda Automação começa com um passo de gatilho, associado a um nome de
+evento. Quando um evento com esse nome é enviado pela API para um contato,
+uma nova run é iniciada para ele.
+
+<Note>
+  Nomes de evento não podem começar com o prefixo `usesend:`, reservado para
+  eventos internos do sistema.
+</Note>
+
+Os dados enviados em `payload` ficam disponíveis nos passos seguintes através
+de `{{event.chave}}`, por exemplo `{{event.orderId}}` no assunto ou corpo de
+um e-mail.
+
+## Tipos de passo
+
+| Passo             | O que faz                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `send_email`       | Envia um e-mail ao contato, com suporte a variáveis de contato e do evento              |
+| `condition`        | Avalia regras sobre o contato ou o evento e segue por um caminho verdadeiro ou falso    |
+| `delay`            | Pausa a run por um período antes de continuar                                           |
+| `wait_for_event`   | Pausa a run até que um evento específico chegue para o contato (com timeout opcional)   |
+| `update_contact`   | Atualiza propriedades do contato                                                        |
+| `delete_contact`   | Remove o contato da lista de contatos                                                   |
+| `add_to_segment`   | Confirma que o contato pertence a um segmento, usado como checagem dentro do fluxo      |
+
+### Enviar e-mail (`send_email`)
+
+Envia um e-mail para o contato da run. O assunto e o corpo aceitam as mesmas
+variáveis de contato usadas em campanhas (`{{firstName}}`, `{{email}}`, etc.)
+e também variáveis do evento que disparou ou retomou a run, no formato
+`{{event.chave}}`.
+
+### Condição (`condition`)
+
+Avalia um conjunto de regras — sobre propriedades do contato ou sobre o
+payload do evento — e direciona a run por um de dois caminhos: **verdadeiro**
+ou **falso**. Conecte passos diferentes a cada saída no editor visual para
+ramificar o fluxo.
+
+### Espera (`delay`)
+
+Pausa a run por um período determinado (por exemplo, 1 hora ou 3 dias) antes
+de seguir para o próximo passo. Enquanto espera, a run fica com status
+WAITING.
+
+### Esperar evento (`wait_for_event`)
+
+Pausa a run até que um evento com um nome específico seja recebido para o
+mesmo contato. Você pode definir um tempo limite (timeout): se o evento não
+chegar dentro do prazo, a run segue pelo caminho de timeout (se você conectou
+um), ou é concluída.
+
+### Atualizar contato (`update_contact`)
+
+Atualiza propriedades do contato na lista de contatos, útil para gravar
+dados vindos do payload do evento (por exemplo, marcar `plan: "pro"` após um
+evento de upgrade).
+
+### Excluir contato (`delete_contact`)
+
+Remove o contato da lista de contatos. Use com cuidado — passos posteriores
+no mesmo caminho não terão mais um contato válido para agir.
+
+### Adicionar a segmento (`add_to_segment`)
+
+Verifica que o contato atende às regras de um segmento existente. Como
+segmentos no Madmail são baseados em regras (calculados dinamicamente), esse
+passo não cria um vínculo permanente — ele apenas confirma a associação
+dentro do fluxo, fazendo a run falhar se o segmento não existir mais.
+
+## Ciclo de vida da Automação
+
+Cada Automação tem um dos três status:
+
+| Status     | Significado                                                                 |
+| ---------- | ---------------------------------------------------------------------------- |
+| `DRAFT`    | Em edição. Ainda não dispara para eventos reais.                            |
+| `ENABLED`  | Ativa. Dispara uma nova run sempre que o evento de gatilho é recebido.       |
+| `DISABLED` | Pausada. Não dispara novas runs, mas o histórico é preservado.               |
+
+<Warning>
+  Enquanto uma Automação está com status ENABLED, seus passos não podem ser
+  editados, para evitar alterar o comportamento de runs em andamento. Para
+  fazer alterações, duplique a Automação: a cópia é criada como DRAFT e pode
+  ser editada livremente, incluindo os passos.
+</Warning>
+
+## Histórico de execuções
+
+Cada disparo do gatilho cria uma execução (run), com status `RUNNING`,
+`WAITING`, `COMPLETED`, `FAILED` ou `CANCELLED`. Pelo dashboard, na página da
+Automação, você pode abrir o histórico de runs e ver, para cada uma:
+
+- o contato que originou a run
+- o status atual
+- o resultado de cada passo executado (`AutomationStepRun`), incluindo erros
+  quando um passo falha
+
+Isso ajuda a depurar fluxos e confirmar que os eventos estão chegando e
+sendo processados como esperado.
+
+## Exemplo de fluxo
+
+Um fluxo simples de boas-vindas com uma condição de plano:
+
+```json
+{
+  "steps": {
+    "trigger": { "type": "trigger", "config": {} },
+    "check_plan": {
+      "type": "condition",
+      "config": { "rules": { "match": "all", "conditions": [{ "field": "properties.plan", "op": "eq", "value": "pro" }] } }
+    },
+    "email_pro": {
+      "type": "send_email",
+      "config": { "subject": "Bem-vindo ao plano Pro!", "from": "team@acme.com", "html": "<p>Oi {{firstName}}!</p>" }
+    },
+    "email_free": {
+      "type": "send_email",
+      "config": { "subject": "Bem-vindo!", "from": "team@acme.com", "html": "<p>Oi {{firstName}}!</p>" }
+    }
+  },
+  "connections": [
+    { "from": "trigger", "to": "check_plan" },
+    { "from": "check_plan", "to": "email_pro", "condition": "true" },
+    { "from": "check_plan", "to": "email_free", "condition": "false" }
+  ]
+}
+```
+
+<Note>
+  Esse JSON é uma representação simplificada da estrutura interna do fluxo,
+  útil para entender o modelo. No dia a dia, você monta as Automações pelo
+  editor visual no dashboard, sem precisar escrever esse formato à mão.
+</Note>
