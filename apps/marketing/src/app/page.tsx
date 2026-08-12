@@ -1,6 +1,7 @@
 import { SiteFooter } from "~/components/SiteFooter";
 import { TopNav } from "~/components/TopNav";
 import { Button } from "@usesend/ui/src/button";
+import { AwsSesBadge } from "~/components/AwsSesBadge";
 
 // Links de produto — confirmar domínios finais com o time.
 const APP_URL = "https://app.madmail.com.br";
@@ -200,7 +201,7 @@ function BlocoIA() {
               {[
                 "Sem painel novo para aprender — fale como você já fala",
                 "Segmentação e cópia sugeridas pela IA, aprovadas por você",
-                "Disparo real via infraestrutura própria, não um brinquedo",
+                "Disparo real pela infraestrutura da AWS, não um brinquedo",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-3">
                   <Check /> <span>{t}</span>
@@ -361,6 +362,7 @@ function Entregabilidade() {
       title="Chegue em gente, não na pasta de spam"
       body="SPF, DKIM e DMARC configurados do jeito certo, IPs cuidados e supressão automática de quedas e reclamações. Entregabilidade é assunto sério — a gente trata como tal."
       visual={<DeliverabilityMock />}
+      extra={<AwsSesBadge />}
     />
   );
 }
@@ -633,12 +635,15 @@ function SplitFeature({
   title,
   body,
   visual,
+  extra,
   reverse = false,
 }: {
   eyebrow: string;
   title: string;
   body: string;
   visual: React.ReactNode;
+  /** Conteúdo solto abaixo do texto, como o selo de infraestrutura. */
+  extra?: React.ReactNode;
   reverse?: boolean;
 }) {
   return (
@@ -653,6 +658,7 @@ function SplitFeature({
               {title}
             </h2>
             <p className="mt-4 text-muted-foreground">{body}</p>
+            {extra}
           </div>
           <div className={reverse ? "lg:order-1" : ""}>{visual}</div>
         </div>

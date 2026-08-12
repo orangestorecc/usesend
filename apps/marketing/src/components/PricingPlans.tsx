@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Button } from "@usesend/ui/src/button";
 
+import { AwsSesLinha } from "~/components/AwsSesBadge";
+
 import {
   estadoDoCard,
   PASSOS_MARKETING,
@@ -381,6 +383,7 @@ export function PricingPlans() {
         Preços em reais, com nota fiscal. Sem fidelidade — cancele quando
         quiser.
       </p>
+      <AwsSesLinha />
     </section>
   );
 }
