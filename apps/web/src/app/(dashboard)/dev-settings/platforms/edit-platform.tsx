@@ -89,12 +89,12 @@ export default function EditPlatform({
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col gap-0 p-0">
+        <DialogHeader className="border-b px-6 py-4">
           <DialogTitle>Editar integração — {integration.name}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
           <div>
             <Label>Nome da integração</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
@@ -164,12 +164,6 @@ export default function EditPlatform({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="flex justify-end pt-1">
-            <Button onClick={salvar} disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? "Salvando..." : "Salvar alterações"}
-            </Button>
           </div>
 
           <div className="border-t pt-4">
@@ -244,6 +238,12 @@ export default function EditPlatform({
               não podem virar contato.
             </p>
           </div>
+        </div>
+
+        <div className="flex justify-end border-t px-6 py-4">
+          <Button onClick={salvar} disabled={updateMutation.isPending}>
+            {updateMutation.isPending ? "Salvando..." : "Salvar alterações"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

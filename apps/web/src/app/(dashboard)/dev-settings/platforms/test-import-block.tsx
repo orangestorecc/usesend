@@ -7,7 +7,7 @@ import { Input } from "@usesend/ui/src/input";
 import { Label } from "@usesend/ui/src/label";
 import { Badge } from "@usesend/ui/src/badge";
 import { toast } from "@usesend/ui/src/toaster";
-import { CheckCircle2, FlaskConical, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, FlaskConical, XCircle } from "lucide-react";
 import { api } from "~/trpc/react";
 
 /**
@@ -28,6 +28,7 @@ export default function TestImportBlock({
   doubleOptInEnabled: boolean;
   defaultEmail?: string;
 }) {
+  const [aberto, setAberto] = useState(false);
   const [destino, setDestino] = useState(defaultEmail ?? "");
   const mutation = api.platformIntegration.testImport.useMutation({
     onError: (e) => toast.error(e.message),
@@ -38,23 +39,35 @@ export default function TestImportBlock({
 
   return (
     <div className="rounded-lg border border-dashed p-3">
-      <Label className="flex items-center gap-2">
-        <FlaskConical className="h-4 w-4" />
-        Testar importação (simulação)
-      </Label>
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-medium">
+          <FlaskConical className="h-4 w-4" />
+          Testar importação antes de criar
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 transition-transform ${
+            aberto ? "rotate-180" : ""
+          }`}
+        />
+      </button>
 
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-        Lê <strong>um</strong> cliente real da sua loja, cria uma lista chamada
-        &quot;[Teste] Integração&quot; e importa esse único contato pelo mesmo
-        caminho da sincronização de verdade. Serve para você conferir, antes de
-        ligar a integração, se o double opt-in se comporta como espera.
-      </p>
+      {!aberto ? (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Importa um contato de teste para você conferir o double opt-in.
+        </p>
+      ) : null}
+
+      {aberto ? (
+        <>
       <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-        O contato é criado com o <strong>e-mail de teste abaixo</strong>, não
-        com o e-mail do cliente da loja — assim, se houver disparo de
-        confirmação, ele chega em você e não num cliente real. O resto dos dados
-        (nome, telefone, newsletter) vem do cliente de verdade, para você
-        conferir o mapeamento.
+        Lê um cliente real da loja e importa <strong>um</strong> contato numa
+        lista &quot;[Teste]&quot;, pelo mesmo caminho da sincronização de
+        verdade. O contato usa o e-mail de teste abaixo, não o do cliente — se
+        houver disparo de confirmação, ele chega em você.
       </p>
 
       <div className="mt-3 flex items-end gap-2">
@@ -161,6 +174,8 @@ export default function TestImportBlock({
             é removida sozinha.
           </p>
         </div>
+      ) : null}
+        </>
       ) : null}
     </div>
   );
