@@ -3,8 +3,8 @@ import { logger } from "../logger/log";
 import { ContactQueueService } from "./contact-queue-service";
 import { registrarProgresso } from "./contact-import-progress";
 import {
-  analisarArquivo,
   aplicarMapeamento,
+  type ArquivoAnalisado,
   type Mapeamento,
 } from "~/lib/contact-import/parse";
 
@@ -27,10 +27,10 @@ export async function iniciarImportacao(opts: {
   fileName: string;
   fileKey: string;
   fileSize: number;
-  conteudo: string;
+  arquivo: ArquivoAnalisado;
   mapeamento: Mapeamento;
 }) {
-  const arquivo = analisarArquivo(opts.conteudo);
+  const arquivo = opts.arquivo;
   const { contatos, validos, invalidos, duplicados } = aplicarMapeamento(
     arquivo,
     opts.mapeamento,

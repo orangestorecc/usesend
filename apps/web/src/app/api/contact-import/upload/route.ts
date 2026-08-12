@@ -8,7 +8,8 @@ import {
   isStorageConfigured,
   putDocument,
 } from "~/server/service/storage-service";
-import type { Mapeamento } from "~/lib/contact-import/parse";
+import { analisarArquivo, type Mapeamento } from "~/lib/contact-import/parse";
+import { ehPlanilha, lerXlsx } from "~/lib/contact-import/xlsx";
 
 const TAMANHO_MAXIMO = 10 * 1024 * 1024; // 10 MB
 
@@ -70,7 +71,20 @@ export async function POST(req: Request) {
     );
   }
 
-  const conteudo = await arquivo.text();
+  // Planilha é binária: guarda os bytes originais e analisa com o ExcelJS.
+  const bytes = Buffer.from(await arquivo.arrayBuffer());
+  const planilha = ehPlanilha(arquivo.name);
+  const analisado = planilha
+    ? await lerXlsx(bytes)
+    : analisarArquivo(bytes.toString("utf-8"));
+
+  if (analisado.linhas.length === 0) {
+    return NextResponse.json(
+      { error: "O arquivo não tem nenhuma linha de dados" },
+      { status: 400 },
+    );
+  }
+
   const chave = `contact-imports/${vinculo.teamId}/${contactBookId}/${Date.now()}-${arquivo.name.replace(/[^\w.-]/g, "_")}`;
 
   // Sem armazenamento configurado a importação ainda roda; só não guarda o
@@ -78,7 +92,13 @@ export async function POST(req: Request) {
   let chaveGravada = "";
   if (isStorageConfigured()) {
     try {
-      await putDocument(chave, conteudo, "text/csv; charset=utf-8");
+      await putDocument(
+        chave,
+        bytes,
+        planilha
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          : "text/csv; charset=utf-8",
+      );
       chaveGravada = chave;
     } catch (err) {
       logger.error({ err }, "[ContactImport]: Falha ao guardar o arquivo");
@@ -93,7 +113,7 @@ export async function POST(req: Request) {
       fileName: arquivo.name,
       fileKey: chaveGravada,
       fileSize: arquivo.size,
-      conteudo,
+      arquivo: analisado,
       mapeamento,
     });
 
