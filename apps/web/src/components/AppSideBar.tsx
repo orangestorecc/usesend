@@ -19,6 +19,7 @@ import {
   UserRoundX,
   Webhook,
   ScrollText,
+  Workflow,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -89,6 +90,11 @@ const marketingItems = [
     title: "Campanhas",
     url: "/campaigns",
     icon: Volume2,
+  },
+  {
+    title: "Automações",
+    url: "/automations",
+    icon: Workflow,
   },
 ];
 

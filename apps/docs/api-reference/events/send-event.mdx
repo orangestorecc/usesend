@@ -1,0 +1,13 @@
+---
+title: Enviar evento
+openapi: post /v1/events/send
+---
+
+Envie um evento customizado para um contato. Automações com esse evento como
+gatilho são disparadas, e runs em espera (`wait_for_event`) pelo mesmo evento
+são retomadas.
+
+<Note>
+  Nomes de evento não podem começar com o prefixo `usesend:`, reservado para
+  eventos internos do sistema.
+</Note>

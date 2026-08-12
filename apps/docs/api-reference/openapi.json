@@ -4268,6 +4268,63 @@
           }
         }
       }
+    },
+    "/v1/events/send": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Nome do evento customizado. Não pode começar com o prefixo reservado \"usesend:\"."
+                  },
+                  "contactId": {
+                    "type": "string",
+                    "description": "ID do contato ao qual o evento se aplica. Informe contactId ou email."
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "E-mail do contato ao qual o evento se aplica. Informe contactId ou email."
+                  },
+                  "contactBookId": {
+                    "type": "string",
+                    "description": "Lista de contatos onde criar o contato, caso o e-mail informado ainda não exista."
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Dados adicionais do evento, disponíveis nas Automações como {{event.chave}}."
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Evento registrado e automações correspondentes disparadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contactId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

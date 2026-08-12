@@ -30,6 +30,7 @@ import { inboundRouter } from "./routers/inbound";
 import { inboundAdminRouter } from "./routers/inbound-admin";
 import { paymentsRouter } from "./routers/payments";
 import { aiRouter } from "./routers/ai";
+import { automationRouter } from "./routers/automation";
 
 /**
  * This is the primary router for your server.
@@ -68,6 +69,7 @@ export const appRouter = createTRPCRouter({
   inboundAdmin: inboundAdminRouter,
   payments: paymentsRouter,
   ai: aiRouter,
+  automation: automationRouter,
 });
 
 // export type definition of API
