@@ -25,6 +25,17 @@ AFTER=$(git rev-parse --short HEAD)
 echo "  $BEFORE -> $AFTER"
 
 log "Dependências"
+# O workflow chama /opt/madmail/deploy.sh, que é uma cópia fora do repositório.
+# Sem isto, mudanças em infra/deploy.sh nunca chegariam em produção — foi
+# exatamente o que aconteceu com o build do relay SMTP. Atualiza a cópia para
+# a PRÓXIMA execução; trocar o script em execução no meio dele é receita de
+# comportamento imprevisível.
+if ! cmp -s "$APP/infra/deploy.sh" /opt/madmail/deploy.sh; then
+  cp "$APP/infra/deploy.sh" /opt/madmail/deploy.sh
+  chmod +x /opt/madmail/deploy.sh
+  echo "  deploy.sh atualizado — vale a partir do próximo deploy"
+fi
+
 pnpm install --frozen-lockfile 2>&1 | tail -3
 
 log "Prisma"
