@@ -860,3 +860,28 @@ model OAuthAuthCode {
 
   @@index([clientId])
 }
+
+// Uma rodada de importacao de contatos por arquivo. E o registro de progresso
+// durante a importacao e o log depois dela -- nao sao duas coisas.
+model ContactImport {
+  id            String    @id @default(cuid())
+  teamId        Int
+  contactBookId String
+  userId        Int?
+  fileName      String
+  fileKey       String // chave do arquivo original no S3
+  fileSize      Int
+  mapping       Json // de-para escolhido: { "Coluna do arquivo": "email" | "prop:cidade" | "ignore" }
+  status        String    @default("processing") // processing | done | error
+  total         Int       @default(0)
+  processed     Int       @default(0)
+  created       Int       @default(0)
+  updated       Int       @default(0)
+  skipped       Int       @default(0)
+  error         String?
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+
+  @@index([contactBookId, startedAt])
+  @@index([teamId])
+}

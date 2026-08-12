@@ -16,6 +16,7 @@ import { waitlistRouter } from "./routers/waitlist";
 import { feedbackRouter } from "./routers/feedback";
 import { webhookRouter } from "./routers/webhook";
 import { mcpRouter } from "./routers/mcp";
+import { contactImportRouter } from "./routers/contact-import";
 import { platformIntegrationRouter } from "./routers/platform-integration";
 import { apiLogRouter } from "./routers/api-log";
 import { billingProfileRouter } from "./routers/billing-profile";
@@ -52,6 +53,7 @@ export const appRouter = createTRPCRouter({
   webhook: webhookRouter,
   mcp: mcpRouter,
   platformIntegration: platformIntegrationRouter,
+  contactImport: contactImportRouter,
   apiLog: apiLogRouter,
   billingProfile: billingProfileRouter,
   unsubscribePage: unsubscribePageRouter,

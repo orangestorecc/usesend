@@ -12,6 +12,8 @@ import {
 import Link from "next/link";
 import AddContact from "./add-contact";
 import BulkUploadContacts from "./bulk-upload-contacts";
+import ImportContacts from "./import-contacts";
+import ImportHistory from "./import-history";
 import ContactList from "./contact-list";
 import { formatDistanceToNow } from "date-fns";
 import EmojiPicker, { Theme } from "emoji-picker-react";
@@ -36,6 +38,7 @@ import {
   Megaphone,
   Shield,
   ChevronRight,
+  FileSpreadsheet,
   MoreVertical,
   Plus,
   Upload,
@@ -49,13 +52,16 @@ function ContactBookDetailActions({
   contactBookId,
   contactBookName,
   contactBookVariables,
+  doubleOptInEnabled,
 }: {
   contactBookId: string;
   contactBookName?: string;
   contactBookVariables?: string[];
+  doubleOptInEnabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -96,6 +102,18 @@ function ContactBookDetailActions({
             >
               <Upload className="mr-2 h-4 w-4" />
               Envio em massa
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-start rounded-lg hover:bg-accent"
+              onClick={() => {
+                setOpen(false);
+                setIsImportOpen(true);
+              }}
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Importar contatos
             </Button>
             {contactBookName ? (
               <Button
@@ -139,6 +157,13 @@ function ContactBookDetailActions({
         contactBookVariables={contactBookVariables}
         open={isBulkUploadOpen}
         onOpenChange={setIsBulkUploadOpen}
+      />
+      <ImportContacts
+        contactBookId={contactBookId}
+        contactBookVariables={contactBookVariables}
+        doubleOptInEnabled={doubleOptInEnabled}
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
       />
       {contactBookName ? (
         <EditContactBook
@@ -270,6 +295,7 @@ export default function ContactsPage({
           contactBookId={contactBookId}
           contactBookName={contactBookDetailQuery.data?.name}
           contactBookVariables={contactBookDetailQuery.data?.variables}
+          doubleOptInEnabled={contactBookDetailQuery.data?.doubleOptInEnabled}
         />
       </div>
 
@@ -485,6 +511,14 @@ export default function ContactsPage({
           doubleOptInEnabled={contactBookDetailQuery.data?.doubleOptInEnabled}
           contactBookVariables={contactBookDetailQuery.data?.variables}
         />
+      </div>
+
+      <div className="mt-10">
+        <h3 className="text-sm font-semibold">Histórico de importações</h3>
+        <p className="mb-3 mt-1 text-sm text-muted-foreground">
+          Cada importação por arquivo, com o arquivo usado guardado por 90 dias.
+        </p>
+        <ImportHistory contactBookId={contactBookId} />
       </div>
     </div>
   );
