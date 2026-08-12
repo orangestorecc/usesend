@@ -33,8 +33,9 @@ describe("taxas de juros", () => {
     expect(parseInstallmentRates("2:1,99")).toEqual({ 2: 1.99 });
   });
 
-  it("ignora 1x e taxas inválidas", () => {
-    expect(parseInstallmentRates("1:5;2:0;3:-1;4:abc")).toEqual({});
+  it("ignora taxas inválidas, mas aceita 1x", () => {
+    // 1x passou a ser configurável: ali o percentual vale como acréscimo.
+    expect(parseInstallmentRates("1:5;2:0;3:-1;4:abc")).toEqual({ 1: 5 });
   });
 
   it("ida e volta preserva os valores", () => {
@@ -53,8 +54,15 @@ describe("cálculo da parcela", () => {
     expect(o.semJuros).toBe(true);
   });
 
-  it("à vista nunca tem juros, mesmo com taxa configurada", () => {
+  it("à vista cobra acréscimo quando há taxa configurada", () => {
+    // Em 1x a Tabela Price se reduz a `valor × (1 + i)`: 5% sobre 100,00.
     const o = calcularParcela(10000, 1, 5);
+    expect(o.totalCents).toBe(10500);
+    expect(o.semJuros).toBe(false);
+  });
+
+  it("à vista sem taxa continua sem juros", () => {
+    const o = calcularParcela(10000, 1, 0);
     expect(o.totalCents).toBe(10000);
     expect(o.semJuros).toBe(true);
   });
