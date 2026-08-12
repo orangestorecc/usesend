@@ -47,6 +47,7 @@ import {
   type DestinoColuna,
   type Mapeamento,
 } from "~/lib/contact-import/parse";
+import { ehPlanilha, lerXlsx } from "~/lib/contact-import/xlsx";
 
 type Passo = "explicacao" | "mapeamento" | "importando";
 
@@ -86,6 +87,7 @@ export default function ImportContacts({
   const [enviando, setEnviando] = useState(false);
   const [importId, setImportId] = useState<string | null>(null);
   const [arrastando, setArrastando] = useState(false);
+  const [lendo, setLendo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const utils = api.useUtils();
@@ -121,27 +123,34 @@ export default function ImportContacts({
     setImportId(null);
   }
 
-  function receberArquivo(f: File) {
-    if (!/\.(csv|txt)$/i.test(f.name)) {
-      toast.error("Envie um arquivo .csv ou .txt");
+  async function receberArquivo(f: File) {
+    if (!/\.(csv|txt|xlsx)$/i.test(f.name)) {
+      toast.error("Envie um arquivo .xlsx, .csv ou .txt");
       return;
     }
-    const leitor = new FileReader();
-    leitor.onload = (e) => {
-      const texto = String(e.target?.result ?? "");
-      const parsed = analisarArquivo(texto);
+
+    try {
+      setLendo(true);
+      const parsed = ehPlanilha(f.name)
+        ? await lerXlsx(await f.arrayBuffer())
+        : analisarArquivo(await f.text());
+
       if (parsed.linhas.length === 0) {
-        toast.error("O arquivo está vazio");
+        toast.error("O arquivo não tem nenhuma linha de dados");
         return;
       }
+
       setArquivo(f);
       setAnalisado(parsed);
       setMapeamento(
         mapearAutomaticamente(parsed.cabecalhos, contactBookVariables ?? []),
       );
       setPasso("mapeamento");
-    };
-    leitor.readAsText(f, "utf-8");
+    } catch {
+      toast.error("Não consegui ler este arquivo. Ele está corrompido?");
+    } finally {
+      setLendo(false);
+    }
   }
 
   async function importar() {
@@ -229,9 +238,9 @@ export default function ImportContacts({
                   pode usar nos e-mails.
                 </p>
                 <p className="mt-2">
-                  Aceitamos <strong>.csv</strong> e <strong>.txt</strong>. Se
-                  você usa Excel, salve como &quot;CSV UTF-8&quot;. Até 10 MB e
-                  50.000 linhas.
+                  Aceitamos planilha do Excel (<strong>.xlsx</strong>),{" "}
+                  <strong>.csv</strong> e <strong>.txt</strong> — pode subir a
+                  planilha direto, sem converter. Até 10 MB e 50.000 linhas.
                 </p>
               </div>
             </div>
@@ -277,7 +286,7 @@ export default function ImportContacts({
                 e.preventDefault();
                 setArrastando(false);
                 const f = e.dataTransfer.files[0];
-                if (f) receberArquivo(f);
+                if (f) void receberArquivo(f);
               }}
             >
               <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
@@ -286,17 +295,18 @@ export default function ImportContacts({
                 variant="outline"
                 className="mt-3"
                 onClick={() => inputRef.current?.click()}
+                disabled={lendo}
               >
-                Escolher arquivo
+                {lendo ? "Lendo..." : "Escolher arquivo"}
               </Button>
               <input
                 ref={inputRef}
                 type="file"
-                accept=".csv,.txt"
+                accept=".xlsx,.csv,.txt"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) receberArquivo(f);
+                  if (f) void receberArquivo(f);
                 }}
               />
               <p className="mt-2 text-sm text-muted-foreground">

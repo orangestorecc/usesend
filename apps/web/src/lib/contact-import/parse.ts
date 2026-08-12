@@ -93,22 +93,34 @@ export function analisarArquivo(texto: string): ArquivoAnalisado {
   }
 
   const separador = detectarSeparador(linhasBrutas[0]!);
-  const primeira = dividirLinha(linhasBrutas[0]!, separador).map((c) =>
-    c.replace(/^"|"$/g, ""),
+  const matriz = linhasBrutas.map((l) =>
+    dividirLinha(l, separador).map((c) => c.replace(/^"|"$/g, "")),
   );
+
+  return { ...analisarLinhas(matriz), separador };
+}
+
+/**
+ * Mesma lógica de cabeçalho a partir de uma matriz já dividida — é por aqui
+ * que entra a planilha .xlsx, que não passa por separador nenhum.
+ */
+export function analisarLinhas(matriz: string[][]): ArquivoAnalisado {
+  if (matriz.length === 0) {
+    return { cabecalhos: [], linhas: [], separador: ",", semCabecalho: false };
+  }
+
+  const primeira = matriz[0]!;
 
   // Se a primeira linha já tem e-mail de verdade, ela é dado e não cabeçalho.
   const semCabecalho = primeira.some((c) => emailValido(c));
 
   const cabecalhos = semCabecalho
     ? primeira.map((_, i) => `Coluna ${i + 1}`)
-    : primeira;
+    : primeira.map((c, i) => (c.trim() ? c : `Coluna ${i + 1}`));
 
-  const corpo = (semCabecalho ? linhasBrutas : linhasBrutas.slice(1)).map((l) =>
-    dividirLinha(l, separador),
-  );
+  const linhas = semCabecalho ? matriz : matriz.slice(1);
 
-  return { cabecalhos, linhas: corpo, separador, semCabecalho };
+  return { cabecalhos, linhas, separador: ",", semCabecalho };
 }
 
 const APELIDOS_EMAIL = [
