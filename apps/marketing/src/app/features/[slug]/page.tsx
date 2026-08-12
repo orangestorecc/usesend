@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SiteFooter } from "~/components/SiteFooter";
+import { InfraAwsSecao } from "~/components/AwsSesBadge";
 import { TopNav } from "~/components/TopNav";
 import { Button } from "@usesend/ui/src/button";
 
@@ -18,6 +19,8 @@ type Feature = {
   subtitle: string;
   bullets: string[];
   sections: Section[];
+  /** Mostra o bloco sobre a infraestrutura de envio da AWS. */
+  mostrarInfra?: boolean;
 };
 
 const FEATURES: Record<string, Feature> = {
@@ -43,6 +46,7 @@ const FEATURES: Record<string, Feature> = {
     ],
   },
   smtp: {
+    mostrarInfra: true,
     eyebrow: "SMTP",
     title: "Um relay SMTP que pluga em qualquer app",
     subtitle:
@@ -169,6 +173,7 @@ const FEATURES: Record<string, Feature> = {
     ],
   },
   entregabilidade: {
+    mostrarInfra: true,
     eyebrow: "Entregabilidade",
     title: "Chegue em gente, não na pasta de spam",
     subtitle:
@@ -276,6 +281,8 @@ export default async function FeaturePage({
           </div>
         </div>
       </section>
+
+      {feature.mostrarInfra ? <InfraAwsSecao /> : null}
 
       {/* CTA */}
       <section className="border-t border-border py-24">
