@@ -21,7 +21,9 @@ import {
 import { toast } from "@usesend/ui/src/toaster";
 import { Switch } from "@usesend/ui/src/switch";
 import { AlertTriangle, Info, Plus } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
+import TestImportBlock from "./test-import-block";
 
 const NEW_BOOK = "__new__";
 
@@ -37,6 +39,7 @@ export default function AddPlatform() {
   const [doubleOptIn, setDoubleOptIn] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
 
+  const { data: session } = useSession();
   const utils = api.useUtils();
   const booksQuery = api.platformIntegration.contactBooks.useQuery();
   const testMutation = api.platformIntegration.test.useMutation();
@@ -242,6 +245,14 @@ export default function AddPlatform() {
               </Select>
             </div>
           </div>
+
+          <TestImportBlock
+            baseUrl={baseUrl}
+            apiKey={apiKey}
+            subscribeMode={subscribeMode}
+            doubleOptInEnabled={bookChoice === NEW_BOOK ? doubleOptIn : false}
+            defaultEmail={session?.user?.email ?? undefined}
+          />
 
           <div className="flex gap-2 rounded-lg border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
