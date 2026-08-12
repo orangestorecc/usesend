@@ -2,42 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@usesend/ui/src/button";
-import { Input } from "@usesend/ui/src/input";
-import { Label } from "@usesend/ui/src/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@usesend/ui/src/dialog";
-import { toast } from "@usesend/ui/src/toaster";
 import { AlertTriangle, Check, Pencil } from "lucide-react";
 
 import { api } from "~/trpc/react";
+import BillingContactDialog from "./billing-contact-dialog";
+import {
+  formatarDocumento,
+  formatarTelefone,
+  paisPorCodigo,
+  separarTelefone,
+} from "~/lib/validadores-br";
 
-/** (81) 99999-9999 — só para exibir; o servidor guarda apenas dígitos. */
-function formatarWhatsapp(digitos: string): string {
-  const d = digitos.replace(/\D/g, "");
-  if (d.length === 11) {
-    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-  }
-  if (d.length === 10) {
-    return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  }
-  return digitos;
-}
-
-function formatarDocumento(d: string): string {
-  const v = d.replace(/\D/g, "");
-  if (v.length === 11) {
-    return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
-  }
-  if (v.length === 14) {
-    return `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`;
-  }
-  return d;
+/** Mostra com bandeira e DDI, como foi cadastrado. */
+function exibirTelefone(guardado: string): string {
+  const { codigoPais, numero } = separarTelefone(guardado);
+  const pais = paisPorCodigo(codigoPais);
+  return `${pais.bandeira} +${pais.ddi} ${formatarTelefone(numero, codigoPais)}`;
 }
 
 /**
@@ -89,12 +69,19 @@ export default function BillingContactBlock({
                 <span className="font-medium text-foreground">
                   {contato.responsavel}
                 </span>{" "}
-                — {contato.email} · {formatarWhatsapp(contato.whatsapp)}
-                {contato.documento
-                  ? ` · ${formatarDocumento(contato.documento)}`
-                  : null}
-                {contato.razaoSocial ? ` · ${contato.razaoSocial}` : null}
+                — {contato.email} · {exibirTelefone(contato.whatsapp)}
               </p>
+              {contato.documento || contato.razaoSocial ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {contato.razaoSocial ?? ""}
+                  {contato.razaoSocial && contato.documento ? " · " : ""}
+                  {contato.documento
+                    ? formatarDocumento(contato.documento)
+                    : null}
+                  {contato.cidade ? ` · ${contato.cidade}` : ""}
+                  {contato.uf ? `/${contato.uf}` : ""}
+                </p>
+              ) : null}
             </div>
             <Button
               type="button"
@@ -115,8 +102,8 @@ export default function BillingContactBlock({
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             Precisamos de quem responde pelo financeiro, o e-mail e o WhatsApp
-            para emitir a nota fiscal e avisar sobre a cobrança. Leva menos de
-            um minuto e você continua aqui mesmo.
+            para emitir a nota fiscal e avisar sobre a cobrança. Com o CNPJ, o
+            resto vem preenchido da Receita. Você continua aqui mesmo.
           </p>
           <Button
             type="button"
@@ -137,128 +124,5 @@ export default function BillingContactBlock({
         />
       ) : null}
     </>
-  );
-}
-
-function BillingContactDialog({
-  inicial,
-  emailPadrao,
-  onClose,
-}: {
-  inicial: {
-    responsavel: string;
-    email: string;
-    whatsapp: string;
-    documento: string | null;
-    razaoSocial: string | null;
-  } | null;
-  emailPadrao?: string | null;
-  onClose: () => void;
-}) {
-  const [responsavel, setResponsavel] = useState(inicial?.responsavel ?? "");
-  const [email, setEmail] = useState(inicial?.email ?? emailPadrao ?? "");
-  const [whatsapp, setWhatsapp] = useState(
-    inicial ? formatarWhatsapp(inicial.whatsapp) : "",
-  );
-  const [documento, setDocumento] = useState(
-    inicial?.documento ? formatarDocumento(inicial.documento) : "",
-  );
-  const [razaoSocial, setRazaoSocial] = useState(inicial?.razaoSocial ?? "");
-
-  const utils = api.useUtils();
-  const mutation = api.billingContact.upsert.useMutation({
-    onSuccess: () => {
-      toast.success("Dados de faturamento salvos.");
-      utils.billingContact.get.invalidate();
-      onClose();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  return (
-    <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-0 p-0">
-        <DialogHeader className="border-b px-6 py-4">
-          <DialogTitle>Responsável financeiro</DialogTitle>
-          <DialogDescription>
-            Para onde vão a nota fiscal e os avisos de cobrança.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
-          <div>
-            <Label>Nome do responsável</Label>
-            <Input
-              value={responsavel}
-              onChange={(e) => setResponsavel(e.target.value)}
-              placeholder="Quem cuida do financeiro"
-            />
-          </div>
-
-          <div>
-            <Label>E-mail para cobrança</Label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="financeiro@suaempresa.com.br"
-            />
-          </div>
-
-          <div>
-            <Label>WhatsApp</Label>
-            <Input
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="(81) 99999-9999"
-            />
-          </div>
-
-          <div className="border-t pt-4">
-            <p className="text-xs text-muted-foreground">
-              Opcional agora, mas necessário quando a nota fiscal for emitida.
-            </p>
-            <div className="mt-3 space-y-4">
-              <div>
-                <Label>CPF ou CNPJ</Label>
-                <Input
-                  value={documento}
-                  onChange={(e) => setDocumento(e.target.value)}
-                  placeholder="00.000.000/0000-00"
-                />
-              </div>
-              <div>
-                <Label>Razão social ou nome completo</Label>
-                <Input
-                  value={razaoSocial}
-                  onChange={(e) => setRazaoSocial(e.target.value)}
-                  placeholder="Como deve sair na nota"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter className="border-t px-6 py-4">
-          <Button variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={() =>
-              mutation.mutate({
-                responsavel,
-                email,
-                whatsapp,
-                documento: documento || undefined,
-                razaoSocial: razaoSocial || undefined,
-              })
-            }
-            disabled={mutation.isPending}
-          >
-            {mutation.isPending ? "Salvando..." : "Salvar e continuar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

@@ -18,6 +18,7 @@ import { webhookRouter } from "./routers/webhook";
 import { mcpRouter } from "./routers/mcp";
 import { contactImportRouter } from "./routers/contact-import";
 import { billingContactRouter } from "./routers/billing-contact";
+import { consultaRouter } from "./routers/consulta";
 import { platformIntegrationRouter } from "./routers/platform-integration";
 import { apiLogRouter } from "./routers/api-log";
 import { billingProfileRouter } from "./routers/billing-profile";
@@ -56,6 +57,7 @@ export const appRouter = createTRPCRouter({
   platformIntegration: platformIntegrationRouter,
   contactImport: contactImportRouter,
   billingContact: billingContactRouter,
+  consulta: consultaRouter,
   apiLog: apiLogRouter,
   billingProfile: billingProfileRouter,
   unsubscribePage: unsubscribePageRouter,

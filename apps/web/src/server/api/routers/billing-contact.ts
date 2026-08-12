@@ -2,24 +2,33 @@ import { z } from "zod";
 
 import { createTRPCRouter, teamProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import {
+  documentoValido,
+  emailValido,
+  separarTelefone,
+  soDigitos,
+  telefoneValido,
+} from "~/lib/validadores-br";
 
-/** Só dígitos, 10 (fixo com DDD) ou 11 (celular com DDD). */
+/** Guardado como E.164 sem o `+`. Valida pelo país embutido no próprio valor. */
 const whatsappSchema = z
   .string()
-  .transform((v) => v.replace(/\D/g, ""))
-  .refine(
-    (v) => v.length === 10 || v.length === 11,
-    "Informe o WhatsApp com DDD, ex.: (81) 99999-9999",
-  );
+  .transform(soDigitos)
+  .refine((v) => {
+    const { codigoPais, numero } = separarTelefone(v);
+    return telefoneValido(numero, codigoPais);
+  }, "Telefone inválido. Confira o DDD e o número.");
 
 const documentoSchema = z
   .string()
-  .transform((v) => v.replace(/\D/g, ""))
+  .transform(soDigitos)
   .refine(
-    (v) => v.length === 0 || v.length === 11 || v.length === 14,
-    "Informe um CPF (11 dígitos) ou CNPJ (14 dígitos)",
+    (v) => v.length === 0 || documentoValido(v),
+    "CPF ou CNPJ inválido — confira os dígitos.",
   )
   .optional();
+
+const opcional = z.string().trim().optional();
 
 export const billingContactRouter = createTRPCRouter({
   get: teamProcedure.query(async ({ ctx }) => {
@@ -29,20 +38,53 @@ export const billingContactRouter = createTRPCRouter({
   upsert: teamProcedure
     .input(
       z.object({
-        responsavel: z.string().min(2, "Informe o nome do responsável"),
-        email: z.string().email("E-mail inválido"),
+        responsavel: z.string().trim().min(2, "Informe o nome do responsável"),
+        email: z
+          .string()
+          .trim()
+          .refine(emailValido, "E-mail inválido"),
         whatsapp: whatsappSchema,
         documento: documentoSchema,
-        razaoSocial: z.string().optional(),
+        razaoSocial: opcional,
+        nomeFantasia: opcional,
+        cep: z
+          .string()
+          .transform(soDigitos)
+          .refine(
+            (v) => v.length === 0 || v.length === 8,
+            "CEP deve ter 8 dígitos",
+          )
+          .optional(),
+        logradouro: opcional,
+        numero: opcional,
+        complemento: opcional,
+        bairro: opcional,
+        cidade: opcional,
+        uf: z
+          .string()
+          .trim()
+          .transform((v) => v.toUpperCase())
+          .refine((v) => v.length === 0 || v.length === 2, "UF deve ter 2 letras")
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const ouNulo = (v?: string) => (v && v.length ? v : null);
+
       const dados = {
-        responsavel: input.responsavel.trim(),
-        email: input.email.trim().toLowerCase(),
+        responsavel: input.responsavel,
+        email: input.email.toLowerCase(),
         whatsapp: input.whatsapp,
-        documento: input.documento || null,
-        razaoSocial: input.razaoSocial?.trim() || null,
+        documento: ouNulo(input.documento),
+        razaoSocial: ouNulo(input.razaoSocial),
+        nomeFantasia: ouNulo(input.nomeFantasia),
+        cep: ouNulo(input.cep),
+        logradouro: ouNulo(input.logradouro),
+        numero: ouNulo(input.numero),
+        complemento: ouNulo(input.complemento),
+        bairro: ouNulo(input.bairro),
+        cidade: ouNulo(input.cidade),
+        uf: ouNulo(input.uf),
       };
 
       return db.billingContact.upsert({
