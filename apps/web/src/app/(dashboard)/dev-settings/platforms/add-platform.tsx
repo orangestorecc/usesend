@@ -115,12 +115,12 @@ export default function AddPlatform() {
           Adicionar plataforma
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[85vh] flex-col gap-0 p-0">
+        <DialogHeader className="border-b px-6 py-4">
           <DialogTitle>Nova plataforma — OrangeStore</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
           <div>
             <Label>Nome da integração</Label>
             <Input
@@ -205,8 +205,8 @@ export default function AddPlatform() {
                   </Label>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     {doubleOptIn
-                      ? "Atenção: cada cliente importado vai receber um e-mail pedindo para confirmar a inscrição, e só passa a receber suas campanhas depois de clicar no link. Você precisa de um domínio verificado para isso funcionar."
-                      : "Desligado: os clientes importados entram direto na lista, sem e-mail de confirmação."}
+                      ? "Cada cliente importado recebe um e-mail pedindo confirmação e só recebe campanhas depois de clicar no link. Exige domínio verificado."
+                      : "Os clientes importados entram direto na lista, sem e-mail de confirmação."}
                   </p>
                 </div>
                 <Switch checked={doubleOptIn} onCheckedChange={setDoubleOptIn} />
@@ -258,18 +258,17 @@ export default function AddPlatform() {
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               A primeira sincronização começa{" "}
-              <strong>assim que você criar a integração</strong>, importando
-              todos os clientes da loja. Depois disso ela se repete no intervalo
-              escolhido, trazendo apenas quem foi criado ou alterado desde a
-              última vez.
+              <strong>assim que você criar a integração</strong>. Depois ela se
+              repete no intervalo escolhido, trazendo só quem mudou.
             </span>
           </div>
 
-          <div className="flex justify-end pt-2">
-            <Button onClick={handleSave} disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Criando..." : "Criar integração"}
-            </Button>
-          </div>
+        </div>
+
+        <div className="flex justify-end border-t px-6 py-4">
+          <Button onClick={handleSave} disabled={createMutation.isPending}>
+            {createMutation.isPending ? "Criando..." : "Criar integração"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
