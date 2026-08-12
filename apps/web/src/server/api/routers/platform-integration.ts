@@ -6,6 +6,10 @@ import { createTRPCRouter, teamProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { encryptSecret } from "~/server/crypto";
 import { testConnection } from "~/server/service/platform/orangestore";
+import {
+  runTestImport,
+  temDominioVerificado,
+} from "~/server/service/platform/test-import";
 import { PlatformSyncQueueService } from "~/server/service/platform-sync-queue-service";
 import {
   createContactBook,
@@ -60,6 +64,46 @@ export const platformIntegrationRouter = createTRPCRouter({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: e instanceof Error ? e.message : "Falha na conexão",
+        });
+      }
+    }),
+
+  /**
+   * Simulação de importação de um único contato, para o cliente conferir o
+   * comportamento antes de ligar a integração de verdade.
+   */
+  testImport: teamProcedure
+    .input(
+      z.object({
+        baseUrl: z.string().url(),
+        apiKey: z.string().min(1),
+        subscribeMode: subscribeModeSchema,
+        doubleOptInEnabled: z.boolean(),
+        destinationEmail: z.string().email(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (input.doubleOptInEnabled && !(await temDominioVerificado(ctx.team.id))) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Para testar o double opt-in é preciso ter ao menos um domínio verificado, senão não há de onde enviar o e-mail.",
+        });
+      }
+
+      try {
+        return await runTestImport({
+          teamId: ctx.team.id,
+          baseUrl: input.baseUrl,
+          apiKey: input.apiKey,
+          subscribeMode: input.subscribeMode,
+          doubleOptInEnabled: input.doubleOptInEnabled,
+          destinationEmail: input.destinationEmail,
+        });
+      } catch (e) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: e instanceof Error ? e.message : "Falha no teste",
         });
       }
     }),
