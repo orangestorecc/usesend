@@ -44,6 +44,7 @@ import {
   AccordionTrigger,
 } from "@usesend/ui/src/accordion";
 import ScheduleCampaign from "../../schedule-campaign";
+import FromAddressField from "~/components/from-address-field";
 import { useRouter } from "next/navigation";
 import { getCampaignEditorVariables } from "~/lib/constants/campaign";
 import { useAiRequest } from "~/components/editor/EditorAiBridge";
@@ -116,6 +117,10 @@ function CampaignEditor({
   const [name, setName] = useState(campaign.name);
   const [subject, setSubject] = useState(campaign.subject);
   const [from, setFrom] = useState(campaign.from);
+  const dominiosQuery = api.domain.domains.useQuery();
+  const dominiosVerificados = (dominiosQuery.data ?? [])
+    .filter((d) => d.status === "SUCCESS")
+    .map((d) => d.name);
   const [contactBookId, setContactBookId] = useState(campaign.contactBookId);
   const [replyTo, setReplyTo] = useState<string | undefined>(
     campaign.replyTo[0],
@@ -297,30 +302,16 @@ function CampaignEditor({
               </div>
 
               <AccordionContent className=" flex flex-col gap-4">
-                <div className=" flex items-center gap-4 mt-4">
-                  <label className=" text-sm  w-[80px] text-muted-foreground">
-                    De
-                  </label>
-                  <input
-                    type="text"
+                <div className="mt-4">
+                  <FromAddressField
                     value={from}
-                    onChange={(e) => {
-                      setFrom(e.target.value);
-                    }}
-                    className="mt-1 py-1 w-full text-sm outline-none border-b border-transparent  focus:border-border bg-transparent"
-                    placeholder="Nome amigável <contato@seudominio.com.br>"
-                    onBlur={() => {
-                      if (isApiCampaign) {
-                        return;
-                      }
-                      if (from === campaign.from || !from) {
+                    onChange={(valor) => {
+                      setFrom(valor);
+                      if (isApiCampaign || !valor || valor === campaign.from) {
                         return;
                       }
                       updateCampaignMutation.mutate(
-                        {
-                          campaignId: campaign.id,
-                          from,
-                        },
+                        { campaignId: campaign.id, from: valor },
                         {
                           onError: (e) => {
                             toast.error(`${e.message}. Revertendo alterações.`);
@@ -329,8 +320,8 @@ function CampaignEditor({
                         },
                       );
                     }}
+                    dominiosVerificados={dominiosVerificados}
                     disabled={isApiCampaign}
-                    readOnly={isApiCampaign}
                   />
                 </div>
                 <div className="flex items-center gap-4">
