@@ -127,7 +127,7 @@ export function SiteFooter() {
                   </li>
                   <li>
                     <Link
-                      href="/privacy"
+                      href="/privacidade"
                       className="hover:text-foreground text-xs"
                     >
                       Privacidade
@@ -135,7 +135,7 @@ export function SiteFooter() {
                   </li>
                   <li>
                     <Link
-                      href="/terms"
+                      href="/termos"
                       className="hover:text-foreground text-xs"
                     >
                       Termos

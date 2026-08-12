@@ -21,8 +21,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/ai",
     "/pricing",
     "/sobre",
-    "/privacy",
-    "/terms",
+    "/privacidade",
+    "/termos",
     ...FEATURE_SLUGS.map((slug) => `/features/${slug}`),
   ];
   return routes.map((path) => ({
