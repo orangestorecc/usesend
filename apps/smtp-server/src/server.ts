@@ -21,6 +21,9 @@ const SSL_KEY_PATH =
 const SSL_CERT_PATH =
   process.env.USESEND_API_CERT_PATH ?? process.env.UNSEND_API_CERT_PATH;
 
+/** O smtp-server usa `responseCode` para escolher o código devolvido ao cliente. */
+type ErroSmtp = Error & { responseCode?: number };
+
 async function sendEmailToUseSend(emailData: any, apiKey: string) {
   try {
     const apiEndpoint = "/api/v1/emails";
@@ -40,6 +43,17 @@ async function sendEmailToUseSend(emailData: any, apiKey: string) {
 
     if (!response.ok) {
       const errorData = await response.text();
+
+      // 401/403 significam credencial errada, e isso não melhora com o tempo.
+      // Devolver 4xx temporário aqui faria o cliente (WordPress, ERP) reenviar
+      // para sempre com a mesma senha inválida, enchendo a fila dele e a nossa.
+      if (response.status === 401 || response.status === 403) {
+        const permanente = new Error(
+          "Chave de API inválida. Use uma API key da Madmail como senha.",
+        ) as ErroSmtp;
+        permanente.responseCode = 535;
+        throw permanente;
+      }
       console.error(
         "useSend API error response: error:",
         JSON.stringify(errorData, null, 4),
@@ -59,6 +73,11 @@ async function sendEmailToUseSend(emailData: any, apiKey: string) {
 
     if (error instanceof Error) {
       console.error("Error message:", error.message);
+      // Sem isto o reembrulho apagaria o responseCode e o erro permanente
+      // voltaria a ser tratado como temporário.
+      if ((error as ErroSmtp).responseCode) {
+        throw error;
+      }
       throw new Error(`Failed to send email: ${error.message}`);
     } else {
       console.error("Unexpected error:", error);
