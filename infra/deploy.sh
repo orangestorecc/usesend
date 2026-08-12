@@ -102,13 +102,22 @@ if npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
   unzip -q -o export.zip -d "$APP/apps/docs/site"
   rm -f export.zip
 
-  # A busca do export depende de um serviço do Mintlify (app.mintlify.com) e
-  # não há índice local, então o botão nunca responderia. Botão morto é pior
-  # que ausência de busca: escondemos por CSS.
-  find "$APP/apps/docs/site" -name '*.html' -print0 | xargs -0 -r sed -i \
-    's#</head>#<style>[aria-label="Open search"],[aria-label="Abrir busca"]{display:none !important}</style></head>#'
+  # Ajustes no HTML exportado, todos por injeção antes de </head>:
+  #
+  # 1. A busca depende de um serviço do Mintlify (app.mintlify.com) e não há
+  #    índice local, então o botão nunca responderia. Botão morto é pior que
+  #    ausência de busca.
+  # 2. A fonte de código: o docs.json controla texto e títulos (Inter, como o
+  #    site), mas não expõe a fonte de code/pre. Injetamos o JetBrains Mono,
+  #    que é o que o site usa.
+  #
+  # A URL da fonte é escrita sem "&" de propósito: no sed, "&" do lado direito
+  # significa "o trecho casado" e estragaria a substituição.
+  INJECAO='<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500"><style>[aria-label="Open search"],[aria-label="Abrir busca"]{display:none !important}code,pre,kbd,samp{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace !important}</style>'
 
-  echo "  export: $(du -sh "$APP/apps/docs/site" | cut -f1) (busca ocultada)"
+  find "$APP/apps/docs/site" -name '*.html' -print0 | xargs -0 -r sed -i     "s#</head>#${INJECAO}</head>#"
+
+  echo "  export: $(du -sh "$APP/apps/docs/site" | cut -f1) (busca ocultada, fontes do site)"
 else
   echo "  build da documentação falhou (o app segue no ar):"
   tail -10 "$LOGS/build-docs.log" | sed 's/^/    /'
