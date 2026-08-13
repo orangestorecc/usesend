@@ -7,6 +7,7 @@ import {
   getEnabledInstallments,
   getInstallmentOptions,
   resolveAmount,
+  sincronizarCobrancaPendente,
 } from "~/server/billing/payment-service";
 
 const cardSchema = z.object({
@@ -69,10 +70,19 @@ export const paymentsRouter = createTRPCRouter({
   getCharge: teamProcedure
     .input(z.object({ chargeId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const charge = await db.charge.findFirst({
+      let charge = await db.charge.findFirst({
         where: { id: input.chargeId, teamId: ctx.team.id },
       });
       if (!charge) throw new Error("Cobrança não encontrada.");
+
+      // Rede de segurança do webhook: se o aviso do banco não chegou, a
+      // consulta pega o pagamento aqui. É o que o checkout está fazendo
+      // enquanto o cliente olha o QR na tela.
+      if (charge.status === "pending") {
+        if (await sincronizarCobrancaPendente(charge.id)) {
+          charge = await db.charge.findFirstOrThrow({ where: { id: charge.id } });
+        }
+      }
       return {
         status: charge.status,
         method: charge.method,

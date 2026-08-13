@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import type { Prisma } from "@prisma/client";
 import { createTRPCRouter, adminProcedure } from "~/server/api/trpc";
+import * as inter from "~/server/billing/inter";
 import { db } from "~/server/db";
 import { encryptSecret, decryptSecret } from "~/server/crypto";
 import { env } from "~/env";
@@ -84,6 +86,54 @@ export const paymentGatewayRouter = createTRPCRouter({
       rede: `${base}/api/webhook/rede${qs}`,
       protected: Boolean(token),
     };
+  }),
+
+  /**
+   * Webhook PIX cadastrado hoje no Inter.
+   *
+   * O Inter só avisa quem se cadastrou por API — não basta a URL existir do
+   * nosso lado. Um pagamento real ficou preso em "pendente" por isso, então
+   * dá para conferir o estado sem abrir log.
+   */
+  statusWebhookInter: adminProcedure.query(async () => {
+    try {
+      const { status, webhookUrl } = await inter.consultarWebhookPix();
+      return {
+        cadastrado: status < 300 && Boolean(webhookUrl),
+        webhookUrl,
+        erro: null as string | null,
+      };
+    } catch (e) {
+      return {
+        cadastrado: false,
+        webhookUrl: null,
+        erro: e instanceof Error ? e.message : "falha ao consultar",
+      };
+    }
+  }),
+
+  /** Cadastra no Inter a URL que ele deve chamar quando o PIX for pago. */
+  registrarWebhookInter: adminProcedure.mutation(async () => {
+    const base = env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "";
+    if (!base.startsWith("https://")) {
+      // O Inter recusa destino sem TLS, e falharia com uma mensagem opaca.
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "O Inter só aceita webhook em HTTPS. Confira o NEXTAUTH_URL.",
+      });
+    }
+    const token = env.PAYMENTS_WEBHOOK_TOKEN;
+    const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+    const url = `${base}/api/webhook/inter${qs}`;
+
+    const { ok, status } = await inter.registrarWebhookPix(url);
+    if (!ok) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `O Inter recusou o cadastro do webhook (HTTP ${status}).`,
+      });
+    }
+    return { webhookUrl: url };
   }),
 
   /** Log de transações (chamadas ao gateway + webhooks recebidos). */

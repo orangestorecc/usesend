@@ -20,6 +20,8 @@ import {
   Check,
   Copy,
   ShieldCheck,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
@@ -158,6 +160,7 @@ function CheckoutInner() {
   );
 
   const checkout = api.payments.checkout.useMutation();
+  const cobrancaGerada = Boolean(pix || boleto);
 
   // Polling do status enquanto PIX/boleto pendente.
   const chargeQuery = api.payments.getCharge.useQuery(
@@ -390,97 +393,7 @@ function CheckoutInner() {
       {/* Painel direito */}
       <div className="flex justify-center bg-background px-8 py-12 lg:justify-start lg:pl-16">
         <div className="w-full max-w-md">
-          {/* Estado pendente: PIX */}
-          {pix ? (
-            <div className="space-y-4">
-              <div className="text-sm font-medium">Pague com PIX</div>
-              {pix.qrImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={pix.qrImage}
-                  alt="QR Code PIX"
-                  className="mx-auto h-56 w-56 rounded-lg border"
-                />
-              ) : null}
-              <div>
-                <Label className="text-xs text-muted-foreground">
-                  PIX copia e cola
-                </Label>
-                <div className="mt-1 flex gap-2">
-                  <Input readOnly value={pix.copiaECola} className="font-mono text-xs" />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => copy(pix.copiaECola)}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Aguardando pagamento… a página confirma automaticamente.
-              </p>
-            </div>
-          ) : boleto ? (
-            <div className="space-y-4">
-              <div className="text-sm font-medium">Boleto gerado</div>
-              {boleto.linhaDigitavel ? (
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Linha digitável
-                  </Label>
-                  <div className="mt-1 flex gap-2">
-                    <Input
-                      readOnly
-                      value={boleto.linhaDigitavel}
-                      className="font-mono text-xs"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => copy(boleto.linhaDigitavel!)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Cole no app do banco para pagar sem ler o código.
-                  </p>
-                </div>
-              ) : null}
-              {boleto.codigoBarras ? (
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Código de barras
-                  </Label>
-                  <div className="mt-1 flex gap-2">
-                    <Input
-                      readOnly
-                      value={boleto.codigoBarras}
-                      className="font-mono text-xs"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => copy(boleto.codigoBarras!)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-              {boleto.url ? (
-                <a href={boleto.url} target="_blank" rel="noreferrer">
-                  <Button className="w-full" variant="outline">
-                    <Barcode className="mr-2 h-4 w-4" /> Baixar boleto (PDF)
-                  </Button>
-                </a>
-              ) : null}
-              <p className="text-xs text-muted-foreground">
-                Após o pagamento, o plano é ativado automaticamente.
-              </p>
-            </div>
-          ) : (
+          {
             <>
               <div className="text-sm font-medium">Dados de faturamento</div>
               <div className="mt-2">
@@ -653,56 +566,239 @@ function CheckoutInner() {
                   </TabsContent>
 
                   <TabsContent value="pix" className="pt-4">
-                    <div className="flex flex-col items-center rounded-lg border border-dashed p-8 text-center">
-                      <QrCode className="h-8 w-8 text-muted-foreground" />
-                      <p className="mt-2 text-sm">
-                        Um QR Code PIX será gerado via Banco Inter.
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Pagamento confirmado automaticamente (webhook).
-                      </p>
-                    </div>
+                    {pix ? (
+                      // O QR nasce dentro do próprio bloco do PIX, no lugar do
+                      // aviso de "será gerado". Antes ele substituía a tela
+                      // inteira e o cliente perdia o contexto do que estava
+                      // assinando.
+                      <div className="rounded-lg border p-5">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">
+                              Tudo certo! Agora é só pagar.
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              Obrigado por assinar. Estamos aguardando a
+                              confirmação do pagamento — assim que ela chegar,
+                              seu plano é ativado automaticamente.
+                            </p>
+                          </div>
+                        </div>
+
+                        {pix.qrImage ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={pix.qrImage}
+                            alt="QR Code do PIX"
+                            className="mx-auto mt-4 h-52 w-52 rounded-lg border bg-white p-2"
+                          />
+                        ) : null}
+
+                        <div className="mt-4">
+                          <Label className="text-xs text-muted-foreground">
+                            PIX copia e cola
+                          </Label>
+                          <div className="mt-1 flex gap-2">
+                            <Input
+                              readOnly
+                              value={pix.copiaECola}
+                              className="font-mono text-xs"
+                              onFocus={(e) => e.currentTarget.select()}
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              aria-label="Copiar código PIX"
+                              onClick={() => copy(pix.copiaECola)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 space-y-1.5 border-t pt-4 text-xs text-muted-foreground">
+                          <p>
+                            Enviamos os dados desta cobrança para o e-mail do
+                            responsável financeiro.
+                          </p>
+                          <p>
+                            A fatura está em{" "}
+                            <a
+                              href="/settings/billing"
+                              className="underline underline-offset-2"
+                            >
+                              Configurações &gt; Faturamento
+                            </a>
+                            , como <span className="font-medium">em aberto</span>{" "}
+                            até o pagamento cair.
+                          </p>
+                          <p className="flex items-center gap-1.5 pt-1">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Esta página confirma sozinha, pode deixá-la aberta.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center rounded-lg border border-dashed p-8 text-center">
+                        <QrCode className="h-8 w-8 text-muted-foreground" />
+                        <p className="mt-2 text-sm">
+                          Um QR Code PIX será gerado via Banco Inter.
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          O pagamento é confirmado automaticamente.
+                        </p>
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="boleto" className="pt-4">
-                    <div className="flex flex-col items-center rounded-lg border border-dashed p-8 text-center">
-                      <Barcode className="h-8 w-8 text-muted-foreground" />
-                      <p className="mt-2 text-sm">
-                        Um boleto será emitido via Banco Inter.
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Compensação em até 2 dias úteis.
-                      </p>
-                    </div>
+                    {boleto ? (
+                      <div className="rounded-lg border p-5">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">
+                              Boleto gerado! Agora é só pagar.
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              Obrigado por assinar. Assim que a compensação
+                              chegar (até 2 dias úteis), seu plano é ativado
+                              automaticamente.
+                            </p>
+                          </div>
+                        </div>
+
+                        {boleto.linhaDigitavel ? (
+                          <div className="mt-4">
+                            <Label className="text-xs text-muted-foreground">
+                              Linha digitável
+                            </Label>
+                            <div className="mt-1 flex gap-2">
+                              <Input
+                                readOnly
+                                value={boleto.linhaDigitavel}
+                                className="font-mono text-xs"
+                                onFocus={(e) => e.currentTarget.select()}
+                              />
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="Copiar linha digitável"
+                                onClick={() => copy(boleto.linhaDigitavel!)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Cole no app do banco para pagar sem ler o código.
+                            </p>
+                          </div>
+                        ) : null}
+
+                        {boleto.codigoBarras ? (
+                          <div className="mt-4">
+                            <Label className="text-xs text-muted-foreground">
+                              Código de barras
+                            </Label>
+                            <div className="mt-1 flex gap-2">
+                              <Input
+                                readOnly
+                                value={boleto.codigoBarras}
+                                className="font-mono text-xs"
+                                onFocus={(e) => e.currentTarget.select()}
+                              />
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="Copiar código de barras"
+                                onClick={() => copy(boleto.codigoBarras!)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {boleto.url ? (
+                          <a
+                            href={boleto.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-4 block"
+                          >
+                            <Button className="w-full" variant="outline">
+                              <Barcode className="mr-2 h-4 w-4" /> Baixar boleto
+                              (PDF)
+                            </Button>
+                          </a>
+                        ) : null}
+
+                        <div className="mt-4 space-y-1.5 border-t pt-4 text-xs text-muted-foreground">
+                          <p>
+                            Enviamos os dados desta cobrança para o e-mail do
+                            responsável financeiro.
+                          </p>
+                          <p>
+                            A fatura está em{" "}
+                            <a
+                              href="/settings/billing"
+                              className="underline underline-offset-2"
+                            >
+                              Configurações &gt; Faturamento
+                            </a>
+                            , como <span className="font-medium">em aberto</span>{" "}
+                            até a compensação.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center rounded-lg border border-dashed p-8 text-center">
+                        <Barcode className="h-8 w-8 text-muted-foreground" />
+                        <p className="mt-2 text-sm">
+                          Um boleto será emitido via Banco Inter.
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Compensação em até 2 dias úteis.
+                        </p>
+                      </div>
+                    )}
                   </TabsContent>
                 </Tabs>
               </div>
 
-              <Button
-                className="mt-8 w-full"
-                size="lg"
-                onClick={submit}
-                disabled={checkout.isPending || !temResponsavel}
-                title={
-                  !temResponsavel
-                    ? "Cadastre o responsável financeiro antes de pagar"
-                    : undefined
-                }
-              >
-                {checkout.isPending ? (
-                  "Processando…"
-                ) : (
-                  <>
-                    <Check className="mr-2 h-4 w-4" /> Assinar
-                  </>
-                )}
-              </Button>
-              <p className="mt-3 text-center text-xs text-muted-foreground">
-                Ao assinar, você autoriza o Madmail a cobrar em BRL de forma
-                recorrente mensal, conforme os termos.
-              </p>
+              {/* Depois que a cobrança existe, "Assinar" sairia gerando uma
+                  segunda cobrança do mesmo plano. O que resta na tela é o
+                  código para pagar. */}
+              {cobrancaGerada ? null : (
+                <>
+                  <Button
+                    className="mt-8 w-full"
+                    size="lg"
+                    onClick={submit}
+                    disabled={checkout.isPending || !temResponsavel}
+                    title={
+                      !temResponsavel
+                        ? "Cadastre o responsável financeiro antes de pagar"
+                        : undefined
+                    }
+                  >
+                    {checkout.isPending ? (
+                      "Processando…"
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" /> Assinar
+                      </>
+                    )}
+                  </Button>
+                  <p className="mt-3 text-center text-xs text-muted-foreground">
+                    Ao assinar, você autoriza o Madmail a cobrar em BRL de forma
+                    recorrente mensal, conforme os termos.
+                  </p>
+                </>
+              )}
             </>
-          )}
+          }
         </div>
       </div>
     </main>

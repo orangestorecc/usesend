@@ -63,12 +63,69 @@ function WebhookUrlBox({ provider }: { provider: "inter" | "rede" }) {
         </Button>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
-        Cadastre esta URL no painel do provedor para receber a confirmação
-        automática dos pagamentos.
+        Cadastre esta URL no provedor para receber a confirmação automática dos
+        pagamentos.
         {!data?.protected
           ? " Defina PAYMENTS_WEBHOOK_TOKEN no ambiente para proteger o endpoint."
           : ""}
       </p>
+      {provider === "inter" ? <WebhookInter /> : null}
+    </div>
+  );
+}
+
+/**
+ * No Inter o webhook do PIX é cadastrado por API, não pelo painel — e sem esse
+ * cadastro o banco simplesmente nunca avisa que a cobrança foi paga. Um
+ * pagamento real ficou preso em "pendente" exatamente assim, então o estado
+ * fica visível aqui em vez de depender de alguém lembrar.
+ */
+function WebhookInter() {
+  const status = api.paymentGateway.statusWebhookInter.useQuery();
+  const utils = api.useUtils();
+  const registrar = api.paymentGateway.registrarWebhookInter.useMutation({
+    onSuccess: () => {
+      toast.success("Webhook cadastrado no Inter.");
+      void utils.paymentGateway.statusWebhookInter.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+      {status.isLoading ? (
+        <span className="text-xs text-muted-foreground">
+          Verificando no Inter…
+        </span>
+      ) : status.data?.cadastrado ? (
+        <>
+          <Badge variant="outline">cadastrado no Inter</Badge>
+          <span className="truncate font-mono text-xs text-muted-foreground">
+            {status.data.webhookUrl}
+          </span>
+        </>
+      ) : (
+        <>
+          <Badge variant="destructive">não cadastrado</Badge>
+          <span className="text-xs text-muted-foreground">
+            {status.data?.erro ??
+              "Sem isto, o PIX pago não é confirmado sozinho."}
+          </span>
+        </>
+      )}
+      <Button
+        size="sm"
+        variant="outline"
+        className="ml-auto"
+        disabled={registrar.isPending}
+        onClick={() => registrar.mutate()}
+      >
+        {registrar.isPending
+          ? "Cadastrando…"
+          : status.data?.cadastrado
+            ? "Recadastrar"
+            : "Cadastrar webhook"}
+      </Button>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
 import { precoNoPasso } from "@usesend/lib/src/pricing";
 import * as rede from "./rede";
 import * as inter from "./inter";
+import { enviarAvisoDeCobranca } from "./charge-mailer";
 import {
   getGatewayConfig,
   parseInstallments,
@@ -163,6 +164,34 @@ async function activatePlan(
   }
 }
 
+/**
+ * Fatura em aberto, criada junto com a cobrança.
+ *
+ * Antes a fatura só nascia quando o pagamento era confirmado. Quem gerava um
+ * PIX e ia conferir em Configurações > Faturamento via "Nenhuma fatura ainda"
+ * — nada registrava que havia uma cobrança em andamento.
+ */
+async function createOpenInvoice(
+  teamId: number,
+  amountCents: number,
+  description: string,
+  dueAt?: Date,
+): Promise<string> {
+  const count = await db.invoice.count({ where: { teamId } });
+  const invoice = await db.invoice.create({
+    data: {
+      teamId,
+      number: `MAD-${(count + 1).toString().padStart(6, "0")}`,
+      amountCents,
+      currency: "BRL",
+      status: "open",
+      description,
+      dueAt,
+    },
+  });
+  return invoice.id;
+}
+
 async function createPaidInvoice(
   teamId: number,
   amountCents: number,
@@ -194,11 +223,24 @@ export async function finalizeChargePaid(chargeId: string) {
   const charge = await db.charge.findUnique({ where: { id: chargeId } });
   if (!charge || charge.status === "paid") return;
 
-  const invoiceId = await createPaidInvoice(
-    charge.teamId,
-    charge.amountCents,
-    `${charge.product ?? ""} ${charge.planKey ?? ""}`.trim() || "Assinatura",
-  );
+  const descricao =
+    `${charge.product ?? ""} ${charge.planKey ?? ""}`.trim() || "Assinatura";
+
+  // PIX e boleto já abriram a fatura quando a cobrança foi criada: aqui ela é
+  // quitada. Criar outra duplicaria a mesma cobrança no histórico do cliente.
+  let invoiceId = charge.invoiceId;
+  if (invoiceId) {
+    await db.invoice.update({
+      where: { id: invoiceId },
+      data: { status: "paid", paidAt: new Date() },
+    });
+  } else {
+    invoiceId = await createPaidInvoice(
+      charge.teamId,
+      charge.amountCents,
+      descricao,
+    );
+  }
 
   await db.charge.update({
     where: { id: charge.id },
@@ -233,6 +275,35 @@ export async function confirmByProviderCharge(providerChargeId: string) {
   if (!charge) return false;
   await finalizeChargePaid(charge.id);
   return true;
+}
+
+/**
+ * Confere no provedor se uma cobrança pendente já foi paga.
+ *
+ * Existe porque depender só do webhook é frágil: se o aviso do banco se perder
+ * — app reiniciando no meio do deploy, instabilidade, webhook descadastrado —
+ * o pagamento fica presto em "pendente" para sempre, com o dinheiro já na
+ * conta. Chamada pelo polling do checkout, então o cliente que acabou de pagar
+ * vê a confirmação mesmo se o webhook falhar.
+ *
+ * Nunca lança: é caminho de leitura de tela, e um erro de rede com o Inter não
+ * pode derrubar a página de status da cobrança.
+ */
+export async function sincronizarCobrancaPendente(
+  chargeId: string,
+): Promise<boolean> {
+  const charge = await db.charge.findUnique({ where: { id: chargeId } });
+  if (!charge || charge.status !== "pending") return false;
+  if (charge.method !== "pix" || !charge.providerChargeId) return false;
+
+  try {
+    const { pago } = await inter.consultarCobrancaPix(charge.providerChargeId);
+    if (!pago) return false;
+    await finalizeChargePaid(charge.id);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export type CheckoutInput = {
@@ -453,6 +524,15 @@ export async function createCheckout(
   }
 
   if (input.method === "pix") {
+    const invoiceId = await createOpenInvoice(
+      input.teamId,
+      amountCents,
+      `${plan.name} — assinatura mensal`,
+      // PIX expira em 1h, mas a fatura vence no dia: quem paga depois do QR
+      // expirar gera outro, e não faz sentido a fatura constar vencida no
+      // mesmo minuto.
+      new Date(Date.now() + 24 * 60 * 60 * 1000),
+    );
     const charge = await db.charge.create({
       data: {
         teamId: input.teamId,
@@ -463,6 +543,7 @@ export async function createCheckout(
         planKey: input.planKey,
         product: input.product,
         promoCode: promo?.code,
+        invoiceId,
       },
     });
     const pix = await inter.createPixCharge({
@@ -480,6 +561,8 @@ export async function createCheckout(
         pixQrImage: pix.qrImage,
       },
     });
+    // Sem await: o cliente não espera o e-mail para ver o QR na tela.
+    void enviarAvisoDeCobranca(charge.id);
     return {
       status: "pending",
       chargeId: charge.id,
@@ -494,6 +577,14 @@ export async function createCheckout(
       "Para boleto, informe nome e CPF/CNPJ no responsável financeiro, aqui mesmo no checkout.",
     );
   }
+  const due = new Date();
+  due.setDate(due.getDate() + 3);
+  const invoiceId = await createOpenInvoice(
+    input.teamId,
+    amountCents,
+    `${plan.name} — assinatura mensal`,
+    due,
+  );
   const charge = await db.charge.create({
     data: {
       teamId: input.teamId,
@@ -504,10 +595,9 @@ export async function createCheckout(
       planKey: input.planKey,
       product: input.product,
       promoCode: promo?.code,
+      invoiceId,
     },
   });
-  const due = new Date();
-  due.setDate(due.getDate() + 3);
   const boleto = await inter.createBoleto({
     amountCents,
     dueDate: due.toISOString().slice(0, 10),
@@ -534,6 +624,7 @@ export async function createCheckout(
       pixQrCode: boleto.copiaECola,
     },
   });
+  void enviarAvisoDeCobranca(charge.id);
   return {
     status: "pending",
     chargeId: charge.id,

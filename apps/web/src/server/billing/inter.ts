@@ -256,6 +256,97 @@ export async function createPixCharge(
   return { txid, copiaECola, qrImage, locId };
 }
 
+/**
+ * Consulta a situação de uma cobrança PIX.
+ *
+ * É a rede de segurança do webhook: o Inter só avisa quem se cadastrou, e um
+ * aviso perdido (deploy no meio, instabilidade, webhook fora do ar) deixaria a
+ * cobrança pendente para sempre. Com a consulta, o pagamento é reconhecido na
+ * próxima vez que alguém olhar a cobrança.
+ */
+export async function consultarCobrancaPix(
+  txid: string,
+): Promise<{ pago: boolean; status: string }> {
+  const cfg = await requireGateway("inter", [
+    "clientId",
+    "clientSecret",
+    "certificate",
+    "privateKey",
+  ]);
+  const token = await getToken(cfg, "cob.read");
+
+  const res = await interRequest(cfg, {
+    method: "GET",
+    path: `/pix/v2/cob/${txid}`,
+    operation: "pix.consulta",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status >= 300) {
+    throw new Error(`Inter: consulta do PIX falhou (${res.status}).`);
+  }
+
+  const status = String(res.json?.status ?? "");
+  // CONCLUIDA é o status do BACEN para cobrança liquidada. O array `pix` traz
+  // as liquidações; considerar as duas evita depender de um só campo.
+  const pago =
+    status === "CONCLUIDA" ||
+    (Array.isArray(res.json?.pix) && res.json.pix.length > 0);
+  return { pago, status };
+}
+
+/**
+ * Cadastra a URL que o Inter deve chamar quando um PIX for pago.
+ *
+ * Sem isto o banco não tem para onde avisar — foi o que deixou um pagamento
+ * real preso em "pendente": a cobrança era criada certo, o cliente pagava, e
+ * nada voltava. O cadastro é por chave PIX e sobrevive a deploy, então roda
+ * uma vez (ou quando a URL muda), não a cada cobrança.
+ */
+export async function registrarWebhookPix(
+  webhookUrl: string,
+): Promise<{ ok: boolean; status: number }> {
+  const cfg = await requireGateway("inter", [
+    "clientId",
+    "clientSecret",
+    "certificate",
+    "privateKey",
+    "pixKey",
+  ]);
+  const token = await getToken(cfg, "webhook.write");
+
+  const res = await interRequest(cfg, {
+    method: "PUT",
+    path: `/pix/v2/webhook/${encodeURIComponent(cfg.pixKey!)}`,
+    operation: "webhook.registrar",
+    headers: { Authorization: `Bearer ${token}` },
+    body: { webhookUrl },
+  });
+  return { ok: res.status < 300, status: res.status };
+}
+
+/** Webhook atualmente cadastrado para a nossa chave PIX (diagnóstico). */
+export async function consultarWebhookPix(): Promise<{
+  status: number;
+  webhookUrl: string | null;
+}> {
+  const cfg = await requireGateway("inter", [
+    "clientId",
+    "clientSecret",
+    "certificate",
+    "privateKey",
+    "pixKey",
+  ]);
+  const token = await getToken(cfg, "webhook.read");
+
+  const res = await interRequest(cfg, {
+    method: "GET",
+    path: `/pix/v2/webhook/${encodeURIComponent(cfg.pixKey!)}`,
+    operation: "webhook.consultar",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { status: res.status, webhookUrl: res.json?.webhookUrl ?? null };
+}
+
 export type BoletoChargeInput = {
   amountCents: number;
   dueDate: string; // YYYY-MM-DD
