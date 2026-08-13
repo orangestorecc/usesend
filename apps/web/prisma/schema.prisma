@@ -284,7 +284,14 @@ model Team {
   name             String
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+  /// Espelho grosseiro (gratuito x pago) mantido só porque os limites antigos
+  /// dependem dele. A verdade do plano é planKey + planProduct, que apontam
+  /// para PlanCatalogEntry — nunca escreva `plan` direto, use o plan-service.
   plan             Plan              @default(FREE)
+  /// Chave do plano no catálogo de preços (free | pro | scale | enterprise…).
+  planKey          String            @default("free")
+  /// Produto do catálogo a que planKey pertence (transactional | marketing).
+  planProduct      String            @default("transactional")
   stripeCustomerId String?           @unique
   isActive         Boolean           @default(true)
   apiRateLimit     Int               @default(2)
@@ -302,6 +309,14 @@ model Team {
   /// Bloqueio de envio por reputacao (bounce/reclamacao). Independente de isBlocked.
   sendingBlockedAt     DateTime?
   sendingBlockedReason String?
+  /// Trava por inadimplencia (24h apos o vencimento). Campo proprio: precisa
+  /// cair sozinho quando o pagamento entra, sem tocar no bloqueio do admin
+  /// nem no de reputacao.
+  billingBlockedAt     DateTime?
+  /// Aviso de exclusao por inatividade ja enviado (conta gratuita).
+  inactivityWarnedAt   DateTime?
+  /// Data em que a conta gratuita inativa sera excluida, se nada acontecer.
+  inactivityDeleteAt   DateTime?
   teamUsers        TeamUser[]
   reputationState  TeamReputationState?
   reputationPolicy ReputationPolicy?
@@ -324,6 +339,9 @@ model Team {
   automations      Automation[]
   customEvents     CustomEvent[]
   forwardingRules  ForwardingRule[]
+
+  @@index([planKey])
+  @@index([billingBlockedAt])
 }
 
 model TeamInvite {
@@ -349,11 +367,19 @@ model Subscription {
   currentPeriodEnd   DateTime?
   currentPeriodStart DateTime?
   cancelAtPeriodEnd  DateTime?
+  /// Quando o cancelamento foi pedido (churn conta por aqui).
+  canceledAt         DateTime?
+  /// Quando a assinatura de fato deixou de valer (fim do periodo pago).
+  endedAt            DateTime?
+  /// downgrade | inadimplencia | admin | conta_excluida
+  cancelReason       String?
   paymentMethod      String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([canceledAt])
 }
 
 enum Role {

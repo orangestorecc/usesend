@@ -8,6 +8,8 @@ export enum LimitReason {
   EMAIL_BLOCKED = "EMAIL_BLOCKED",
   /** Envio pausado por taxa de retorno acima do limite. Ver docs-spec/BOUNCE-CONTROL-SPEC.md */
   EMAIL_BOUNCE_BLOCKED = "EMAIL_BOUNCE_BLOCKED",
+  /** Envio pausado 24h apos o vencimento de uma fatura. */
+  EMAIL_BILLING_BLOCKED = "EMAIL_BILLING_BLOCKED",
   EMAIL_DAILY_LIMIT_REACHED = "EMAIL_DAILY_LIMIT_REACHED",
   EMAIL_FREE_PLAN_MONTHLY_LIMIT_REACHED = "EMAIL_FREE_PLAN_MONTHLY_LIMIT_REACHED",
 }
@@ -25,6 +27,8 @@ export const LIMIT_REASON_MESSAGES: Record<LimitReason, string> = {
   [LimitReason.EMAIL_BLOCKED]: "Os envios deste time estão bloqueados.",
   [LimitReason.EMAIL_BOUNCE_BLOCKED]:
     "Os envios estão pausados por taxa de retorno acima do limite.",
+  [LimitReason.EMAIL_BILLING_BLOCKED]:
+    "Os envios estão pausados por uma fatura em aberto. Pague a fatura em Configurações > Faturamento para voltar a enviar.",
   [LimitReason.EMAIL_DAILY_LIMIT_REACHED]:
     "Você atingiu o limite diário de e-mails do seu plano.",
   [LimitReason.EMAIL_FREE_PLAN_MONTHLY_LIMIT_REACHED]:

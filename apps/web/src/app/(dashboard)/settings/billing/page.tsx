@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { useTeam } from "~/providers/team-context";
 import { api } from "~/trpc/react";
 import { InvoiceDetailsDialog } from "./invoice-details-dialog";
+import { DowngradeCard } from "./downgrade-card";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", {
@@ -57,6 +58,7 @@ export default function BillingPage() {
 
   const profileQuery = api.billingProfile.get.useQuery();
   const invoicesQuery = api.billingProfile.invoices.useQuery();
+  const billingState = api.payments.billingState.useQuery();
   const updateContact = api.billingProfile.updateContact.useMutation();
   const updateFiscal = api.billingProfile.updateFiscal.useMutation();
 
@@ -381,6 +383,11 @@ export default function BillingPage() {
           </p>
         )}
       </SectionCard>
+
+      {/* Só aparece para quem tem o que rebaixar, e só para o admin do time. */}
+      {billingState.data?.isPaid && currentIsAdmin ? (
+        <DowngradeCard planName={billingState.data.planName} />
+      ) : null}
 
       <InvoiceDetailsDialog
         invoiceId={faturaAberta}

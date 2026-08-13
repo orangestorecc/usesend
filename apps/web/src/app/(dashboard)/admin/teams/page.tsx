@@ -39,6 +39,7 @@ import { api } from "~/trpc/react";
 import type { AppRouter } from "~/server/api/root";
 import type { inferRouterOutputs } from "@trpc/server";
 import { isCloud } from "~/utils/common";
+import { CustomerKpis, brl } from "./customer-kpis";
 
 const searchSchema = z.object({
   query: z
@@ -56,10 +57,54 @@ const updateSchema = z.object({
   apiRateLimit: z.coerce.number().int().min(1).max(10_000),
   dailyEmailLimit: z.coerce.number().int().min(0).max(10_000_000),
   isBlocked: z.boolean(),
-  plan: z.enum(["FREE", "BASIC"]),
+  /** "produto:plano" do catálogo de preços — é ele que manda no plano. */
+  plano: z.string().min(1),
 });
 
 type UpdateInput = z.infer<typeof updateSchema>;
+
+type CustomerRow = RouterOutputs["admin"]["listCustomers"]["teams"][number];
+type Finance = NonNullable<CustomerRow["finance"]>;
+
+/**
+ * Situação de pagamento em uma etiqueta só. O plano gratuito não é "em dia"
+ * nem "atrasado" — cobrança não se aplica, e forçar um verde ali faria a
+ * coluna mentir sobre receita.
+ */
+function PaymentBadge({ finance }: { finance: Finance | null }) {
+  if (!finance || finance.billingStatus === "free") {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  if (finance.billingStatus === "em_dia") {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <Badge variant="outline">Em dia</Badge>
+        {finance.currentPeriodEnd ? (
+          <span className="text-[11px] text-muted-foreground">
+            até {new Date(finance.currentPeriodEnd).toLocaleDateString("pt-BR")}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
+  const travado = finance.billingStatus === "travado";
+  const motivo = travado
+    ? `envio pausado em ${new Date(finance.billingBlockedAt!).toLocaleDateString("pt-BR")}`
+    : finance.billingStatus === "sem_assinatura"
+      ? "sem assinatura"
+      : finance.overdueInvoices > 0
+        ? `${finance.overdueInvoices} fatura(s) vencida(s)`
+        : "período expirado";
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <Badge variant="destructive">{travado ? "Travado" : "Em atraso"}</Badge>
+      <span className="text-[11px] text-muted-foreground">{motivo}</span>
+    </div>
+  );
+}
 
 export default function AdminTeamsPage() {
   const [team, setTeam] = useState<TeamAdmin | null>(null);
@@ -76,7 +121,7 @@ export default function AdminTeamsPage() {
       apiRateLimit: 1,
       dailyEmailLimit: 0,
       isBlocked: false,
-      plan: "FREE",
+      plano: "transactional:free",
     },
   });
 
@@ -86,20 +131,20 @@ export default function AdminTeamsPage() {
         apiRateLimit: team.apiRateLimit,
         dailyEmailLimit: team.dailyEmailLimit,
         isBlocked: team.isBlocked,
-        plan: team.plan,
+        plano: `${team.planProduct}:${team.planKey}`,
       });
     }
   }, [team, updateForm]);
 
-  if (!isCloud()) {
-    return (
-      <div className="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">
-        As ferramentas de administração de times estão disponíveis apenas na implantação em nuvem.
-      </div>
-    );
-  }
-
-  const teamsQuery = api.admin.listTeams.useQuery();
+  // Hooks antes de qualquer retorno antecipado: o `isCloud()` embaixo trocava
+  // a quantidade de hooks entre renders e quebrava as regras do React.
+  const customersQuery = api.admin.listCustomers.useQuery(undefined, {
+    enabled: isCloud(),
+  });
+  const planOptions = api.admin.planOptions.useQuery(undefined, {
+    enabled: isCloud(),
+  });
+  const [filtroPlano, setFiltroPlano] = useState("todos");
 
   const findTeam = api.admin.findTeam.useMutation({
     onSuccess: (data) => {
@@ -123,8 +168,11 @@ export default function AdminTeamsPage() {
         apiRateLimit: updated.apiRateLimit,
         dailyEmailLimit: updated.dailyEmailLimit,
         isBlocked: updated.isBlocked,
-        plan: updated.plan,
+        plano: `${updated.planProduct}:${updated.planKey}`,
       });
+      // Mudar plano ou bloqueio move KPI e coluna de pagamento; sem isso a
+      // régua do topo continuaria mostrando o número anterior.
+      void customersQuery.refetch();
       toast.success("Configurações do time atualizadas");
     },
     onError: (error) => {
@@ -140,11 +188,36 @@ export default function AdminTeamsPage() {
 
   const onUpdateSubmit = (values: UpdateInput) => {
     if (!team) return;
-    updateTeam.mutate({ teamId: team.id, ...values });
+    const [planProduct, planKey] = values.plano.split(":");
+    updateTeam.mutate({
+      teamId: team.id,
+      apiRateLimit: values.apiRateLimit,
+      dailyEmailLimit: values.dailyEmailLimit,
+      isBlocked: values.isBlocked,
+      planProduct: (planProduct === "marketing" ? "marketing" : "transactional"),
+      planKey: planKey ?? "free",
+    });
   };
+
+  const linhasFiltradas = (customersQuery.data?.teams ?? []).filter((t) =>
+    filtroPlano === "todos" ? true : t.planKey === filtroPlano,
+  );
+
+  if (!isCloud()) {
+    return (
+      <div className="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">
+        As ferramentas de administração de times estão disponíveis apenas na implantação em nuvem.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
+      <CustomerKpis
+        kpis={customersQuery.data?.kpis}
+        isLoading={customersQuery.isLoading}
+      />
+
       <div className="rounded-lg border p-6 shadow-sm">
         <Form {...searchForm}>
           <form
@@ -195,30 +268,48 @@ export default function AdminTeamsPage() {
           <div>
             <h3 className="font-medium">Todos os clientes</h3>
             <p className="text-xs text-muted-foreground">
-              {teamsQuery.data?.length ?? 0} cliente(s). Clique em uma linha para
+              {linhasFiltradas.length} cliente(s). Clique em uma linha para
               gerenciar.
+              {customersQuery.data?.hiddenTeams
+                ? ` Exibindo os 200 mais recentes — outros ${customersQuery.data.hiddenTeams} entram nos indicadores, mas não na tabela.`
+                : ""}
             </p>
           </div>
-          {teamsQuery.isFetching ? (
-            <Spinner className="h-4 w-4" />
-          ) : null}
+          <div className="flex items-center gap-2">
+            {/* Filtro por plano: com a base crescendo, "quem está no Pro" é a
+                pergunta mais frequente desta tela. */}
+            <Select value={filtroPlano} onValueChange={setFiltroPlano}>
+              <SelectTrigger className="w-[190px]">
+                <SelectValue placeholder="Todos os planos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os planos</SelectItem>
+                {(planOptions.data ?? []).map((p) => (
+                  <SelectItem key={`${p.product}:${p.key}`} value={p.key}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {customersQuery.isFetching ? <Spinner className="h-4 w-4" /> : null}
+          </div>
         </div>
-        {teamsQuery.data && teamsQuery.data.length > 0 ? (
+        {customersQuery.data && linhasFiltradas.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Nome</TableHead>
+                <TableHead>Cliente</TableHead>
                 <TableHead>Plano</TableHead>
-                <TableHead>Membros</TableHead>
-                <TableHead>Domínios</TableHead>
+                <TableHead className="text-right">Total pago</TableHead>
+                <TableHead>Pagamento</TableHead>
+                <TableHead>Uso</TableHead>
                 <TableHead>Criado</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teamsQuery.data.map((t) => (
+              {linhasFiltradas.map((t) => (
                 <TableRow
                   key={t.id}
                   className={`cursor-pointer ${
@@ -229,15 +320,35 @@ export default function AdminTeamsPage() {
                     setTeam(t);
                   }}
                 >
-                  <TableCell className="text-muted-foreground">
-                    #{t.id}
-                  </TableCell>
-                  <TableCell className="font-medium">{t.name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{t.plan}</Badge>
+                    <div className="font-medium">{t.name}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      #{t.id}
+                    </div>
                   </TableCell>
-                  <TableCell>{t.teamUsers.length}</TableCell>
-                  <TableCell>{t.domains.length}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {t.finance?.planName ??
+                        (t.plan === "FREE" ? "Free" : "Pago")}
+                    </Badge>
+                  </TableCell>
+                  {/* Total pago só faz sentido em plano pago; no Free ficaria
+                      uma coluna de zeros competindo por atenção. */}
+                  <TableCell className="text-right font-mono tabular-nums">
+                    {t.plan !== "FREE" && t.finance ? (
+                      brl(t.finance.totalPaidCents)
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <PaymentBadge finance={t.finance} />
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                    {t.teamUsers.length} membro(s)
+                    <br />
+                    {t.domains.length} domínio(s)
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDistanceToNow(new Date(t.createdAt), {
                       addSuffix: true,
@@ -261,7 +372,7 @@ export default function AdminTeamsPage() {
               ))}
             </TableBody>
           </Table>
-        ) : teamsQuery.isLoading ? (
+        ) : customersQuery.isLoading ? (
           <div className="p-6 text-sm text-muted-foreground">
             Carregando times...
           </div>
@@ -283,7 +394,7 @@ export default function AdminTeamsPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">Plano: {team.plan}</Badge>
+              <Badge variant="outline">Plano: {team.planKey}</Badge>
               <Badge variant={team.isBlocked ? "destructive" : "outline"}>
                 {team.isBlocked ? "Bloqueado" : "Ativo"}
               </Badge>
@@ -393,11 +504,13 @@ export default function AdminTeamsPage() {
                 />
                 <FormField
                   control={updateForm.control}
-                  name="plan"
+                  name="plano"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Plano</FormLabel>
                       <FormControl>
+                        {/* Opções vêm da tabela de preços: plano criado lá
+                            aparece aqui sem mexer em código. */}
                         <Select
                           value={field.value}
                           onValueChange={field.onChange}
@@ -407,8 +520,17 @@ export default function AdminTeamsPage() {
                             <SelectValue placeholder="Selecione o plano" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="FREE">Free</SelectItem>
-                            <SelectItem value="BASIC">Basic</SelectItem>
+                            {(planOptions.data ?? []).map((p) => (
+                              <SelectItem
+                                key={`${p.product}:${p.key}`}
+                                value={`${p.product}:${p.key}`}
+                              >
+                                {p.name}
+                                {p.priceBRL != null
+                                  ? ` — R$ ${p.priceBRL}/mês`
+                                  : " — personalizado"}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </FormControl>

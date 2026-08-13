@@ -40,6 +40,11 @@ export const UpgradeModal = () => {
                   "Você atingiu o limite de webhooks do seu plano atual.",
                 [LimitReason.EMAIL_BLOCKED]:
                   "Você atingiu o limite de envio de e-mails do seu plano atual.",
+                // Fatura em aberto também não se resolve com upgrade — pagar a
+                // fatura é o caminho, e mandar essa pessoa para o checkout de
+                // um plano novo só criaria uma segunda cobrança.
+                [LimitReason.EMAIL_BILLING_BLOCKED]:
+                  "Seus envios estão pausados por uma fatura em aberto. Pague a fatura em Configurações > Faturamento.",
                 // Bloqueio por reputação não se resolve com upgrade: o caminho é
                 // higienizar a lista. Por isso a mensagem aponta para lá.
                 [LimitReason.EMAIL_BOUNCE_BLOCKED]:

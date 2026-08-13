@@ -16,6 +16,13 @@ import { UseSend } from "usesend-js";
 import { isCloud } from "~/utils/common";
 import { toPlainHtml } from "~/server/utils/email-content";
 import { sesRegionSchema } from "~/lib/zod/ses-setting-schema";
+import {
+  buildCustomerKpis,
+  contarCancelamentos,
+  loadCustomerFinancials,
+} from "~/server/billing/customer-insights";
+import { FREE_PLAN_KEY, aplicarPlano } from "~/server/billing/plan-service";
+import { downgradeParaGratis } from "~/server/billing/lifecycle-service";
 
 const waitlistUserSelection = {
   id: true,
@@ -40,6 +47,9 @@ const teamAdminSelection = {
   id: true,
   name: true,
   plan: true,
+  planKey: true,
+  planProduct: true,
+  billingBlockedAt: true,
   apiRateLimit: true,
   dailyEmailLimit: true,
   isBlocked: true,
@@ -332,6 +342,46 @@ export const adminRouter = createTRPCRouter({
     });
   }),
 
+  /**
+   * Lista de clientes com a camada financeira: KPIs no topo e, por cliente,
+   * total pago e situação de pagamento.
+   *
+   * Os KPIs são calculados sobre **todos** os times, não sobre a página de 200
+   * exibida — senão a taxa de conversão mudaria conforme o tamanho da tabela.
+   */
+  listCustomers: adminProcedure.query(async () => {
+    const [allTeams, rows, cancelamentos] = await Promise.all([
+      db.team.findMany({
+        select: {
+          id: true,
+          plan: true,
+          planKey: true,
+          planProduct: true,
+          billingBlockedAt: true,
+        },
+      }),
+      db.team.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 200,
+        select: teamAdminSelection,
+      }),
+      contarCancelamentos(30),
+    ]);
+
+    const financials = await loadCustomerFinancials(allTeams);
+    const kpis = buildCustomerKpis(allTeams, financials, cancelamentos);
+
+    return {
+      kpis,
+      /** Quantos times ficaram de fora da tabela por causa do limite de 200. */
+      hiddenTeams: Math.max(0, allTeams.length - rows.length),
+      teams: rows.map((team) => ({
+        ...team,
+        finance: financials.get(team.id) ?? null,
+      })),
+    };
+  }),
+
   findTeam: adminProcedure
     .input(
       z.object({
@@ -401,20 +451,41 @@ export const adminRouter = createTRPCRouter({
         apiRateLimit: z.number().int().min(1).max(10_000),
         dailyEmailLimit: z.number().int().min(0).max(10_000_000),
         isBlocked: z.boolean(),
-        plan: z.enum(["FREE", "BASIC"]),
+        // O plano agora é a chave do catálogo de preços, não o enum: é ela que
+        // vale em todo o sistema depois da unificação.
+        planKey: z.string().min(1).max(40),
+        planProduct: z.enum(["transactional", "marketing"]).default("transactional"),
       }),
     )
     .mutation(async ({ input }) => {
-      const { teamId, ...data } = input;
+      const { teamId, planKey, planProduct, ...data } = input;
 
-      const updatedTeam = await db.team.update({
+      await db.team.update({ where: { id: teamId }, data });
+      // Troca de plano pela mão do admin passa pelo mesmo caminho do
+      // pagamento: um lugar só decide planKey e o espelho do enum.
+      await aplicarPlano(teamId, { product: planProduct, key: planKey });
+
+      // Rebaixar para o gratuito pelo admin encerra a assinatura — senão o
+      // time apareceria no gratuito com uma cobrança ativa rodando atrás.
+      if (planKey === FREE_PLAN_KEY) {
+        await downgradeParaGratis(teamId, "admin");
+      }
+
+      return db.team.findUniqueOrThrow({
         where: { id: teamId },
-        data,
         select: teamAdminSelection,
       });
-
-      return updatedTeam;
     }),
+
+  /** Planos disponíveis para o seletor do admin — direto da tabela de preços. */
+  planOptions: adminProcedure.query(async () => {
+    const rows = await db.planCatalogEntry.findMany({
+      where: { active: true },
+      orderBy: [{ product: "asc" }, { sortOrder: "asc" }],
+      select: { product: true, key: true, name: true, priceBRL: true },
+    });
+    return rows;
+  }),
 
   getEmailAnalytics: adminProcedure
     .input(

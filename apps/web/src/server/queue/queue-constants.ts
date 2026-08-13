@@ -17,6 +17,8 @@ export const PAYMENT_LOG_CLEANUP_QUEUE = "payment-log-cleanup";
 export const PENDING_CHARGE_SYNC_QUEUE = "pending-charge-sync";
 /** Purge de contas pseudonimizadas, auditoria e codigos vencidos. */
 export const ACCOUNT_LIFECYCLE_QUEUE = "account-lifecycle";
+/** Trava por inadimplencia e exclusao de conta gratuita inativa. */
+export const BILLING_LIFECYCLE_QUEUE = "billing-lifecycle";
 /** Avaliacao periodica de reputacao (controle de bounce). */
 export const REPUTATION_EVALUATION_QUEUE = "reputation-evaluation";
 export const AUTOMATION_RUN_QUEUE = "automation-run";

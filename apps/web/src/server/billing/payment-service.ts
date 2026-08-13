@@ -15,6 +15,7 @@ import {
   calcularParcela,
   type InstallmentOption,
 } from "./gateway-config";
+import { aplicarPlano, priceIdFor } from "./plan-service";
 
 /** Parcelas habilitadas hoje pelo admin (1x sempre ativa). */
 export async function getEnabledInstallments(): Promise<number[]> {
@@ -126,12 +127,16 @@ async function activatePlan(
   const now = new Date();
   const periodEnd = new Date(now);
   periodEnd.setMonth(periodEnd.getMonth() + 1);
-  const priceId = `${product}:${planKey}`;
+  const priceId = priceIdFor(product, planKey);
 
-  await db.team.update({
-    where: { id: teamId },
-    data: { plan: "BASIC", isActive: true, isBlocked: false },
-  });
+  // O plano passa pelo plan-service: é ele que mantém planKey e o espelho do
+  // enum de acordo. A trava por inadimplência não sai aqui — quem decide é o
+  // destravarSePago, que olha se sobrou alguma fatura vencida.
+  await aplicarPlano(
+    teamId,
+    { product, key: planKey },
+    { isActive: true, isBlocked: false },
+  );
 
   const existing = await db.subscription.findFirst({
     where: { teamId, status: { in: ["active", "past_due"] } },
@@ -147,6 +152,11 @@ async function activatePlan(
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         paymentMethod: method,
+        // Reativação depois de um cancelamento: a assinatura volta limpa,
+        // senão ela continuaria contando como churn para sempre.
+        canceledAt: null,
+        endedAt: null,
+        cancelReason: null,
       },
     });
   } else {
@@ -255,6 +265,11 @@ export async function finalizeChargePaid(chargeId: string) {
       charge.method as Method,
     );
   }
+
+  // Destrava só se não sobrou nada vencido: quem tinha duas faturas atrasadas
+  // e pagou uma continua travado, e é isso mesmo.
+  const { destravarSePago } = await import("~/server/billing/lifecycle-service");
+  await destravarSePago(charge.teamId);
 
   if (charge.promoCode) {
     await db.promoCode

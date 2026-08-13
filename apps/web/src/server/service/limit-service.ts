@@ -206,6 +206,16 @@ export class LimitService {
       };
     }
 
+    // Trava por inadimplencia: campo proprio, para cair sozinha quando o
+    // pagamento entra sem mexer no bloqueio manual do admin.
+    if (team.billingBlockedAt) {
+      return {
+        isLimitReached: true,
+        limit: 0,
+        reason: LimitReason.EMAIL_BILLING_BLOCKED,
+      };
+    }
+
     // In cloud, enforce verification and block flags first
     if (team.isBlocked) {
       return {

@@ -4,6 +4,7 @@ import { avaliarGate } from "~/server/service/mfa-service";
 import { DashboardProvider } from "~/providers/dashboard-provider";
 import { NextAuthProvider } from "~/providers/next-auth";
 import { DashboardLayout } from "./dasboard-layout";
+import { BillingBanner } from "./billing-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,7 @@ export default async function AuthenticatedDashboardLayout({
     <NextAuthProvider>
       <DashboardProvider>
         <ImpersonationBanner />
+        <BillingBanner />
         <DashboardLayout>{children}</DashboardLayout>
       </DashboardProvider>
     </NextAuthProvider>
