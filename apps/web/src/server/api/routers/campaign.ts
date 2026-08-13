@@ -122,10 +122,12 @@ export const campaignRouter = createTRPCRouter({
         html: z.string().optional(),
         contactBookId: z.string().optional(),
         replyTo: z.string().array().optional(),
+        /** Dispensa a oferta de template do editor vazio (nao volta). */
+        dismissTemplateOffer: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx: { db, team, campaign: campaignOld }, input }) => {
-      const { html: htmlInput, campaignId, ...data } = input;
+      const { html: htmlInput, campaignId, dismissTemplateOffer, ...data } = input;
       if (data.contactBookId) {
         const contactBook = await db.contactBook.findUnique({
           where: { id: data.contactBookId, teamId: team.id },
@@ -159,6 +161,10 @@ export const campaignRouter = createTRPCRouter({
         ...data,
         domainId,
       };
+
+      if (dismissTemplateOffer) {
+        campaignUpdateData.templateOfferDismissedAt = new Date();
+      }
 
       if (htmlToSave !== undefined) {
         campaignUpdateData.html = htmlToSave;

@@ -428,6 +428,10 @@ model Campaign {
 
   @@index([createdAt(sort: Desc)])
   @@index([status, scheduledAt])
+
+  /// Quando o lojista dispensou a oferta de template no editor vazio.
+  /// A oferta nao volta depois de dispensada (por campanha).
+  templateOfferDismissedAt DateTime?
 }
 
 model Template {
