@@ -37,6 +37,7 @@ import { Switch } from "@usesend/ui/src/switch";
 import { Button } from "@usesend/ui/src/button";
 import React, { use } from "react";
 import Link from "next/link";
+import { RefreshCw } from "lucide-react";
 import { toast } from "@usesend/ui/src/toaster";
 import DeleteDomain from "./delete-domain";
 import SendTestMail from "./send-test-mail";
@@ -67,7 +68,15 @@ export default function DomainItemPage({
   const handleVerify = () => {
     verifyQuery.mutate(
       { id: Number(domainId) },
-      { onSettled: () => domainQuery.refetch() },
+      {
+        onSuccess: () => {
+          toast.success(
+            "Verificação disparada. Os registros abaixo atualizam em instantes.",
+          );
+        },
+        onError: (e) => toast.error(e.message),
+        onSettled: () => domainQuery.refetch(),
+      },
     );
   };
 
@@ -101,8 +110,20 @@ export default function DomainItemPage({
           <DomainStatusBadge status={domain.status} />
         </div>
         <div className="flex gap-4">
-          <Button variant="outline" onClick={handleVerify}>
-            {domain.isVerifying
+          <Button
+            variant="outline"
+            onClick={handleVerify}
+            disabled={verifyQuery.isPending || domain.isVerifying}
+            className="transition-all hover:border-foreground/40 hover:bg-accent active:scale-[0.98]"
+          >
+            <RefreshCw
+              className={`mr-1.5 h-4 w-4 ${
+                verifyQuery.isPending || domain.isVerifying
+                  ? "animate-spin"
+                  : ""
+              }`}
+            />
+            {verifyQuery.isPending || domain.isVerifying
               ? "Verificando..."
               : domain.status === DomainStatus.SUCCESS
                 ? "Verificar novamente"

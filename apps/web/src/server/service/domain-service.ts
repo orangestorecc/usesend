@@ -123,14 +123,50 @@ function buildDnsRecords(domain: Domain): DomainDnsRecord[] {
 
 function withDnsRecords<T extends Domain>(
   domain: T,
+  receivingStatus?: DomainStatus,
 ): T & { dnsRecords: DomainDnsRecord[] } {
-  return {
-    ...domain,
-    dnsRecords: buildDnsRecords(domain),
-  };
+  const dnsRecords = buildDnsRecords(domain);
+  if (receivingStatus) {
+    for (const r of dnsRecords) {
+      if (r.group === "receiving") r.status = receivingStatus;
+    }
+  }
+  return { ...domain, dnsRecords };
 }
 
 const dnsResolveTxt = util.promisify(dns.resolveTxt);
+const dnsResolveMx = util.promisify(dns.resolveMx);
+
+/**
+ * Confere no DNS se o MX de recebimento aponta para o SES.
+ *
+ * O status desse registro era um NOT_STARTED fixo no código: o cliente
+ * publicava o MX, clicava em "Verificar novamente" e a linha nunca mudava —
+ * por construção. Os demais registros são verificados pela AWS; este só o
+ * nosso DNS lookup pode confirmar, porque a AWS não valida recebimento.
+ */
+async function verificarMxDeRecebimento(
+  domain: Domain,
+): Promise<DomainStatus> {
+  if (!domain.receivingEnabled) return DomainStatus.NOT_STARTED;
+  const alvo = `inbound-smtp.${env.INBOUND_S3_REGION}.amazonaws.com`;
+  try {
+    const registros = await Promise.race([
+      dnsResolveMx(domain.name),
+      new Promise<never>((_, rej) =>
+        setTimeout(() => rej(new Error("timeout")), 4000),
+      ),
+    ]);
+    return registros.some(
+      (r) => r.exchange.toLowerCase().replace(/\.$/, "") === alvo,
+    )
+      ? DomainStatus.SUCCESS
+      : DomainStatus.PENDING;
+  } catch {
+    // DNS fora do ar ou registro inexistente: pendente, não erro.
+    return DomainStatus.PENDING;
+  }
+}
 
 function getDomainVerificationKey(kind: string, domainId: number) {
   return redisKey(`domain:verification:${kind}:${domainId}`);
@@ -490,7 +526,7 @@ export async function getDomain(id: number, teamId: number) {
     return refreshDomainVerification(domain);
   }
 
-  return withDnsRecords(domain);
+  return withDnsRecords(domain, await verificarMxDeRecebimento(domain));
 }
 
 export async function refreshDomainVerification(
