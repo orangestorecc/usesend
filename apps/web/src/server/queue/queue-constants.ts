@@ -14,6 +14,7 @@ export const INBOUND_POLL_QUEUE = "inbound-poll";
 export const FORWARD_DISPATCH_QUEUE = "forward-dispatch";
 export const SUBSCRIPTION_BILLING_QUEUE = "subscription-billing";
 export const PAYMENT_LOG_CLEANUP_QUEUE = "payment-log-cleanup";
+export const PENDING_CHARGE_SYNC_QUEUE = "pending-charge-sync";
 /** Purge de contas pseudonimizadas, auditoria e codigos vencidos. */
 export const ACCOUNT_LIFECYCLE_QUEUE = "account-lifecycle";
 /** Avaliacao periodica de reputacao (controle de bounce). */
