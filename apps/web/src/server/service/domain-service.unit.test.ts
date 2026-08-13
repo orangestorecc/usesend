@@ -40,6 +40,10 @@ function wasLastNotifiedStatusStored() {
 vi.mock("dns", () => ({
   default: {
     resolveTxt: mockResolveTxt,
+    // O serviço também promisifica resolveMx no carregamento do módulo (checagem
+    // do MX de recebimento); sem a função aqui o promisify explode no import.
+    resolveMx: (_d: string, cb: (e: Error | null, r: unknown[]) => void) =>
+      cb(null, []),
   },
 }));
 
