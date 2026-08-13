@@ -1,15 +1,19 @@
-import type { Metadata } from "next";
-import { Redirecionamento } from "~/components/Redirecionamento";
+"use client";
 
-// Endereço antigo, herdado do projeto de origem. Mantido só para não quebrar
-// link já compartilhado; o conteúdo vive em /privacidade.
-export const metadata: Metadata = {
-  title: "Política de Privacidade — Madmail",
-  robots: { index: false, follow: true },
-  alternates: { canonical: "https://www.madmail.com.br/privacidade" },
-  other: { refresh: "0; url=/privacidade" },
-};
+import { useEffect } from "react";
 
-export default function PrivacyRedirect() {
-  return <Redirecionamento para="/privacidade" titulo="a Política de Privacidade" />;
+// Página antiga: o conteúdo agora vive em . Export estático não faz
+// redirect no servidor, então redirecionamos no cliente e deixamos o link.
+export default function RedirecionaLegal() {
+  useEffect(() => {
+    window.location.replace("");
+  }, []);
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
+      <p className="text-sm text-muted-foreground">
+        Este documento mudou de endereço.{" "}
+        <a href="" className="underline">Ir para a nova página</a>
+      </p>
+    </main>
+  );
 }

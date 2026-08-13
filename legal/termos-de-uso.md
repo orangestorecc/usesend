@@ -1,0 +1,209 @@
+# Termos de Uso — Madmail
+
+**Data de vigência: 13 de agosto de 2026**
+
+Estes Termos de Uso ("Termos") regulam o acesso e o uso da plataforma **Madmail** (madmail.com.br), operada por **N49 Tecnologia** ("N49", "nós"), inscrita no CNPJ sob o nº **10.911.509/0001-40**, com sede em Porto Alegre/RS, Brasil, endereço eletrônico contato@madmail.com.br. Ao criar uma conta ou utilizar o Madmail, você ("Cliente", "você") declara ter lido, compreendido e aceitado integralmente estes Termos.
+
+## Sumário
+
+1. [Definições](#1-definições)
+2. [Objeto do Serviço](#2-objeto-do-serviço)
+3. [Conta e Elegibilidade](#3-conta-e-elegibilidade)
+4. [Planos, Pagamento e Renovação](#4-planos-pagamento-e-renovação)
+5. [Uso Aceitável e Anti-Spam](#5-uso-aceitável-e-anti-spam)
+6. [Suspensão e Rescisão](#6-suspensão-e-rescisão)
+7. [Propriedade Intelectual](#7-propriedade-intelectual)
+8. [Licença sobre o Conteúdo do Cliente](#8-licença-sobre-o-conteúdo-do-cliente)
+9. [Proteção de Dados Pessoais (LGPD)](#9-proteção-de-dados-pessoais-lgpd)
+10. [Garantias e Disponibilidade](#10-garantias-e-disponibilidade)
+11. [Limitação de Responsabilidade](#11-limitação-de-responsabilidade)
+12. [Indenização](#12-indenização)
+13. [Alterações destes Termos e do Serviço](#13-alterações-destes-termos-e-do-serviço)
+14. [Disposições Gerais](#14-disposições-gerais)
+15. [Lei Aplicável e Foro](#15-lei-aplicável-e-foro)
+16. [Contato](#16-contato)
+
+---
+
+## 1. Definições
+
+- **Serviço**: a plataforma Madmail, incluindo o painel em madmail.com.br, a API, a documentação em docs.madmail.com.br e demais funcionalidades de envio de e-mails transacionais e de marketing.
+- **Conteúdo do Cliente**: mensagens, templates, listas de contatos, domínios, dados e demais materiais enviados, armazenados ou processados pelo Cliente por meio do Serviço.
+- **Destinatário**: pessoa física ou jurídica que recebe mensagens enviadas pelo Cliente por meio do Serviço.
+- **Consumidor**: Cliente que se enquadre na definição do art. 2º do Código de Defesa do Consumidor (Lei nº 8.078/1990 — "CDC"), conforme interpretação da teoria finalista mitigada adotada pela jurisprudência. O eventual enquadramento de pessoas jurídicas (como microempresas e empreendedores individuais) será analisado caso a caso, à luz da vulnerabilidade concreta, sem que estes Termos importem renúncia a qualquer direito legalmente assegurado.
+- **LGPD**: Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018).
+- **Marco Civil**: Lei nº 12.965/2014.
+
+## 2. Objeto do Serviço
+
+2.1. O Madmail é uma plataforma brasileira de envio de e-mails **transacionais** e de **marketing**, por meio de API e de painel web.
+
+2.2. O Serviço compreende, conforme o plano contratado: envio de mensagens via API e SMTP, gestão de domínios de envio (SPF, DKIM, DMARC), templates, métricas de entrega, webhooks e gestão de contatos.
+
+2.3. O Madmail é uma ferramenta de infraestrutura de envio. **Não somos autores nem editores do conteúdo das mensagens do Cliente.** Como provedor de aplicações de internet, a responsabilidade da N49 por conteúdo gerado por terceiros observa o art. 19 do Marco Civil da Internet, conforme a interpretação fixada pelo Supremo Tribunal Federal no julgamento do Tema 987 de repercussão geral (junho/2025): a N49 poderá ser responsabilizada se, após **notificação** apontando conteúdo ilícito, deixar de adotar providências nos casos em que a decisão do STF dispensa ordem judicial, e removerá de imediato, independentemente de notificação, conteúdos **manifestamente ilícitos** de que tome conhecimento (como pornografia infantil, terrorismo e induzimento a crimes contra o Estado Democrático de Direito), sem prejuízo do cumprimento de ordens judiciais e das regras de uso aceitável destes Termos.
+
+2.4. **Notificação e remoção (notice-and-takedown).** Qualquer pessoa pode denunciar conteúdo supostamente ilícito enviado por meio do Serviço pelo canal contato@madmail.com.br, indicando: (a) identificação do denunciante; (b) localização específica do conteúdo (ex.: mensagem, remetente, data); (c) fundamento da ilicitude. Analisaremos as denúncias com diligência e, quando cabível, suspenderemos o envio, removeremos o conteúdo ou adotaremos as medidas da Cláusula 6, comunicando o Cliente afetado, salvo vedação legal.
+
+2.5. A disponibilidade do Serviço pode ser acompanhada em status.madmail.com.br/status/madmail.
+
+## 3. Conta e Elegibilidade
+
+3.1. Para usar o Serviço, você deve ter capacidade civil plena (18 anos ou mais, ou emancipação) e, se contratar em nome de pessoa jurídica, poderes de representação.
+
+3.2. Você se compromete a fornecer informações cadastrais verdadeiras, completas e atualizadas, e a mantê-las atualizadas. Informações falsas podem levar à suspensão ou encerramento da conta.
+
+3.3. Você é responsável pela guarda das credenciais de acesso e das chaves de API, e por toda atividade realizada em sua conta. Notifique-nos imediatamente em caso de uso não autorizado (contato@madmail.com.br).
+
+3.4. Recomendamos fortemente a ativação da autenticação em dois fatores (MFA) quando disponível.
+
+3.5. É vedado criar contas por meios automatizados, revender o Serviço sem autorização escrita da N49, ou usar contas múltiplas para burlar limites, bloqueios ou avaliações de reputação.
+
+## 4. Planos, Pagamento e Renovação
+
+4.1. **Planos.** O Serviço é oferecido em planos gratuitos e pagos, com limites de envio, funcionalidades e preços descritos em madmail.com.br. Os limites de cada plano integram estes Termos.
+
+4.2. **Cobrança e renovação automática.** Planos pagos são cobrados de forma antecipada e recorrente (mensal ou anual, conforme escolhido) e **renovam-se automaticamente** ao fim de cada ciclo, pelo mesmo período, salvo cancelamento prévio pelo Cliente no painel. Informaremos de forma clara, no momento da contratação, o preço, a periodicidade e a forma de cancelamento. Além disso, **antes de cada renovação de plano anual, enviaremos aviso por e-mail com antecedência mínima de 30 (trinta) dias**, informando o valor a ser cobrado, a data da renovação e como cancelar; para planos mensais, o valor e a data da próxima cobrança ficam permanentemente visíveis no painel.
+
+4.3. **Cancelamento.** Você pode cancelar a renovação a qualquer momento pelo painel, com efeito ao fim do ciclo vigente. O acesso às funcionalidades pagas permanece até o término do período já pago.
+
+4.4. **Reembolsos.**
+a) Como regra, para Clientes não Consumidores, valores já pagos por períodos iniciados **não são reembolsáveis**, e o cancelamento produz efeitos apenas para os ciclos seguintes.
+b) **Se você for Consumidor**, aplicam-se integralmente as garantias do CDC. Como toda contratação do Madmail é realizada a distância, pela internet, você pode exercer o **direito de arrependimento em até 7 (sete) dias** contados da contratação (art. 49 do CDC), com **devolução integral e imediata dos valores pagos, monetariamente atualizados** (art. 49, parágrafo único), além do direito a reembolso proporcional em caso de vício ou falha do Serviço não sanada (arts. 18 a 20 do CDC).
+c) Independentemente da qualificação do Cliente, haverá reembolso proporcional quando a rescisão decorrer de descumprimento destes Termos pela N49, de descontinuação do Serviço por nossa iniciativa sem justa causa, ou nas hipóteses das Cláusulas 13.2 e 13.4.
+
+4.5. **Inadimplência.** Em caso de não pagamento, poderemos, após aviso, suspender o envio de mensagens e, persistindo a inadimplência por mais de 30 (trinta) dias, encerrar a conta, sem prejuízo da cobrança dos valores devidos, acrescidos de correção monetária (IPCA), juros de 1% ao mês e multa de 2%.
+
+4.6. **Alteração de preços.** Podemos reajustar preços mediante aviso prévio de, no mínimo, 30 (trinta) dias. O novo preço vale a partir do ciclo seguinte; se você não concordar, pode cancelar antes da renovação sem qualquer ônus.
+
+4.7. **Tributos.** Os preços incluem os tributos incidentes no Brasil, salvo indicação expressa em contrário. Emitiremos os documentos fiscais aplicáveis.
+
+## 5. Uso Aceitável e Anti-Spam
+
+5.1. O envio de mensagens pelo Madmail exige **consentimento prévio e verificável (opt-in)** dos Destinatários, em conformidade com a LGPD e com as boas práticas do CAPEM (Código de Autorregulamentação para a Prática de E-mail Marketing). É estritamente proibido:
+
+a) enviar spam ou mensagens não solicitadas em massa;
+b) usar listas compradas, alugadas, raspadas ou de terceiros sem consentimento válido;
+c) ocultar ou falsificar a identidade do remetente, cabeçalhos ou origem das mensagens;
+d) enviar conteúdo ilegal, difamatório, discriminatório, sexualmente explícito, relacionado a jogos de azar não autorizados no Brasil, esquemas de enriquecimento rápido, pirâmides financeiras, empréstimos predatórios, phishing, malware ou violação de direitos de terceiros;
+e) usar o Serviço para atividades que violem a legislação brasileira ou do local do Destinatário.
+
+5.2. Toda mensagem de marketing deve conter: identificação clara do remetente, endereço físico válido e **mecanismo de descadastro (opt-out) funcional**, honrado em até **2 (dois) dias úteis**, em linha com o CAPEM e com os requisitos dos principais provedores de caixa de entrada.
+
+5.3. **Reputação de envio.** Para proteger a infraestrutura compartilhada, o Cliente deve manter boas práticas de higiene de listas e índices saudáveis de reclamação de spam e de bounce. Os limites quantitativos, a janela de medição e o método de cálculo dessas métricas são definidos na **Política de Uso Aceitável**, que integra estes Termos (Cláusula 14.4). O descumprimento reiterado pode resultar em limitação, suspensão ou encerramento do envio, conforme a Cláusula 6.
+
+5.4. A N49 pode empregar filtros e análises automatizadas para detectar abuso, sem que isso configure obrigação de monitoramento prévio de conteúdo.
+
+## 6. Suspensão e Rescisão
+
+6.1. **Suspensão.** Podemos suspender, total ou parcialmente, o acesso ao Serviço com base em **critérios objetivos**, a saber: (a) violação comprovada destes Termos, em especial da Cláusula 5; (b) descumprimento das métricas e limites definidos na Política de Uso Aceitável (Cláusula 5.3); (c) denúncias de abuso confirmadas após verificação; (d) evidência técnica de comprometimento de conta, phishing, malware ou risco concreto à segurança, estabilidade ou reputação de entrega da plataforma ou de terceiros; (e) determinação legal ou judicial; (f) inadimplência (Cláusula 4.5).
+
+6.1.1. **Procedimento.** Salvo determinação legal em contrário, a suspensão será precedida de aviso com prazo razoável de correção. Nas hipóteses das alíneas (c) e (d), em que a espera possa agravar o dano, a suspensão poderá ser imediata; nesse caso, **notificaremos o Cliente em até 24 (vinte e quatro) horas**, com a motivação e as evidências disponíveis. Em qualquer hipótese, o Cliente terá **prazo de 5 (cinco) dias úteis para responder e sanar a causa** pelo canal contato@madmail.com.br, e a suspensão será revista e levantada tão logo cesse o motivo. A decisão de manutenção da suspensão será comunicada por escrito, com fundamentação.
+
+6.2. **Rescisão pelo Cliente.** Você pode encerrar sua conta a qualquer momento pelo painel ou por solicitação a contato@madmail.com.br.
+
+6.3. **Rescisão pela N49.** Podemos rescindir estes Termos: (a) **imediatamente**, em caso de violação grave (spam, fraude, ilegalidade, risco à plataforma), com comunicação motivada nos termos da Cláusula 6.1.1; (b) mediante aviso prévio de 30 (trinta) dias, nos demais casos.
+
+6.4. **Efeitos.** Encerrada a conta: (a) cessam os envios e o acesso à API; (b) valores devidos permanecem exigíveis; (c) reembolsos seguem a Cláusula 4.4 — em rescisão por violação grave comprovada do Cliente, não há reembolso de períodos pagos, ressalvados os direitos do Consumidor; (d) disponibilizaremos meios razoáveis para exportação do Conteúdo do Cliente por 30 (trinta) dias, após o que os dados poderão ser excluídos, observadas as obrigações legais de retenção (inclusive registros de aplicação por 6 meses, art. 15 do Marco Civil).
+
+## 7. Propriedade Intelectual
+
+7.1. O Serviço, incluindo software, código, APIs, design, marcas (inclusive "Madmail"), logotipos, documentação e demais elementos, é de titularidade exclusiva da N49 ou de seus licenciantes, protegido pelas Leis nº 9.609/1998, 9.610/1998 e 9.279/1996.
+
+7.2. Concedemos ao Cliente, durante a vigência destes Termos, uma licença limitada, revogável, não exclusiva e intransferível de uso do Serviço, exclusivamente para as finalidades aqui previstas.
+
+7.3. É vedado copiar, modificar, descompilar, realizar engenharia reversa (salvo nas hipóteses legais), sublicenciar ou explorar comercialmente o Serviço fora do previsto nestes Termos.
+
+7.4. Sugestões e feedbacks enviados pelo Cliente poderão ser utilizados livremente pela N49 para melhoria do Serviço, sem remuneração, sem que isso transfira qualquer direito sobre o Conteúdo do Cliente.
+
+## 8. Licença sobre o Conteúdo do Cliente
+
+8.1. O Conteúdo do Cliente permanece de titularidade do Cliente. Nada nestes Termos transfere à N49 propriedade sobre ele.
+
+8.2. Você nos concede uma licença mundial, não exclusiva, gratuita e limitada para hospedar, armazenar, processar, transmitir, reproduzir e exibir o Conteúdo do Cliente **exclusivamente na medida necessária para prestar, manter, proteger e melhorar o Serviço** e para cumprir obrigações legais. Essa licença se extingue com a exclusão do conteúdo, ressalvadas cópias de segurança e retenções legais.
+
+8.3. Você declara e garante que possui todos os direitos e consentimentos necessários sobre o Conteúdo do Cliente, inclusive sobre os dados pessoais dos Destinatários.
+
+## 9. Proteção de Dados Pessoais (LGPD)
+
+9.1. **Papéis.** No tratamento de dados pessoais contidos no Conteúdo do Cliente (ex.: e-mails e dados de Destinatários), o **Cliente é o Controlador** e a **N49 atua como Operadora**, tratando os dados conforme as instruções lícitas do Cliente e o contrato, nos termos do art. 39 da LGPD. Em relação aos dados cadastrais, de faturamento e de uso da plataforma pelo próprio Cliente, a N49 é **Controladora independente**.
+
+9.2. **Bases legais.** A N49 trata dados pessoais com fundamento, conforme o caso, na **execução de contrato** (art. 7º, V), no **cumprimento de obrigação legal ou regulatória** (art. 7º, II), no **legítimo interesse** (art. 7º, IX — ex.: segurança, prevenção a fraudes e melhoria do Serviço) e no **consentimento** (art. 7º, I), quando aplicável. Detalhes constam da nossa Política de Privacidade e do Acordo de Tratamento de Dados (DPA), que integram estes Termos (Cláusula 14.4).
+
+9.3. **Direitos dos titulares.** Os titulares podem exercer os direitos do art. 18 da LGPD (confirmação, acesso, correção, anonimização, portabilidade, eliminação, informação sobre compartilhamento, revogação do consentimento etc.) pelo canal privacidade@madmail.com.br. Quando atuarmos como Operadora, encaminharemos as solicitações ao Cliente Controlador e prestaremos assistência razoável.
+
+9.4. **Encarregado (DPO).** A N49 mantém Encarregado pelo Tratamento de Dados Pessoais, nos termos do art. 41 da LGPD, contatável em privacidade@madmail.com.br.
+
+9.5. **Suboperadores e transferência internacional.** A prestação do Serviço pode envolver suboperadores e provedores de infraestrutura localizados no exterior, inclusive nos Estados Unidos (ex.: AWS). Tais transferências observam o art. 33 da LGPD, mediante cláusulas contratuais e salvaguardas adequadas. A lista de suboperadores consta do DPA; alterações serão comunicadas com **14 (quatorze) dias** de antecedência, com direito de objeção fundamentada do Cliente.
+
+9.6. **Segurança.** Adotamos medidas técnicas e administrativas compatíveis com o art. 46 da LGPD, incluindo criptografia em trânsito e em repouso, controle de acesso e testes periódicos de segurança.
+
+9.7. **Incidentes.** Incidentes de segurança que possam acarretar risco ou dano relevante a dados pessoais serão tratados nos termos do art. 48 da LGPD e da **Resolução CD/ANPD nº 15/2024**. Quando atuarmos como Operadora, **notificaremos o Cliente Controlador em até 48 (quarenta e oito) horas contadas da ciência do incidente**, com o conteúdo mínimo necessário ao cumprimento do prazo legal pelo Cliente: descrição da natureza do incidente, categorias e volume estimado de titulares e de dados afetados, medidas de contenção e mitigação adotadas ou recomendadas e ponto de contato da N49, complementando as informações à medida que a apuração avançar. Quando formos Controladores, comunicaremos a ANPD e os titulares afetados no prazo de **3 (três) dias úteis** previsto na Resolução, quando exigível.
+
+## 10. Garantias e Disponibilidade
+
+10.1. Empregaremos esforços comercialmente razoáveis para manter o Serviço disponível e funcional, com transparência por meio da página de status (status.madmail.com.br/status/madmail).
+
+10.2. O Cliente reconhece que a **entrega final de e-mails depende de terceiros** (provedores de caixa de entrada, filtros anti-spam, reputação de domínio e IP, configuração de DNS pelo próprio Cliente), e que a N49 não garante entrega na caixa de entrada nem taxas específicas de abertura ou conversão.
+
+10.3. Ressalvadas as garantias legais inafastáveis — em especial as do CDC quando o Cliente for Consumidor —, o Serviço é fornecido "no estado em que se encontra", sem garantias implícitas de adequação a finalidades específicas do negócio do Cliente.
+
+10.4. **Backup e recuperação de dados.** A N49 mantém rotinas de backup da infraestrutura destinadas à continuidade do Serviço, incluindo listas de contatos e templates armazenados. Essas rotinas não substituem cópias próprias do Cliente: recomendamos exportar periodicamente listas, templates e configurações pelo painel ou pela API. Em caso de **perda de dados imputável à N49** (falha de infraestrutura ou de backup sob nosso controle), empregaremos esforços diligentes para restaurar os dados a partir do último backup íntegro e responderemos pelos danos comprovados, na forma da Cláusula 11 — inclusive das ressalvas das Cláusulas 11.2 e 11.3. A N49 não responde por perda de dados causada por ação ou omissão do próprio Cliente (ex.: exclusão pelo Cliente ou por credenciais sob sua guarda).
+
+## 11. Limitação de Responsabilidade
+
+11.1. **Para Clientes empresariais (não Consumidores):** a responsabilidade total da N49, por quaisquer danos decorrentes destes Termos ou do uso do Serviço, fica limitada ao **total efetivamente pago pelo Cliente à N49 nos 12 (doze) meses anteriores ao evento danoso**. A N49 não responde por lucros cessantes, perda de receita, perda de dados causada pelo Cliente, danos indiretos ou reputacionais decorrentes do conteúdo das mensagens do Cliente. A perda de dados imputável à N49 rege-se pela Cláusula 10.4.
+
+11.2. **Para Clientes Consumidores:** as limitações da Cláusula 11.1 **não se aplicam** naquilo que conflitarem com o CDC. A responsabilidade da N49 perante Consumidores observa integralmente os arts. 6º, 14, 20, 25 e 51 do CDC, sendo nula qualquer cláusula que exonere ou atenue indevidamente nossa responsabilidade por vícios ou fatos do serviço.
+
+11.3. Nenhuma disposição destes Termos exclui ou limita a responsabilidade da N49 por: (a) dolo ou culpa grave; (b) danos causados por violação, pela N49, da LGPD ou de sigilo de dados; (c) hipóteses em que a limitação seja vedada por lei.
+
+11.4. A N49 não responde por indisponibilidades causadas por caso fortuito, força maior, falhas de terceiros fora de seu controle razoável (incluindo provedores de destino de e-mail), ou por uso indevido do Serviço pelo Cliente.
+
+11.5. O Cliente é o único responsável pelo conteúdo das mensagens que envia, pela licitude de suas listas de contatos e pelo cumprimento da legislação aplicável às suas comunicações.
+
+## 12. Indenização
+
+12.1. O Cliente indenizará e manterá a N49 indene de reclamações, demandas, sanções administrativas e condenações movidas por terceiros (incluindo Destinatários e autoridades) decorrentes de: (a) Conteúdo do Cliente; (b) violação destes Termos, em especial das regras anti-spam; (c) tratamento ilícito de dados pessoais realizado sob instruções do Cliente na condição de Controlador.
+
+12.2. **Procedimento.** A obrigação da Cláusula 12.1 fica condicionada a que a N49: (a) **notifique prontamente** o Cliente sobre a reclamação, tão logo dela tome ciência (a demora só afasta a obrigação na medida do prejuízo que causar à defesa); (b) permita que o Cliente, se assim optar, **assuma e conduza a defesa** com advogados de sua escolha, cooperando a N49 razoavelmente, às expensas do Cliente; e (c) **não celebre acordo sem anuência prévia e escrita do Cliente**, salvo se o acordo o liberar integralmente sem imposição de obrigações ou admissão de culpa. O Cliente não celebrará acordo que imponha obrigações à N49 sem sua anuência.
+
+12.3. Esta cláusula não se aplica na medida em que o dano decorra de conduta da própria N49.
+
+## 13. Alterações destes Termos e do Serviço
+
+13.1. Podemos alterar estes Termos a qualquer tempo. Alterações relevantes serão comunicadas com antecedência mínima de **30 (trinta) dias**, por e-mail cadastrado e/ou aviso no painel, indicando a data de vigência da nova versão.
+
+13.2. Se você não concordar com as alterações, poderá encerrar sua conta antes da vigência da nova versão, sem penalidade, com reembolso proporcional de períodos pagos e não usufruídos quando a alteração lhe for materialmente prejudicial.
+
+13.3. O uso continuado do Serviço após a vigência da nova versão constitui aceitação das alterações. Versões anteriores ficam disponíveis mediante solicitação.
+
+13.4. **Alterações do Serviço.** O Serviço evolui continuamente e podemos adicionar, modificar ou descontinuar funcionalidades. Se, durante um ciclo já pago, alterarmos, degradarmos ou descontinuarmos funcionalidade de forma **materialmente prejudicial** ao Cliente, comunicaremos com antecedência mínima de **30 (trinta) dias** e o Cliente poderá rescindir o contrato, sem penalidade, com **reembolso proporcional** dos valores pagos e não usufruídos. A descontinuação total do Serviço segue a Cláusula 4.4(c).
+
+## 14. Disposições Gerais
+
+14.1. **Independência das cláusulas.** A eventual nulidade de uma cláusula não afeta as demais, que permanecem válidas e eficazes.
+
+14.2. **Cessão.** O Cliente não pode ceder estes Termos sem anuência prévia da N49. A N49 poderá cedê-los em caso de reorganização societária, mediante comunicação ao Cliente.
+
+14.3. **Comunicações.** Comunicações oficiais serão feitas pelo e-mail cadastrado do Cliente e/ou pelo painel, e para a N49 pelos canais da Cláusula 16.
+
+14.4. **Documentos integrantes.** Integram estes Termos, no que aplicável: a Política de Privacidade, a Política de Cookies, a Política de Uso Aceitável e o Acordo de Tratamento de Dados (DPA), publicados em madmail.com.br e vigentes na data de vigência destes Termos. Em caso de conflito envolvendo dados pessoais, prevalece o DPA.
+
+14.5. **Tolerância.** A tolerância quanto ao descumprimento de qualquer disposição não implica renúncia ou novação.
+
+14.6. **Vigência de cláusulas.** Sobrevivem ao término destes Termos as cláusulas 4.5, 6.4, 7, 8.2 (ressalvas de cópias de segurança e retenções legais), 9, 11, 12, 14 e 15, além das demais disposições que por sua natureza devam subsistir.
+
+## 15. Lei Aplicável e Foro
+
+15.1. Estes Termos são regidos exclusivamente pelas **leis da República Federativa do Brasil**, em especial a LGPD (Lei nº 13.709/2018), o Marco Civil da Internet (Lei nº 12.965/2014), o Código Civil (Lei nº 10.406/2002) e, quando aplicável, o CDC (Lei nº 8.078/1990).
+
+15.2. Fica eleito o foro da **Comarca de Porto Alegre/RS** para dirimir controvérsias decorrentes destes Termos, com renúncia a qualquer outro, por mais privilegiado que seja. **Se o Cliente for Consumidor**, prevalece o foro de seu domicílio, nos termos do art. 101, I, do CDC.
+
+## 16. Contato
+
+- **Suporte, questões gerais e denúncias de abuso:** contato@madmail.com.br
+- **Privacidade e Encarregado (DPO):** privacidade@madmail.com.br
+- **Documentação:** docs.madmail.com.br
+- **Status do Serviço:** status.madmail.com.br/status/madmail
+
+**Orangestore Tecnologia Ltda.** (nome fantasia "N49 Tecnologia") — CNPJ 10.911.509/0001-40 — Rua Jaime Telles, nº 62, Bairro Petrópolis, Porto Alegre/RS, CEP 90460-030, Brasil.

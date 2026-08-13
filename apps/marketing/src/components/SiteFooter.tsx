@@ -57,62 +57,6 @@ export function SiteFooter() {
               </div>
 
               <div>
-                <div className="text-xs uppercase tracking-wider  mb-2">
-                  Contato
-                </div>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li>
-                    <a
-                      href="mailto:contato@madmail.com.br"
-                      className="hover:text-foreground text-xs"
-                    >
-                      Email
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="https://x.com/Madmail_com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-foreground text-xs"
-                    >
-                      X (Twitter)
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="https://www.linkedin.com/company/use-send/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-foreground text-xs"
-                    >
-                      LinkedIn
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="https://discord.com/invite/BU8n8pJv8S"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-foreground text-xs"
-                    >
-                      Discord
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="https://bsky.app/profile/usesend.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-foreground text-xs"
-                    >
-                      Bluesky
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
                 <div className="text-xs uppercase tracking-wider mb-2">
                   Empresa
                 </div>
@@ -126,19 +70,59 @@ export function SiteFooter() {
                     </Link>
                   </li>
                   <li>
-                    <Link
-                      href="/privacidade"
+                    <a
+                      href="mailto:contato@madmail.com.br"
                       className="hover:text-foreground text-xs"
                     >
-                      Privacidade
+                      Fale conosco
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <div className="text-xs uppercase tracking-wider mb-2">
+                  Legal
+                </div>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>
+                    <Link
+                      href="/legal/termos-de-uso"
+                      className="hover:text-foreground text-xs"
+                    >
+                      Termos de Uso
                     </Link>
                   </li>
                   <li>
                     <Link
-                      href="/termos"
+                      href="/legal/politica-de-privacidade"
                       className="hover:text-foreground text-xs"
                     >
-                      Termos
+                      Política de Privacidade
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/legal/politica-de-uso-aceitavel"
+                      className="hover:text-foreground text-xs"
+                    >
+                      Política de Uso Aceitável
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/legal/dpa"
+                      className="hover:text-foreground text-xs"
+                    >
+                      Tratamento de Dados (DPA)
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/legal/suboperadores"
+                      className="hover:text-foreground text-xs"
+                    >
+                      Suboperadores
                     </Link>
                   </li>
                 </ul>
@@ -163,7 +147,8 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-6 text-xs text-muted-foreground mx-auto text-center">
-          © {new Date().getFullYear()} Madmail. All rights reserved.
+          © {new Date().getFullYear()} Madmail · N49 Tecnologia · CNPJ
+          10.911.509/0001-40 · Porto Alegre, RS. Todos os direitos reservados.
         </div>
       </div>
     </footer>

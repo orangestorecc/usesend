@@ -1,0 +1,236 @@
+export const metadata = {
+  title: "Política de Privacidade — Madmail",
+  description: "Como a Madmail (N49) coleta, usa e protege dados pessoais, em conformidade com a LGPD.",
+  alternates: { canonical: "https://www.madmail.com.br/legal/politica-de-privacidade" },
+};
+
+# Política de Privacidade — Madmail
+
+**Vigência: 13 de agosto de 2026**
+
+Esta Política de Privacidade descreve como a **N49 Tecnologia**, inscrita no CNPJ sob o nº **10.911.509/0001-40**, com sede em Porto Alegre/RS, Brasil ("**N49**", "**nós**"), trata dados pessoais no âmbito da plataforma **Madmail** ([madmail.com.br](https://madmail.com.br)), incluindo o painel de controle, a API, a documentação ([docs.madmail.com.br](https://docs.madmail.com.br)) e a página de status ([status.madmail.com.br/status/madmail](https://status.madmail.com.br/status/madmail)).
+
+Este documento foi elaborado em conformidade com a **Lei Geral de Proteção de Dados Pessoais — LGPD (Lei nº 13.709/2018)**, o **Marco Civil da Internet (Lei nº 12.965/2014)** e, quando aplicável, o **Código de Defesa do Consumidor (Lei nº 8.078/1990)**.
+
+Esta Política deve ser lida em conjunto com os [Termos de Serviço](https://www.madmail.com.br/legal/termos-de-uso), a [Política de Uso Aceitável](https://www.madmail.com.br/legal/politica-de-uso-aceitavel) e o [Acordo de Tratamento de Dados — DPA](https://www.madmail.com.br/legal/dpa), que inclui a [lista pública de suboperadores](https://www.madmail.com.br/legal/suboperadores).
+
+---
+
+## Sumário
+
+1. [Papéis da N49: controladora e operadora](#1-papéis-da-n49-controladora-e-operadora)
+2. [Quais dados coletamos](#2-quais-dados-coletamos)
+3. [Finalidades e bases legais (LGPD)](#3-finalidades-e-bases-legais-lgpd)
+4. [Dados dos destinatários dos nossos clientes](#4-dados-dos-destinatários-dos-nossos-clientes)
+5. [Compartilhamento de dados e suboperadores](#5-compartilhamento-de-dados-e-suboperadores)
+6. [Transferência internacional de dados](#6-transferência-internacional-de-dados)
+7. [Retenção e eliminação de dados](#7-retenção-e-eliminação-de-dados)
+8. [Direitos do titular e canal do Encarregado (DPO)](#8-direitos-do-titular-e-canal-do-encarregado-dpo)
+9. [Cookies](#9-cookies)
+10. [Segurança da informação](#10-segurança-da-informação)
+11. [Idade mínima e dados de crianças e adolescentes](#11-idade-mínima-e-dados-de-crianças-e-adolescentes)
+12. [Anti-spam e boas práticas](#12-anti-spam-e-boas-práticas)
+13. [Atualizações desta Política](#13-atualizações-desta-política)
+14. [Lei aplicável](#14-lei-aplicável)
+15. [Contato](#15-contato)
+
+---
+
+## 1. Papéis da N49: controladora e operadora
+
+O Madmail é uma plataforma de envio de e-mails transacionais e de marketing por API e painel. Por isso, a N49 exerce **dois papéis distintos** sob a LGPD:
+
+**a) Controladora.** Para os dados das pessoas que criam conta, usam o painel, contratam e pagam pelo serviço, navegam em nossos sites ou entram em contato conosco, a N49 decide as finalidades e os meios do tratamento e atua como **controladora** (art. 5º, VI, da LGPD).
+
+**b) Operadora.** Para os dados pessoais que nossos clientes enviam à plataforma para fins de entrega de e-mails — como endereços de destinatários, nomes, conteúdo das mensagens e listas de contatos ("**Dados de Cliente**") —, a N49 atua como **operadora** (art. 5º, VII, da LGPD), tratando esses dados **exclusivamente conforme as instruções do cliente**, que é o controlador. As condições desse tratamento são detalhadas no nosso [Acordo de Tratamento de Dados (DPA)](https://www.madmail.com.br/legal/dpa), que integra os [Termos de Serviço](https://www.madmail.com.br/legal/termos-de-uso).
+
+Quando esta Política menciona decisões sobre finalidade, retenção ou compartilhamento de Dados de Cliente, essas decisões cabem ao cliente, na condição de controlador.
+
+## 2. Quais dados coletamos
+
+### 2.1 Dados de conta (N49 como controladora)
+
+- **Cadastro**: nome, e-mail, senha (armazenada com hash), empresa, CNPJ/CPF quando informado.
+- **Faturamento**: dados de cobrança e histórico de pagamentos. Dados completos de cartão são tratados diretamente pelo nosso processador de pagamentos; a N49 não armazena o número completo do cartão.
+- **Comunicações**: mensagens enviadas ao suporte, feedback e registros de atendimento.
+
+### 2.2 Dados de uso e registros técnicos (N49 como controladora)
+
+- **Logs de acesso** ao painel e à API: endereço IP, data e hora, agente de usuário — mantidos conforme o art. 15 do Marco Civil da Internet.
+- **Dados operacionais do serviço**: chaves de API (em formato protegido), domínios verificados, volumes de envio, métricas de entrega, bounces, reclamações de spam e eventos de webhook.
+- **Dados de navegação** nos nossos sites, limitados a cookies essenciais (ver Seção 9).
+
+### 2.3 Dados de Cliente (N49 como operadora)
+
+- Endereços de e-mail e demais dados de destinatários carregados pelo cliente;
+- Conteúdo, assunto e metadados das mensagens enviadas pela plataforma;
+- Eventos de entrega associados a esses destinatários (entrega, abertura, clique, bounce, descadastro), quando habilitados pelo cliente. O registro de abertura e clique utiliza tecnologias de rastreamento (pixel de abertura e reescrita de links), conforme detalhado na Seção 4.
+
+## 3. Finalidades e bases legais (LGPD)
+
+Tratamos dados pessoais, como controladora, com as seguintes finalidades e bases legais do art. 7º da LGPD:
+
+| Finalidade | Dados | Base legal |
+|---|---|---|
+| Criar e manter a conta, autenticar o acesso e prestar o serviço contratado | Dados de conta, chaves de API | **Execução de contrato** (art. 7º, V) |
+| Cobrança, faturamento e emissão de documentos fiscais | Dados de faturamento | **Execução de contrato** e **obrigação legal** (art. 7º, II e V) |
+| Guarda de registros de acesso a aplicações | Logs (IP, data/hora) | **Obrigação legal** — art. 15 do Marco Civil da Internet (art. 7º, II) |
+| Segurança da plataforma, prevenção a fraudes, abuso e spam, e proteção da reputação de envio | Dados de uso, logs, métricas de entrega | **Legítimo interesse** (art. 7º, IX), com avaliação de impacto e respeito às legítimas expectativas do titular |
+| Suporte e comunicação sobre o serviço (avisos operacionais, incidentes, mudanças) | Dados de conta e comunicações | **Execução de contrato** (art. 7º, V) |
+| Melhoria do serviço, com dados agregados ou anonimizados sempre que possível | Dados de uso | **Legítimo interesse** (art. 7º, IX) |
+| Comunicações de marketing da própria N49 sobre o Madmail | E-mail de conta | **Consentimento** (art. 7º, I), revogável a qualquer momento, com descadastro em todas as mensagens |
+| Exercício regular de direitos em processos judiciais, administrativos ou arbitrais | Dados necessários ao caso | **Exercício regular de direitos** (art. 7º, VI) |
+
+**Oposição ao legítimo interesse.** Sempre que o tratamento se fundamentar em legítimo interesse ou em outra hipótese de dispensa de consentimento, você pode **se opor** ao tratamento (art. 18, § 2º, da LGPD) e solicitar informações sobre o teste de balanceamento realizado (avaliação de legítimo interesse — LIA, art. 10, § 3º, da LGPD), pelo canal do Encarregado: **privacidade@madmail.com.br**. Analisaremos a oposição e, havendo descumprimento da LGPD, cessaremos o tratamento questionado.
+
+O tratamento de Dados de Cliente, na condição de operadora, é realizado sob a base legal identificada **pelo cliente controlador**, conforme suas instruções documentadas.
+
+## 4. Dados dos destinatários dos nossos clientes
+
+Se você recebeu um e-mail enviado por meio do Madmail, quem decidiu enviá-lo — e quem definiu a base legal para tratar seus dados — foi o remetente (nosso cliente). Nesse cenário:
+
+- A N49 atua apenas como **operadora**, processando seus dados para entregar a mensagem e registrar eventos técnicos de entrega;
+- **Rastreamento de abertura e clique**: o cliente remetente pode habilitar, nas configurações da plataforma, o registro de abertura (por meio de pixel de rastreamento incorporado à mensagem) e de cliques (por meio de reescrita de links). Trata-se de tecnologia de rastreamento aplicada aos destinatários, e **a responsabilidade pela base legal e pela transparência desse rastreamento perante os destinatários é do cliente, na condição de controlador**. A N49 apenas executa a funcionalidade conforme as instruções do cliente;
+- A N49 **não utiliza** os dados de destinatários para fins próprios, não os vende e não os usa para publicidade;
+- Pedidos de acesso, correção ou eliminação relativos a esses envios devem ser dirigidos **preferencialmente ao remetente**. Se você nos contatar diretamente, encaminharemos a sua solicitação ao cliente controlador e prestaremos o apoio necessário. **Atenção**: o encaminhamento implica compartilhar com o remetente os dados constantes da sua solicitação (como nome, e-mail e teor do pedido), com fundamento na execução do procedimento de atendimento e no legítimo interesse em viabilizar o exercício dos seus direitos (art. 7º, V e IX, da LGPD). Você será informado sobre o encaminhamento e, **em denúncias de spam ou abuso, poderá solicitar que sua identidade seja preservada (anonimização do denunciante)** — nesse caso, encaminharemos apenas as informações estritamente necessárias à apuração;
+- Nossos [Termos de Serviço](https://www.madmail.com.br/legal/termos-de-uso) e a [Política de Uso Aceitável](https://www.madmail.com.br/legal/politica-de-uso-aceitavel) exigem que os clientes enviem e-mails apenas a destinatários que consentiram (opt-in), incluam mecanismo de descadastro funcional e o honrem no prazo definido na Política de Uso Aceitável, em linha com o CAPEM — Código de Autorregulamentação para Prática de E-mail Marketing, autorregulamentação setorial que adotamos voluntariamente como parâmetro de boas práticas.
+
+## 5. Compartilhamento de dados e suboperadores
+
+A N49 **não vende dados pessoais**. Compartilhamos dados apenas nas seguintes hipóteses:
+
+**a) Suboperadores e fornecedores de infraestrutura.** Utilizamos prestadores de serviço para hospedagem, infraestrutura de envio de e-mail, processamento de pagamentos e monitoramento (por exemplo, provedores de nuvem como a AWS). Esses fornecedores tratam dados apenas conforme nossas instruções e sob contrato com obrigações de proteção de dados. A lista atualizada de suboperadores que tratam Dados de Cliente está disponível em [madmail.com.br/subprocessadores](https://www.madmail.com.br/legal/suboperadores) e no [DPA](https://www.madmail.com.br/legal/dpa); alterações são comunicadas aos clientes com **antecedência mínima de 14 dias**, com direito de objeção fundamentada.
+
+**b) Obrigação legal ou ordem de autoridade.** Podemos compartilhar dados para cumprir obrigação legal ou regulatória, ou ordem judicial ou de autoridade competente, nos limites do Marco Civil da Internet e da LGPD.
+
+**c) Proteção de direitos.** Para exercício regular de direitos da N49, de clientes ou de terceiros, inclusive em casos de fraude ou abuso da plataforma.
+
+**d) Operações societárias.** Em caso de fusão, aquisição ou reorganização, os dados poderão ser transferidos ao sucessor, que permanecerá vinculado a esta Política, com comunicação aos titulares quando exigida.
+
+**e) Atendimento a destinatários.** Conforme a Seção 4, o encaminhamento de solicitações de destinatários ao cliente controlador envolve o compartilhamento dos dados da solicitação com o remetente, nas condições ali descritas.
+
+## 6. Transferência internacional de dados
+
+Nossa infraestrutura utiliza provedores localizados fora do Brasil, notadamente nos **Estados Unidos**. As transferências internacionais são realizadas nos termos do **art. 33 da LGPD**, com o seguinte mecanismo, identificado por suboperador:
+
+| Suboperador / categoria | País | Mecanismo do art. 33 |
+|---|---|---|
+| AWS (Amazon Web Services) — hospedagem e infraestrutura de envio | Estados Unidos | **Cláusulas-padrão contratuais aprovadas pela ANPD** (Resolução CD/ANPD nº 19/2024), incorporadas ao DPA sem alteração de conteúdo |
+| Demais suboperadores internacionais listados em [madmail.com.br/subprocessadores](https://www.madmail.com.br/legal/suboperadores) | Conforme a lista | **Cláusulas-padrão contratuais aprovadas pela ANPD**, incorporadas aos respectivos contratos/DPA |
+
+O mecanismo aplicável a cada suboperador consta da [lista pública de suboperadores](https://www.madmail.com.br/legal/suboperadores), mantida atualizada. Não nos valemos de hipóteses genéricas: quando eventual transferência específica se amparar em outro fundamento do art. 33 (por exemplo, consentimento específico e destacado efetivamente coletado do titular), isso será informado de forma expressa no momento da coleta.
+
+Independentemente da localização, aplicamos as mesmas salvaguardas técnicas e organizacionais descritas na Seção 10.
+
+## 7. Retenção e eliminação de dados
+
+Mantemos dados pessoais apenas pelo tempo necessário às finalidades desta Política, com **prazos máximos definidos** por categoria (princípios da necessidade e da limitação da conservação — art. 6º, III, e arts. 15 e 16 da LGPD):
+
+| Categoria | Prazo de retenção |
+|---|---|
+| Dados de conta e de comunicações com suporte | Durante a vigência da relação contratual e por **até 5 anos após o encerramento** (prazo prescricional do art. 206, § 5º, do Código Civil) |
+| Logs de acesso (IP, data/hora) | **6 meses**, conforme o art. 15 do Marco Civil da Internet, prorrogáveis **apenas por requerimento cautelar de autoridade ou ordem judicial** (art. 15, § 2º, do MCI) |
+| Documentos fiscais e de faturamento | **5 anos**, conforme a legislação tributária |
+| Dados de Cliente (N49 como operadora) | Pelo prazo definido pelo cliente controlador nas configurações do serviço e no [DPA](https://www.madmail.com.br/legal/dpa). Ao término do contrato, são eliminados ou devolvidos, a critério do cliente, ressalvadas cópias exigidas por lei, mantidas apenas pelo prazo legal correspondente |
+| Dados necessários a processos judiciais, administrativos ou arbitrais em curso | Até o trânsito em julgado ou encerramento definitivo do processo |
+| Conta excluída a pedido do titular | Na exclusão, os dados de identificação (nome, e-mail, imagem) são **pseudonimizados** de imediato (art. 13, § 4º, da LGPD) e o registro residual é eliminado em **30 dias**. O resíduo do período existe para segurança e prevenção à fraude (art. 7º, IX, e art. 10) |
+| Registros de auditoria de segurança da conta (ativação/desativação de MFA, troca de e-mail, exclusão de conta) | **12 meses**, com expurgo automático. O e-mail em snapshot é apagado no momento da pseudonimização; permanece apenas um identificador aleatório sem vínculo direto com o titular |
+
+Dados podem ser mantidos por prazo indeterminado apenas em forma **anonimizada** (deixando de ser dados pessoais) para estatísticas e melhoria do serviço. Após os prazos aplicáveis, os dados são eliminados de forma segura.
+
+## 8. Direitos do titular e canal do Encarregado (DPO)
+
+Nos termos do **art. 18 da LGPD**, você pode solicitar, a qualquer momento:
+
+1. Confirmação da existência de tratamento;
+2. Acesso aos dados;
+3. Correção de dados incompletos, inexatos ou desatualizados;
+4. Anonimização, bloqueio ou eliminação de dados desnecessários, excessivos ou tratados em desconformidade com a LGPD;
+5. Portabilidade dos dados a outro fornecedor, observada a regulamentação da ANPD;
+6. Eliminação dos dados tratados com base no consentimento;
+7. Informação sobre compartilhamentos com entidades públicas e privadas;
+8. Informação sobre a possibilidade de não consentir e as consequências da negativa;
+9. Revogação do consentimento;
+10. **Oposição a tratamento realizado com fundamento em legítimo interesse ou em outra hipótese de dispensa de consentimento** (art. 18, § 2º), incluindo o acesso a informações sobre o teste de balanceamento (LIA) — exercida pelo canal do Encarregado abaixo;
+11. Revisão de decisões tomadas unicamente com base em tratamento automatizado, quando houver.
+
+**Encarregado pelo Tratamento de Dados Pessoais (DPO)**
+Rafael Pinto e Silva
+N49 Tecnologia Ltda. — [endereço completo da sede], Porto Alegre/RS
+E-mail: **privacidade@madmail.com.br**
+
+**Prazos de resposta**: responderemos **imediatamente, em formato simplificado**, ou **em até 15 (quinze) dias, contados do requerimento, por meio de declaração clara e completa**, conforme o art. 19, I e II, da LGPD. Podemos solicitar comprovação de identidade para proteger seus dados. Caso entenda que seus direitos não foram atendidos, você pode apresentar reclamação à **Autoridade Nacional de Proteção de Dados (ANPD)**.
+
+## 9. Cookies
+
+**Nos sites e no painel da N49** (madmail.com.br e subdomínios), utilizamos apenas os seguintes cookies:
+
+| Cookie | Terceiro | Finalidade | Categoria / base legal |
+|---|---|---|---|
+| Cookies de sessão/autenticação | Próprio (N49) | Manter você conectado ao painel com segurança | Essencial — execução de contrato (art. 7º, V) |
+| Cookies do processador de pagamentos (**Rede** e **Banco Inter**, nossos processadores) | Rede / Banco Inter | Viabilizar o processamento do pagamento e prevenir fraude no checkout (identificação do dispositivo e detecção de transações suspeitas) | Execução de contrato (art. 7º, V) e legítimo interesse na prevenção a fraudes (art. 7º, IX), fundamentado em avaliação de legítimo interesse; ativos apenas nas páginas de pagamento |
+
+**Não utilizamos, em nossos sites,** cookies de publicidade, rastreamento comportamental ou cookies de terceiros para fins de marketing. Você pode bloquear cookies no navegador, mas o serviço poderá não funcionar corretamente.
+
+**Atenção**: esta seção trata dos sites da N49. O rastreamento de abertura e clique em e-mails enviados por nossos clientes por meio da plataforma é tecnologia distinta, habilitada pelo cliente controlador, e está descrito na Seção 4.
+
+## 10. Segurança da informação
+
+Adotamos medidas técnicas e organizacionais compatíveis com o art. 46 da LGPD, incluindo:
+
+- **Criptografia em trânsito** (TLS) e **em repouso**;
+- **Autenticação multifator (MFA)** disponível para as contas e obrigatória para acessos administrativos internos;
+- Controle de acesso por privilégio mínimo e segregação de ambientes;
+- Chaves de API armazenadas de forma protegida e revogáveis pelo cliente;
+- **Testes de intrusão (pentest) periódicos, ao menos anuais**, e monitoramento contínuo;
+- Registro e trilha de auditoria de eventos relevantes de segurança.
+
+**Incidentes de segurança**: em caso de incidente que possa acarretar risco ou dano relevante aos titulares, notificaremos a ANPD e os titulares afetados nos termos do art. 48 da LGPD e, quando envolver Dados de Cliente, comunicaremos o cliente controlador **sem demora indevida**, com as informações necessárias para que cumpra suas próprias obrigações.
+
+Nenhum sistema é absolutamente seguro; recomendamos o uso de senhas fortes, MFA e a proteção adequada das suas chaves de API.
+
+## 11. Idade mínima e dados de crianças e adolescentes
+
+O Madmail é um serviço destinado a empresas e profissionais. A contratação e a criação de conta são reservadas a **pessoas maiores de 18 anos ou legalmente emancipadas**, bem como a **adolescentes a partir de 16 anos devidamente assistidos por seus representantes legais, na forma da lei civil** (arts. 4º e 5º do Código Civil). Não coletamos intencionalmente dados de crianças para criação de contas; se identificarmos conta criada em desacordo com esta regra, ela será encerrada e os dados eliminados.
+
+Clientes que tratem dados de crianças ou adolescentes **como destinatários** em suas listas são responsáveis, na condição de controladores, por observar o **art. 14 da LGPD** e o melhor interesse da criança e do adolescente.
+
+## 12. Anti-spam e boas práticas
+
+O combate ao spam integra a proteção de dados dos destinatários. Exigimos contratualmente que nossos clientes:
+
+- Enviem mensagens apenas a destinatários com **consentimento prévio (opt-in)**; listas compradas ou raspadas são proibidas;
+- Incluam identificação verdadeira do remetente e **endereço físico válido**;
+- Ofereçam descadastro claro e o honrem **no prazo definido na [Política de Uso Aceitável](https://www.madmail.com.br/legal/politica-de-uso-aceitavel)**;
+- Mantenham taxas de reclamação de spam e de bounce **dentro dos limites definidos na [Política de Uso Aceitável](https://www.madmail.com.br/legal/politica-de-uso-aceitavel)**;
+- Observem a LGPD, as políticas dos provedores de destino e o **CAPEM** (Código de Autorregulamentação para Prática de E-mail Marketing), autorregulamentação setorial sem força de lei que adotamos voluntariamente como parâmetro de boas práticas.
+
+Violações podem levar à suspensão ou ao encerramento da conta, conforme os [Termos de Serviço](https://www.madmail.com.br/legal/termos-de-uso) e a [Política de Uso Aceitável](https://www.madmail.com.br/legal/politica-de-uso-aceitavel). Para denunciar abuso ou spam enviado pela nossa plataforma, escreva para **contato@madmail.com.br** — se preferir, sua identidade será preservada perante o remetente denunciado (ver Seção 4).
+
+## 13. Atualizações desta Política
+
+Podemos atualizar esta Política para refletir mudanças legais, regulatórias ou do serviço. A versão vigente estará sempre publicada em [madmail.com.br](https://madmail.com.br), com a data de vigência no topo, e mantemos **histórico público das versões anteriores** em [www.madmail.com.br/legal/politica-de-privacidade](https://www.madmail.com.br/legal/politica-de-privacidade).
+
+**Alterações relevantes** — assim entendidas, por exemplo, as que criem novas finalidades de tratamento, ampliem categorias de dados coletados, alterem bases legais, incluam novos compartilhamentos ou transferências internacionais, ou reduzam direitos ou prazos em desfavor do titular — serão comunicadas aos clientes por e-mail ou pelo painel com **antecedência mínima de 30 (trinta) dias** da entrada em vigor. Alterações meramente formais ou editoriais podem vigorar a partir da publicação.
+
+Quando a base legal do tratamento for o **consentimento**, mudanças que o afetem dependerão de **novo consentimento**, e não de aceitação tácita. Nos demais casos, o uso continuado do serviço após o término do prazo de antecedência indica ciência da nova versão; se você não concordar com as alterações, pode encerrar a conta antes da entrada em vigor, sem prejuízo dos direitos previstos na lei e nos [Termos de Serviço](https://www.madmail.com.br/legal/termos-de-uso).
+
+## 14. Lei aplicável
+
+Esta Política é regida pelas **leis da República Federativa do Brasil**, em especial a LGPD, o Marco Civil da Internet e, quando aplicável, o CDC.
+
+A eleição de foro para controvérsias contratuais consta dos [Termos de Serviço](https://www.madmail.com.br/legal/termos-de-uso) e aplica-se **exclusivamente à relação contratual entre a N49 e seus clientes**, ressalvado, quando o cliente se qualificar como consumidor nos termos do CDC, o direito de demandar no foro de seu próprio domicílio. Para titulares que não sejam clientes (como destinatários de e-mails), prevalecem as regras legais de competência.
+
+## 15. Contato
+
+**N49 Tecnologia**
+CNPJ 10.911.509/0001-40
+[Endereço completo da sede — logradouro, número, complemento, bairro, CEP] — Porto Alegre/RS, Brasil
+
+- Dúvidas gerais e denúncias de abuso: **contato@madmail.com.br**
+- Privacidade e Encarregado (DPO): **privacidade@madmail.com.br**
+- Termos de Serviço: [www.madmail.com.br/legal/termos-de-uso](https://www.madmail.com.br/legal/termos-de-uso)
+- Política de Uso Aceitável: [www.madmail.com.br/legal/politica-de-uso-aceitavel](https://www.madmail.com.br/legal/politica-de-uso-aceitavel)
+- DPA e lista de suboperadores: [madmail.com.br/dpa](https://www.madmail.com.br/legal/dpa) · [madmail.com.br/subprocessadores](https://www.madmail.com.br/legal/suboperadores)
+- Documentação: [docs.madmail.com.br](https://docs.madmail.com.br)
+- Status do serviço: [status.madmail.com.br/status/madmail](https://status.madmail.com.br/status/madmail)
