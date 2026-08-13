@@ -28,11 +28,13 @@ import { promoCodeRouter } from "./routers/promo-code";
 import { planCatalogRouter } from "./routers/plan-catalog";
 import { inboundRouter } from "./routers/inbound";
 import { inboundAdminRouter } from "./routers/inbound-admin";
+import { forwardingRouter } from "./routers/forwarding";
 import { paymentsRouter } from "./routers/payments";
 import { aiRouter } from "./routers/ai";
 import { automationRouter } from "./routers/automation";
 import { userRouter } from "./routers/user";
 import { mfaRouter } from "./routers/mfa";
+import { reputationRouter } from "./routers/reputation";
 
 /**
  * This is the primary router for your server.
@@ -69,11 +71,13 @@ export const appRouter = createTRPCRouter({
   planCatalog: planCatalogRouter,
   inbound: inboundRouter,
   inboundAdmin: inboundAdminRouter,
+  forwarding: forwardingRouter,
   payments: paymentsRouter,
   ai: aiRouter,
   automation: automationRouter,
   user: userRouter,
   mfa: mfaRouter,
+  reputation: reputationRouter,
 });
 
 // export type definition of API

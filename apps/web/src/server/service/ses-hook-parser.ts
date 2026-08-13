@@ -21,6 +21,7 @@ import {
   updateCampaignAnalytics,
 } from "./campaign-service";
 import { env } from "~/env";
+import { HEADER_REGRA } from "../utils/mime-forward";
 import { getRedis, BULL_PREFIX } from "../redis";
 import { Queue, Worker } from "bullmq";
 import {
@@ -31,6 +32,7 @@ import { getChildLogger, logger, withLogger } from "../logger/log";
 import { randomUUID } from "crypto";
 import { SuppressionService } from "./suppression-service";
 import { WebhookService } from "./webhook-service";
+import { ReputationService } from "./reputation-service";
 
 export async function parseSesHook(data: SesEvent) {
   const mailStatus = getEmailStatus(data);
@@ -90,6 +92,27 @@ export async function parseSesHook(data: SesEvent) {
   });
 
   if (!email) {
+    // Encaminhamento não tem linha em Email: o MIME é o do remetente original,
+    // reenviado por nós. O carimbo da regra é o único jeito de saber que o
+    // retorno é de um encaminhamento e desativar a regra antes que o destino
+    // morto derrube a reputação do domínio do cliente.
+    const regraHeader = data.mail.headers.find(
+      (h) => h.name.toLowerCase() === HEADER_REGRA.toLowerCase(),
+    );
+
+    if (
+      regraHeader?.value &&
+      (mailStatus === EmailStatus.BOUNCED ||
+        mailStatus === EmailStatus.COMPLAINED)
+    ) {
+      const { registrarFalhaDaRegra } = await import("./forwarding-service");
+      await registrarFalhaDaRegra(
+        regraHeader.value,
+        `retorno do destino: ${mailStatus}`,
+      );
+      return true;
+    }
+
     logger.error({ data }, "Email not found");
     return false;
   }
@@ -311,6 +334,21 @@ export async function parseSesHook(data: SesEvent) {
   });
 
   logger.info("Email event created");
+
+  // Reputacao: um hard bounce ou reclamacao muda a taxa do time, entao o
+  // snapshot em cache deixa de valer e o estado precisa ser reavaliado. Nunca
+  // deixa o webhook falhar por causa disso.
+  if (isHardBounced || mailStatus === EmailStatus.COMPLAINED) {
+    try {
+      await ReputationService.invalidateSnapshot(email.teamId);
+      await ReputationService.evaluateTeam(email.teamId);
+    } catch (error) {
+      logger.error(
+        { error, teamId: email.teamId },
+        "[SesHookParser]: Failed to evaluate reputation",
+      );
+    }
+  }
 
   try {
     const occurredAt = data.mail.timestamp
