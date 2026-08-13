@@ -38,6 +38,29 @@ async function checkIfValidEmail(emailId: string) {
   return { email, domain };
 }
 
+/**
+ * Bloqueio de envio por reputacao (docs-spec/BOUNCE-CONTROL-SPEC.md §2.5).
+ * Le a flag direto do banco: e o caminho fail-closed — se o Redis cair, o
+ * bloqueio continua valendo.
+ */
+export async function assertSendingAllowed(teamId: number) {
+  const team = await db.team.findUnique({
+    where: { id: teamId },
+    select: { sendingBlockedAt: true, sendingBlockedReason: true },
+  });
+
+  if (!team?.sendingBlockedAt) return;
+
+  throw new UnsendApiError({
+    code: "FORBIDDEN",
+    message:
+      "Envios pausados: a taxa de retorno (bounce) da sua conta está acima do limite. " +
+      "Seu painel, contatos e relatórios continuam disponíveis. " +
+      (team.sendingBlockedReason ? `Motivo: ${team.sendingBlockedReason}. ` : "") +
+      "Veja o plano de recuperação em /reputation.",
+  });
+}
+
 export const replaceVariables = (
   text: string,
   variables: Record<string, string>
@@ -53,7 +76,16 @@ export const replaceVariables = (
  Send transactional email
  */
 export async function sendEmail(
-  emailContent: EmailContent & { teamId: number; apiKeyId?: number }
+  emailContent: EmailContent & {
+    teamId: number;
+    apiKeyId?: number;
+    /**
+     * E-mail do proprio sistema (OTP, MFA, avisos de faturamento). Nao passa
+     * pelo gate de reputacao: um time bloqueado precisa continuar conseguindo
+     * entrar no painel para resolver o problema.
+     */
+    isSystemEmail?: boolean;
+  }
 ) {
   const {
     to,
@@ -72,9 +104,16 @@ export async function sendEmail(
     apiKeyId,
     inReplyToId,
     headers,
+    isSystemEmail,
   } = emailContent;
   let subject = subjectFromApiCall;
   let html = htmlFromApiCall;
+
+  // Gate de ingresso do controle de bounce: recusa cedo, com mensagem clara,
+  // em vez de aceitar o envio e falhar em silencio no worker.
+  if (!isSystemEmail) {
+    await assertSendingAllowed(teamId);
+  }
 
   let domain: Awaited<ReturnType<typeof validateDomainFromEmail>>;
 
@@ -278,7 +317,8 @@ export async function sendEmail(
       domain.region,
       true,
       undefined,
-      delay
+      delay,
+      { isSystem: isSystemEmail }
     );
   } catch (error: any) {
     await db.emailEvent.create({

@@ -37,6 +37,10 @@ import getTemplate from "./api/templates/get-template";
 import createTemplate from "./api/templates/create-template";
 import renderTemplate from "./api/templates/render-template";
 import registerSegments from "./api/segments/segments";
+import reputationStatus from "./api/reputation/reputation-status";
+import reputationTimeSeries from "./api/reputation/reputation-timeseries";
+import reputationBreakdown from "./api/reputation/reputation-breakdown";
+import reputationEvents from "./api/reputation/reputation-events";
 import mcpMe from "./api/mcp/me";
 import sendEvent from "./api/events/send-event";
 
@@ -87,6 +91,12 @@ deleteCampaignHandle(app);
 /**Analytics related APIs */
 emailTimeSeries(app);
 reputationMetricsData(app);
+
+/**Reputation / controle de bounce */
+reputationStatus(app);
+reputationTimeSeries(app);
+reputationBreakdown(app);
+reputationEvents(app);
 
 /**Template related APIs */
 getTemplates(app);

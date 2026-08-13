@@ -160,5 +160,9 @@ export async function sendMail(
     text,
     html,
     replyTo,
+    // OTP de login, MFA, convites, avisos de limite e de bloqueio: nunca podem
+    // ser barrados pelo controle de bounce, senao um cliente bloqueado ficaria
+    // sem conseguir entrar no painel para resolver o problema.
+    isSystemEmail: true,
   });
 }

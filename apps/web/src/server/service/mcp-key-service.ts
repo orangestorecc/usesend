@@ -14,6 +14,12 @@ export type McpScopes = {
   segments: McpScopeLevel;
   campaigns: McpScopeLevel;
   analytics: "none" | "read";
+  /**
+   * Saude de entregabilidade (taxa de retorno, estado, top ofensores).
+   * Somente leitura por decisao de projeto: bloquear/desbloquear conta nao e
+   * acao que se entrega a agente autonomo.
+   */
+  reputation?: "none" | "read";
   send: boolean;
   // Cobrança por contato (opcional) — fica junto da integração p/ o MCP calcular uso.
   plan?: { pricePerContactBRL: number; minContacts: number };
@@ -26,6 +32,7 @@ export const DEFAULT_SCOPES: McpScopes = {
   segments: "write",
   campaigns: "write",
   analytics: "read",
+  reputation: "read",
   send: true,
 };
 

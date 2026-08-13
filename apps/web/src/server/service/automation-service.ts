@@ -10,6 +10,7 @@ import { createWorkerHandler, TeamJob } from "../queue/bullmq-context";
 import { logger } from "../logger/log";
 import { EmailQueueService } from "./email-queue-service";
 import { validateDomainFromEmail } from "./domain-service";
+import { assertSendingAllowed } from "./email-service";
 import {
   BUILT_IN_CONTACT_VARIABLES,
   replaceContactVariables,
@@ -241,6 +242,11 @@ async function executeRun(runId: string) {
           include: { automation: true, contact: true },
         });
       } else if (step.type === "send_email") {
+        // Controle de bounce: automacao de time bloqueado nao envia. Lanca, e o
+        // tratamento de erro do run cuida do retry — quando o time voltar, a
+        // automacao segue de onde parou.
+        await assertSendingAllowed(run.teamId);
+
         const config = step.config as {
           subject: string;
           from: string;

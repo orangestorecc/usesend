@@ -10,10 +10,14 @@ export const PLATFORM_SYNC_QUEUE = "platform-sync";
 export const PLATFORM_SYNC_SCHEDULER_QUEUE = "platform-sync-scheduler";
 export const API_LOG_CLEANUP_QUEUE = "api-log-cleanup";
 export const INBOUND_POLL_QUEUE = "inbound-poll";
+/** Encaminhamento de e-mails recebidos para caixas externas. */
+export const FORWARD_DISPATCH_QUEUE = "forward-dispatch";
 export const SUBSCRIPTION_BILLING_QUEUE = "subscription-billing";
 export const PAYMENT_LOG_CLEANUP_QUEUE = "payment-log-cleanup";
 /** Purge de contas pseudonimizadas, auditoria e codigos vencidos. */
 export const ACCOUNT_LIFECYCLE_QUEUE = "account-lifecycle";
+/** Avaliacao periodica de reputacao (controle de bounce). */
+export const REPUTATION_EVALUATION_QUEUE = "reputation-evaluation";
 export const AUTOMATION_RUN_QUEUE = "automation-run";
 export const AUTOMATION_SCHEDULER_QUEUE = "automation-scheduler";
 

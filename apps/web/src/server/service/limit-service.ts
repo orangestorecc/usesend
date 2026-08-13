@@ -16,6 +16,34 @@ function getActivePlan(team: { plan: Plan; isActive: boolean }): Plan {
   return team.isActive ? team.plan : "FREE";
 }
 
+/**
+ * Teto diario da liberacao assistida (estado SUPERVISED), ou null quando o time
+ * nao esta sob supervisao. Cache curto: e lido a cada envio.
+ */
+async function getSupervisedDailyLimit(teamId: number): Promise<number | null> {
+  try {
+    return await withCache(
+      `reputation:supervised-limit:${teamId}`,
+      async () => {
+        const state = await db.teamReputationState.findUnique({
+          where: { teamId },
+          select: { state: true, supervisedLimit: true, supervisedUntil: true },
+        });
+        if (!state || state.state !== "SUPERVISED") return null;
+        if (state.supervisedUntil && state.supervisedUntil.getTime() < Date.now()) {
+          return null;
+        }
+        return state.supervisedLimit ?? null;
+      },
+      { ttlSeconds: 60 },
+    );
+  } catch (err) {
+    // Falha aqui nao pode travar envio de quem esta saudavel.
+    logger.warn({ err, teamId }, "[LimitService]: falha ao ler teto assistido");
+    return null;
+  }
+}
+
 export class LimitService {
   static async checkDomainLimit(teamId: number): Promise<{
     isLimitReached: boolean;
@@ -56,7 +84,10 @@ export class LimitService {
     }
 
     const team = await TeamService.getTeamCached(teamId);
-    const currentCount = await db.contactBook.count({ where: { teamId } });
+    // Listas de teste de integração são descartáveis e não consomem a cota.
+    const currentCount = await db.contactBook.count({
+      where: { teamId, isTest: false },
+    });
 
     const limit = PLAN_LIMITS[getActivePlan(team)].contactBooks;
     if (isLimitExceeded(currentCount, limit)) {
@@ -141,18 +172,39 @@ export class LimitService {
   // - Sends "warning" emails when nearing daily/monthly limits (rate-limited in TeamService)
   // - Sends "limit reached" notifications when limits are exceeded (rate-limited in TeamService)
   // - Teams with inactive subscriptions are treated like FREE plans for monthly limit alerts
-  static async checkEmailLimit(teamId: number): Promise<{
+  static async checkEmailLimit(
+    teamId: number,
+    options?: { isSystemEmail?: boolean },
+  ): Promise<{
     isLimitReached: boolean;
     limit: number;
     reason?: LimitReason;
     available?: number;
   }> {
+    // E-mails do proprio sistema (OTP de login, MFA, aviso de bloqueio,
+    // faturamento) nunca sao barrados: um cliente bloqueado precisa continuar
+    // conseguindo entrar no painel e resolver o problema.
+    if (options?.isSystemEmail) {
+      return { isLimitReached: false, limit: -1 };
+    }
+
     // Limits only apply in cloud mode
     if (!env.NEXT_PUBLIC_IS_CLOUD) {
       return { isLimitReached: false, limit: -1 };
     }
 
     const team = await TeamService.getTeamCached(teamId);
+
+    // Bloqueio por reputacao. Campo proprio, independente de isBlocked — que o
+    // payment-service limpa ao confirmar pagamento (um pagamento nao pode
+    // desbloquear uma conta com problema de bounce).
+    if (team.sendingBlockedAt) {
+      return {
+        isLimitReached: true,
+        limit: 0,
+        reason: LimitReason.EMAIL_BOUNCE_BLOCKED,
+      };
+    }
 
     // In cloud, enforce verification and block flags first
     if (team.isBlocked) {
@@ -172,10 +224,19 @@ export class LimitService {
 
     const dailyUsage = usage.day.reduce((acc, curr) => acc + curr.sent, 0);
     const activePlan = getActivePlan(team);
-    const dailyLimit =
+    const planDailyLimit =
       activePlan !== "FREE"
         ? team.dailyEmailLimit
         : PLAN_LIMITS.FREE.emailsPerDay;
+
+    // Liberacao assistida: teto reduzido enquanto o time prova recuperacao.
+    const supervisedLimit = await getSupervisedDailyLimit(teamId);
+    const dailyLimit =
+      supervisedLimit !== null
+        ? planDailyLimit === -1
+          ? supervisedLimit
+          : Math.min(planDailyLimit, supervisedLimit)
+        : planDailyLimit;
 
     logger.info(
       { dailyUsage, dailyLimit, team },

@@ -26,6 +26,7 @@ import {
   COMPLAINED_WARNING_RATE,
   COMPLAINED_RISK_RATE,
 } from "~/lib/constants";
+import Link from "next/link";
 import { api } from "~/trpc/react";
 import { useColors } from "./hooks/useColors";
 
@@ -59,6 +60,14 @@ export function ReputationMetrics({
       domain: domain ? Number(domain) : undefined,
       campaignId: campaign ?? undefined,
     });
+
+  // Controle de bounce: a régua vigente e a amostra vêm da engine de reputação,
+  // que mede numa janela deslizante — o número acima é o acumulado do filtro
+  // selecionado. Sem contexto, "3%" não diz ao lojista se ele corre risco.
+  const { data: reputation } = api.reputation.status.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
 
   const colors = useColors();
 
@@ -121,6 +130,28 @@ export function ReputationMetrics({
             </div>
             <StatusBadge status={bounceStatus} />
           </div>
+          {reputation ? (
+            <div className="mt-1 text-xs text-muted-foreground">
+              {!reputation.sampleSufficient ? (
+                <>
+                  Amostra pequena (
+                  {reputation.sampleSize.toLocaleString("pt-BR")} entregas) — a
+                  taxa ainda oscila muito.
+                </>
+              ) : reputation.state === "BLOCKED" ? (
+                <>Envios pausados por taxa de retorno acima do limite.</>
+              ) : (
+                <>
+                  {reputation.bounceRate.toFixed(2)}% nos últimos{" "}
+                  {reputation.windowDays} dias. O bloqueio ocorre a partir de{" "}
+                  {reputation.thresholds.block}%.
+                </>
+              )}{" "}
+              <Link href="/reputation" className="underline">
+                Ver detalhes
+              </Link>
+            </div>
+          ) : null}
           {/* <div className="flex">
             <StatusBadge status={ACCOUNT_STATUS.HEALTHY} />
           </div> */}

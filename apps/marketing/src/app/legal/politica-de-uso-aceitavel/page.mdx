@@ -113,9 +113,24 @@ Para proteger a entregabilidade de todos os clientes da plataforma, sua conta de
 | Métrica | Limite | Base de cálculo |
 |---|---|---|
 | Taxa de reclamações de spam | **inferior a 0,08%** | reclamações ÷ emails **entregues** (Seção 1) |
-| Taxa de bounce (rejeição) | **inferior a 4%** | bounces ÷ emails **enviados** (Seção 1) |
+| Taxa de retorno definitivo (hard bounce) | **inferior a 0,4%** (tolerância até **2%**) | hard bounces ÷ (emails **entregues** + hard bounces) |
 
-**6.1. Janela de apuração.** As taxas são calculadas por **média móvel de 30 (trinta) dias corridos, por conta e por domínio de envio**. O painel do Madmail exibe os valores apurados. A superação desses limites gera alertas e pode acionar, automaticamente ou mediante análise, as medidas da Seção 9, incluindo redução de volume (throttling), pausa de campanhas ou suspensão do envio.
+**6.1. Janela de apuração.** As taxas são calculadas por **média móvel de 30 (trinta) dias corridos, por conta**. O painel do Madmail exibe os valores apurados a qualquer momento, na área de Entregabilidade. Somente o **hard bounce** (endereço inexistente ou permanentemente indisponível) entra no cálculo; o soft bounce, por ser transitório, não é computado.
+
+**6.1.1. Faixas e efeitos da taxa de retorno.** Aplicam-se as seguintes faixas, informadas ao Cliente por e-mail e no painel:
+
+| Faixa | Efeito |
+|---|---|
+| abaixo de 0,4% | nenhuma medida |
+| de 0,4% a 0,99% | alerta informativo |
+| de 1% a 1,99% | alerta de risco, com orientação de correção |
+| **a partir de 2%** | **pausa automática de novos envios**, mantido o acesso integral ao painel, aos dados, aos relatórios e ao suporte |
+
+**6.1.2. Salvaguardas da pausa automática.** A pausa da cláusula 6.1.1 só é aplicada quando, cumulativamente: (a) a conta tiver ao menos **500 entregas com resposta** e **10 hard bounces** na janela; (b) a taxa estiver igual ou acima de 2% tanto na janela de 30 dias quanto nas **últimas 1.000 mensagens**; e (c) a condição for confirmada em **duas apurações consecutivas** com intervalo mínimo de 15 minutos. Abaixo desses volumes a amostra é considerada insuficiente e **nenhuma pausa é aplicada**.
+
+**6.1.3. Retomada.** O envio é reativado **automaticamente** quando a taxa cair abaixo de **1,2%** e houver ao menos **200 novas entregas com resposta** após a pausa. A N49 pode ainda conceder liberação assistida, com limite diário reduzido, mediante contato do Cliente. Campanhas interrompidas pela pausa são retomadas do ponto em que pararam, sem duplicidade de destinatários.
+
+**6.1.4.** A superação dos limites desta Seção pode acionar, automaticamente ou mediante análise, as demais medidas da Seção 9, incluindo redução de volume (throttling) e suspensão do envio.
 
 **6.2.** Você deve higienizar suas listas regularmente: remover hard bounces imediatamente (o Madmail faz supressão automática), tratar soft bounces recorrentes e remover Destinatários inativos há longo período.
 

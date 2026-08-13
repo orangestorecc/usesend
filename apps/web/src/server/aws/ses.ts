@@ -266,6 +266,44 @@ export async function sendRawEmail({
   }
 }
 
+/**
+ * Envia um MIME já pronto, sem remontar nada. Usado pelo encaminhamento: o
+ * corpo original (com anexos, assinaturas e headers) precisa chegar ao destino
+ * exatamente como chegou aqui — remontar o e-mail quebraria assinatura,
+ * inline images e threading.
+ *
+ * `from`/`to` são o envelope: o SES usa esses endereços para MAIL FROM e RCPT
+ * TO, enquanto os cabeçalhos vêm do próprio MIME.
+ */
+export async function sendRawMime({
+  raw,
+  from,
+  to,
+  region,
+  configurationSetName,
+  sesTenantId,
+}: {
+  raw: Buffer;
+  from: string;
+  to: string[];
+  region: string;
+  configurationSetName?: string;
+  sesTenantId?: string | null;
+}) {
+  const sesClient = getSesClient(region);
+
+  const command = new SendEmailCommand({
+    FromEmailAddress: from,
+    Destination: { ToAddresses: to },
+    Content: { Raw: { Data: raw } },
+    ConfigurationSetName: configurationSetName,
+    TenantName: sesTenantId ?? undefined,
+  });
+
+  const response = await sesClient.send(command);
+  return response.MessageId;
+}
+
 export async function getAccount(region: string) {
   const client = getSesClient(region);
   const input = new GetAccountCommand({});

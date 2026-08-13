@@ -31,6 +31,7 @@ import {
 } from "../utils/contact-variable-replacement";
 import { updateContactSubscription } from "./contact-service";
 import { getCampaignUnsubscribeVariableValues } from "~/lib/constants/campaign";
+import { assertSendingAllowed } from "./email-service";
 
 const CAMPAIGN_UNSUB_PLACEHOLDER_TOKENS = [
   "{{unsend_unsubscribe_url}}",
@@ -344,6 +345,10 @@ export async function sendCampaign(id: string) {
   if (!campaign) {
     throw new Error("Campanha não encontrada");
   }
+
+  // Gate de ingresso do controle de bounce: recusa com mensagem clara antes de
+  // marcar a campanha como agendada.
+  await assertSendingAllowed(campaign.teamId);
 
   const prepared = await prepareCampaignHtml(campaign);
   campaign = prepared.campaign;
@@ -1085,6 +1090,25 @@ export class CampaignBatchService {
 
       // Skip paused campaigns
       if (campaign.status === "PAUSED") return;
+
+      // Controle de bounce: time bloqueado pausa a campanha em vez de queimar
+      // os contatos restantes. lastCursor ja aponta para o ponto certo, entao a
+      // retomada nao duplica destinatario.
+      const team = await db.team.findUnique({
+        where: { id: campaign.teamId },
+        select: { sendingBlockedAt: true },
+      });
+      if (team?.sendingBlockedAt) {
+        await db.campaign.update({
+          where: { id: campaignId },
+          data: { status: "PAUSED", pausedByReputationAt: new Date() },
+        });
+        logger.info(
+          { campaignId, teamId: campaign.teamId },
+          "[CampaignBatch]: campanha pausada por bloqueio de reputacao",
+        );
+        return;
+      }
 
       // Respect scheduledAt if set
       if (campaign.scheduledAt && campaign.scheduledAt.getTime() > Date.now())

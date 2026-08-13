@@ -28,6 +28,12 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      # Só para ter a mensagem do commit no e-mail de "está em produção".
+      # O deploy em si roda no servidor e não depende deste checkout.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Preparar chave SSH
         env:
           DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
@@ -94,3 +100,57 @@ jobs:
           done
           echo "::error::A aplicação não respondeu 200 após o deploy."
           exit 1
+
+      # O GitHub só manda e-mail quando o workflow FALHA. Este passo fecha o
+      # outro lado: avisa quando a demanda está de fato em produção, usando a
+      # própria Madmail para enviar.
+      - name: Avisar por e-mail que está em produção
+        if: success()
+        env:
+          NOTIFY_API_KEY: ${{ secrets.DEPLOY_NOTIFY_API_KEY }}
+          NOTIFY_TO: ${{ secrets.DEPLOY_NOTIFY_TO }}
+          NOTIFY_FROM: ${{ secrets.DEPLOY_NOTIFY_FROM }}
+        run: |
+          if [ -z "$NOTIFY_API_KEY" ] || [ -z "$NOTIFY_TO" ]; then
+            echo "Notificação de deploy não configurada (DEPLOY_NOTIFY_API_KEY/DEPLOY_NOTIFY_TO). Pulando."
+            exit 0
+          fi
+
+          FROM="${NOTIFY_FROM:-deploy@madmail.com.br}"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          SUBJECT="Madmail em produção: $(git log -1 --pretty=%s 2>/dev/null || echo "${GITHUB_SHA:0:7}")"
+
+          # jq monta o JSON com escape correto (mensagem de commit tem aspas e acento).
+          BODY=$(jq -n \
+            --arg from "$FROM" \
+            --arg to "$NOTIFY_TO" \
+            --arg subject "$SUBJECT" \
+            --arg sha "$GITHUB_SHA" \
+            --arg actor "$GITHUB_ACTOR" \
+            --arg msg "$(git log -1 --pretty=%B 2>/dev/null || echo '-')" \
+            --arg run "$RUN_URL" \
+            --arg commit "$COMMIT_URL" \
+            '{
+              from: $from,
+              to: [$to],
+              subject: $subject,
+              html: ("<p><strong>Deploy concluído</strong> — app.madmail.com.br respondeu 200.</p>"
+                + "<p><strong>Commit:</strong> <a href=\"" + $commit + "\">" + $sha[0:7] + "</a><br>"
+                + "<strong>Por:</strong> " + $actor + "</p>"
+                + "<pre style=\"white-space:pre-wrap\">" + $msg + "</pre>"
+                + "<p><a href=\"" + $run + "\">Ver a execução no GitHub Actions</a></p>")
+            }')
+
+          code=$(curl -s -o /tmp/notify.out -w '%{http_code}' \
+            -X POST https://app.madmail.com.br/api/v1/emails \
+            -H "Authorization: Bearer ${NOTIFY_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+
+          if [ "$code" != "200" ] && [ "$code" != "201" ]; then
+            # Aviso não entregue não invalida um deploy que deu certo.
+            echo "::warning::Falha ao enviar o e-mail de deploy (HTTP $code): $(cat /tmp/notify.out)"
+          else
+            echo "Aviso de produção enviado para $NOTIFY_TO"
+          fi

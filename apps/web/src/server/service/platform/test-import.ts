@@ -65,14 +65,10 @@ export async function runTestImport(opts: {
   const book = await createContactBook(
     opts.teamId,
     `[Teste] Integração — ${carimbo}`,
+    undefined,
+    undefined,
+    { isTest: true, doubleOptInEnabled: opts.doubleOptInEnabled },
   );
-
-  if (opts.doubleOptInEnabled) {
-    await db.contactBook.update({
-      where: { id: book.id },
-      data: { doubleOptInEnabled: true },
-    });
-  }
 
   const base = {
     contactBookId: book.id,

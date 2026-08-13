@@ -1,0 +1,113 @@
+---
+title: "Entregabilidade e controle de bounce"
+description: "Como a Madmail mede a taxa de retorno, quando os envios são pausados e como recuperar a conta"
+---
+
+Quando um e-mail volta porque o endereço não existe (**hard bounce**), os provedores
+passam a tratar todo o seu envio como suspeito — inclusive os e-mails que mais
+importam, como confirmação de pedido e recuperação de senha. Por isso a Madmail
+acompanha essa taxa e avisa antes que ela vire um problema.
+
+## Como a taxa é calculada
+
+```
+taxa de retorno = hard bounces ÷ (entregues + hard bounces)
+```
+
+- Janela: **média móvel de 30 dias**, por conta.
+- Só **hard bounce** entra na conta. Soft bounce é transitório e o provedor tenta de novo.
+- O denominador usa apenas mensagens com resposta do provedor, para a taxa não
+  oscilar enquanto uma campanha ainda está saindo.
+
+## Faixas
+
+| Faixa | O que acontece |
+|---|---|
+| abaixo de 0,4% | Nada. Conta saudável. |
+| 0,4% a 0,99% | Alerta informativo por e-mail e no painel. |
+| 1% a 1,99% | Alerta de risco, com o detalhamento dos domínios e motivos. |
+| a partir de 2% | Novos envios são pausados. |
+
+## O que a pausa faz — e o que ela não faz
+
+Com os envios pausados você **continua** com acesso ao painel, aos contatos, aos
+relatórios, à lista de supressões, ao faturamento e ao suporte. O que fica
+suspenso é apenas o envio de novas mensagens (API, SMTP, campanhas e automações).
+
+Campanhas em andamento são pausadas e **retomam do ponto em que pararam** quando
+a conta volta — nenhum destinatário recebe duas vezes.
+
+<Note>
+A pausa só é aplicada quando há volume suficiente para a medida ser confiável:
+no mínimo 500 entregas com resposta e 10 retornos na janela, taxa acima do
+limite tanto nos 30 dias quanto nas últimas 1.000 mensagens, e a condição
+confirmada em duas apurações consecutivas. Contas de baixo volume nunca são
+pausadas por oscilação de amostra.
+</Note>
+
+## Como voltar a enviar
+
+O desbloqueio é **automático** quando a taxa cai abaixo de 1,2% e há pelo menos
+200 novas entregas com resposta depois da pausa. Para chegar lá:
+
+1. Remova da sua origem os endereços que já retornaram (a Madmail suprime
+   automaticamente, mas eles voltam se você reimportar a mesma lista).
+2. Ative a confirmação de cadastro (double opt-in) nos formulários.
+3. Revise a origem dos contatos recentes — lista comprada é a causa mais comum.
+4. Reduza a cadência enquanto investiga.
+
+Se precisar enviar durante a recuperação, fale com o suporte: existe um modo
+assistido, com limite diário reduzido, para a conta provar que a lista está
+saudável.
+
+## Erro na API
+
+Com a conta pausada, os endpoints de envio respondem:
+
+```json
+{
+  "code": "SENDING_BLOCKED_BOUNCE_RATE",
+  "message": "Envios pausados: a taxa de retorno (bounce) da sua conta está acima do limite..."
+}
+```
+
+HTTP `403`. Trate esse código na sua integração como uma pausa temporária — não
+como uma falha da requisição em si.
+
+## Consultar o estado pela API
+
+<CodeGroup>
+```bash Status
+curl https://app.madmail.com.br/api/v1/reputation/status \
+  -H "Authorization: Bearer SUA_API_KEY"
+```
+
+```bash Top ofensores
+curl "https://app.madmail.com.br/api/v1/reputation/bounce-breakdown?days=30" \
+  -H "Authorization: Bearer SUA_API_KEY"
+```
+
+```bash Série diária
+curl "https://app.madmail.com.br/api/v1/reputation/timeseries?days=30" \
+  -H "Authorization: Bearer SUA_API_KEY"
+```
+</CodeGroup>
+
+A resposta de `/status` traz o estado atual, a taxa, o tamanho da amostra, os
+limiares em vigor e quanto falta para o bloqueio:
+
+```json
+{
+  "state": "WARNING",
+  "bounceRate": 0.62,
+  "sampleSize": 18432,
+  "sampleSufficient": true,
+  "windowDays": 30,
+  "thresholds": { "warning": 0.4, "critical": 1, "block": 2, "unblock": 1.2 },
+  "distanceToBlock": 1.38,
+  "blockedAt": null
+}
+```
+
+Os mesmos dados estão disponíveis para agentes via MCP, no escopo somente-leitura
+`reputation`.

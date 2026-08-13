@@ -40,6 +40,10 @@ export const UpgradeModal = () => {
                   "Você atingiu o limite de webhooks do seu plano atual.",
                 [LimitReason.EMAIL_BLOCKED]:
                   "Você atingiu o limite de envio de e-mails do seu plano atual.",
+                // Bloqueio por reputação não se resolve com upgrade: o caminho é
+                // higienizar a lista. Por isso a mensagem aponta para lá.
+                [LimitReason.EMAIL_BOUNCE_BLOCKED]:
+                  "Seus envios estão pausados porque a taxa de retorno (bounce) da sua conta passou do limite. Veja o plano de recuperação em Entregabilidade.",
                 [LimitReason.EMAIL_DAILY_LIMIT_REACHED]:
                   "Você atingiu o limite de envio de e-mails do seu plano atual.",
                 [LimitReason.EMAIL_FREE_PLAN_MONTHLY_LIMIT_REACHED]:

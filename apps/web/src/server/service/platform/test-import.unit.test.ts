@@ -107,10 +107,13 @@ describe("runTestImport", () => {
       doubleOptInEnabled: true,
     });
 
-    expect(mockDb.contactBook.update).toHaveBeenCalledWith({
-      where: { id: "book_1" },
-      data: { doubleOptInEnabled: true },
-    });
+    expect(mockCreateContactBook).toHaveBeenCalledWith(
+      OPTS.teamId,
+      expect.stringContaining("[Teste] Integração"),
+      undefined,
+      undefined,
+      { isTest: true, doubleOptInEnabled: true },
+    );
     expect(r.email?.id).toBe("email_1");
     expect(r.veredito).toContain("como esperado");
   });

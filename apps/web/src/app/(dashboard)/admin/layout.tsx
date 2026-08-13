@@ -55,6 +55,11 @@ export default function AdminLayout({
         <SettingsNavButton href="/admin/receita">
           Consulta CNPJ
         </SettingsNavButton>
+        {isCloud() ? (
+          <SettingsNavButton href="/admin/reputation">
+            Entregabilidade
+          </SettingsNavButton>
+        ) : null}
         <SettingsNavButton href="/admin/auditoria">
           Auditoria
         </SettingsNavButton>

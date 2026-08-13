@@ -136,15 +136,11 @@ export const platformIntegrationRouter = createTRPCRouter({
         const book = await createContactBook(
           ctx.team.id,
           input.newContactBookName,
+          undefined,
+          undefined,
+          { doubleOptInEnabled: input.doubleOptInEnabled },
         );
         contactBookId = book.id;
-
-        if (input.doubleOptInEnabled) {
-          await db.contactBook.update({
-            where: { id: book.id },
-            data: { doubleOptInEnabled: true },
-          });
-        }
       } else {
         const book = await db.contactBook.findFirst({
           where: { id: contactBookId, teamId: ctx.team.id },

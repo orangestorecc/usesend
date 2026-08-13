@@ -19,7 +19,9 @@ import {
   GaugeIcon,
   UserRoundX,
   Webhook,
+  Forward,
   ScrollText,
+  ShieldCheck,
   Workflow,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -78,6 +80,11 @@ const generalItems = [
     url: "/suppressions",
     icon: UserRoundX,
   },
+  {
+    title: "Entregabilidade",
+    url: "/reputation",
+    icon: ShieldCheck,
+  },
 ];
 
 // Marketing items
@@ -105,6 +112,11 @@ const settingsItems = [
     title: "Domínios",
     url: "/domains",
     icon: Globe,
+  },
+  {
+    title: "Encaminhamento",
+    url: "/forwarding",
+    icon: Forward,
   },
   {
     title: "Webhooks",

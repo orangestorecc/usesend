@@ -292,8 +292,17 @@ model Team {
   sesTenantId      String?
   isVerified       Boolean           @default(false)
   dailyEmailLimit  Int               @default(10000)
+  /// Bloqueio comercial/manual do admin. ATENCAO: o payment-service limpa este
+  /// campo ao confirmar pagamento — por isso o bloqueio por reputacao mora em
+  /// sendingBlockedAt, e nao aqui.
   isBlocked        Boolean           @default(false)
+  /// Bloqueio de envio por reputacao (bounce/reclamacao). Independente de isBlocked.
+  sendingBlockedAt     DateTime?
+  sendingBlockedReason String?
   teamUsers        TeamUser[]
+  reputationState  TeamReputationState?
+  reputationPolicy ReputationPolicy?
+  reputationEvents ReputationEvent[]
   domains          Domain[]
   apiKeys          ApiKey[]
   emails           Email[]
@@ -483,6 +492,8 @@ model EmailEvent {
 
   @@index([emailId])
   @@index([teamId])
+  /// Janela curta da engine de reputacao: ultimos N eventos com veredito do time.
+  @@index([teamId, status, createdAt(sort: Desc)])
 }
 
 model ContactBook {
@@ -492,6 +503,8 @@ model ContactBook {
   variables          String[]  @default([])
   properties         Json
   doubleOptInEnabled Boolean   @default(false)
+  /** Lista criada pelo "Rodar teste" de integração: não conta no limite do plano. */
+  isTest             Boolean   @default(false)
   doubleOptInFrom    String?
   doubleOptInSubject String?
   doubleOptInContent String?
@@ -585,6 +598,10 @@ model Campaign {
   /// Quando o lojista dispensou a oferta de template no editor vazio.
   /// A oferta nao volta depois de dispensada (por campanha).
   templateOfferDismissedAt DateTime?
+  /// Preenchido quando o controle de bounce pausou a campanha. Distingue de uma
+  /// pausa feita pelo proprio cliente — so as pausadas pela engine voltam a
+  /// rodar sozinhas no desbloqueio.
+  pausedByReputationAt     DateTime?
 }
 
 model Template {
@@ -625,6 +642,80 @@ model DailyEmailUsage {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@id([teamId, domainId, date, type])
+}
+
+/// Regua de reputacao. A linha com teamId = null e a politica global (padrao);
+/// linhas com teamId sobrescrevem a global para aquele time.
+model ReputationPolicy {
+  id              Int      @id @default(autoincrement())
+  teamId          Int?     @unique
+  windowDays      Int      @default(30)
+  shortWindowSize Int      @default(1000)
+  minVolume       Int      @default(500)
+  minBounces      Int      @default(10)
+  warningRate     Decimal  @default(0.4) @db.Decimal(6, 3)
+  criticalRate    Decimal  @default(1.0) @db.Decimal(6, 3)
+  blockRate       Decimal  @default(2.0) @db.Decimal(6, 3)
+  unblockRate     Decimal  @default(1.2) @db.Decimal(6, 3)
+  /// Volume novo (entregas com veredito) exigido apos o bloqueio para
+  /// considerar que houve recuperacao real, e nao apenas decaimento da janela.
+  minRecoveryVolume Int    @default(200)
+  /// Shadow mode: quando false, a engine calcula e alerta mas nao bloqueia.
+  autoBlock       Boolean  @default(false)
+  supervisedLimit Int      @default(500)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+enum ReputationState {
+  HEALTHY
+  WARNING
+  CRITICAL
+  BLOCKED
+  SUPERVISED
+  EXEMPT
+}
+
+model TeamReputationState {
+  teamId          Int             @id
+  state           ReputationState @default(HEALTHY)
+  bounceRate      Decimal         @default(0) @db.Decimal(6, 3)
+  complaintRate   Decimal         @default(0) @db.Decimal(6, 3)
+  sampleSize      Int             @default(0)
+  /// Entregas com veredito acumuladas no momento do bloqueio, para medir
+  /// volume novo na avaliacao de desbloqueio.
+  sampleAtBlock   Int?
+  blockedAt       DateTime?
+  blockedReason   String?
+  supervisedUntil DateTime?
+  supervisedLimit Int?
+  exemptUntil     DateTime?
+  lastEvaluatedAt DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([state])
+}
+
+/// Trilha imutavel de transicoes de estado (nunca sofre update).
+model ReputationEvent {
+  id         String          @id @default(cuid())
+  teamId     Int
+  fromState  ReputationState
+  toState    ReputationState
+  bounceRate Decimal         @db.Decimal(6, 3)
+  sampleSize Int
+  /// "system" ou "admin:{userId}"
+  actor      String          @default("system")
+  reason     String?
+  createdAt  DateTime        @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, createdAt(sort: Desc)])
 }
 
 model CumulatedMetrics {

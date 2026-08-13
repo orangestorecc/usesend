@@ -88,6 +88,11 @@ export async function register() {
         "~/server/jobs/payment-log-cleanup-job"
       );
       await initPaymentLogCleanupJob();
+
+      const { initReputationEvaluationJob } = await import(
+        "~/server/jobs/reputation-evaluation-job"
+      );
+      await initReputationEvaluationJob();
     }
 
     const { initAccountLifecycleJob } = await import(

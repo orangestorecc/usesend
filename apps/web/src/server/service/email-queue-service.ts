@@ -10,6 +10,7 @@ import { DEFAULT_QUEUE_OPTIONS } from "../queue/queue-constants";
 import { logger } from "../logger/log";
 import { createWorkerHandler, TeamJob } from "../queue/bullmq-context";
 import { LimitService } from "./limit-service";
+import { LimitReason } from "~/lib/constants/plans";
 import {
   BUILT_IN_CONTACT_VARIABLES,
   replaceContactVariables,
@@ -21,7 +22,15 @@ type QueueEmailJob = TeamJob<{
   timestamp: number;
   unsubUrl?: string;
   isBulk?: boolean;
+  /** E-mail do proprio sistema (OTP, MFA, faturamento): nunca barrado. */
+  isSystem?: boolean;
+  /** Quantas vezes o job ja foi adiado por bloqueio de reputacao. */
+  blockRetries?: number;
 }>;
+
+/** Ate 24h de espera (24 tentativas de 1h) antes de desistir de um envio bloqueado. */
+const MAX_BLOCK_RETRIES = 24;
+const BLOCK_RETRY_DELAY_MS = 60 * 60 * 1000;
 
 function createQueueAndWorker(region: string, quota: number, suffix: string) {
   const connection = getRedis();
@@ -119,7 +128,8 @@ export class EmailQueueService {
     region: string,
     transactional: boolean,
     unsubUrl?: string,
-    delay?: number
+    delay?: number,
+    options?: { isSystem?: boolean }
   ) {
     if (!this.initialized) {
       await this.init();
@@ -139,9 +149,42 @@ export class EmailQueueService {
         unsubUrl,
         isBulk,
         teamId,
+        isSystem: options?.isSystem,
       },
       { jobId: emailId, delay, ...DEFAULT_QUEUE_OPTIONS }
     );
+  }
+
+  /**
+   * Reenfileira um envio que estava bloqueado por reputacao. jobId proprio para
+   * nao colidir com o job original (que ainda esta sendo finalizado).
+   */
+  public static async requeueBlocked(
+    data: {
+      emailId: string;
+      teamId: number;
+      timestamp: number;
+      unsubUrl?: string;
+      isBulk?: boolean;
+      isSystem?: boolean;
+      blockRetries?: number;
+    },
+    region: string
+  ) {
+    if (!this.initialized) {
+      await this.init();
+    }
+    const queue = data.isBulk
+      ? this.marketingQueue.get(region)
+      : this.transactionalQueue.get(region);
+    if (!queue) {
+      throw new Error(`Queue for region ${region} not found`);
+    }
+    await queue.add(data.emailId, data, {
+      jobId: `${data.emailId}-block-${data.blockRetries ?? 0}`,
+      delay: BLOCK_RETRY_DELAY_MS,
+      ...DEFAULT_QUEUE_OPTIONS,
+    });
   }
 
   /**
@@ -406,8 +449,43 @@ async function executeEmail(job: QueueEmailJob) {
 
   try {
     // Check limits right before sending (cloud-only)
-    const limitCheck = await LimitService.checkEmailLimit(email.teamId);
+    const limitCheck = await LimitService.checkEmailLimit(email.teamId, {
+      isSystemEmail: job.data.isSystem,
+    });
     logger.info({ limitCheck }, `[EmailQueueService]: Limit check`);
+
+    // Bloqueio por reputacao: o e-mail nao e descartado. Fica esperando o time
+    // se recuperar (ate 24h) — uma janela curta de bloqueio nao pode destruir
+    // uma campanha em curso.
+    if (
+      limitCheck.isLimitReached &&
+      limitCheck.reason === LimitReason.EMAIL_BOUNCE_BLOCKED
+    ) {
+      const retries = (job.data.blockRetries ?? 0) + 1;
+
+      if (retries <= MAX_BLOCK_RETRIES) {
+        logger.info(
+          { emailId: email.id, teamId: email.teamId, retries },
+          `[EmailQueueService]: Envio bloqueado por reputacao, reagendando`
+        );
+        await EmailQueueService.requeueBlocked(
+          {
+            ...job.data,
+            teamId: email.teamId,
+            blockRetries: retries,
+            timestamp: Date.now(),
+          },
+          domain?.region ?? env.AWS_DEFAULT_REGION
+        );
+        return;
+      }
+
+      logger.warn(
+        { emailId: email.id, teamId: email.teamId },
+        `[EmailQueueService]: Envio descartado apos 24h bloqueado por reputacao`
+      );
+    }
+
     if (limitCheck.isLimitReached) {
       await db.emailEvent.create({
         data: {
