@@ -22,11 +22,14 @@ export function EmailHeaderBar({
   replyTo,
   subject,
   previewText,
+  rightSlot,
 }: {
   from?: EmailHeaderField;
   replyTo?: EmailHeaderField;
   subject?: EmailHeaderField;
   previewText?: EmailHeaderField;
+  /** Ações à direita do cabeçalho (ex.: usar/salvar template). */
+  rightSlot?: React.ReactNode;
 }) {
   // Campos secundários começam recolhidos, como no padrão dos clientes de
   // e-mail: só aparecem quando têm conteúdo ou quando são pedidos.
@@ -35,6 +38,9 @@ export function EmailHeaderBar({
 
   return (
     <div className="mx-auto w-full max-w-[640px] px-4 pt-6">
+      {rightSlot ? (
+        <div className="mb-2 flex justify-end gap-1.5">{rightSlot}</div>
+      ) : null}
       {from ? (
         <HeaderRow
           label="De"

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { EmailRenderer } from "@usesend/email-editor/src/renderer";
 import { z } from "zod";
+import { DEFAULT_TEMPLATES } from "~/lib/constants/default-templates";
 import { env } from "~/env";
 import {
   teamProcedure,
@@ -15,6 +16,20 @@ import {
 } from "~/server/service/storage-service";
 
 export const templateRouter = createTRPCRouter({
+  /**
+   * Templates padrao do sistema, direto do codigo — nao do banco. Ineditaveis
+   * por construcao (nao ha linha para editar) e atualizados por deploy.
+   * Garantem que o seletor de templates nunca abre vazio.
+   */
+  defaultTemplates: teamProcedure.query(async () => {
+    return DEFAULT_TEMPLATES.map((t, i) => ({
+      id: `default-${i}`,
+      name: t.name,
+      subject: t.subject,
+      content: JSON.stringify(t.content),
+    }));
+  }),
+
   getTemplates: teamProcedure
     .input(
       z.object({
@@ -41,6 +56,9 @@ export const templateRouter = createTRPCRouter({
           createdAt: true,
           updatedAt: true,
           html: true,
+          // O seletor de templates da campanha aplica o JSON do editor
+          // direto — sem o content ele só teria o html renderizado.
+          content: true,
         },
         orderBy: {
           createdAt: "desc",
@@ -59,12 +77,23 @@ export const templateRouter = createTRPCRouter({
       z.object({
         name: z.string(),
         subject: z.string(),
+        /** JSON do editor, quando o template nasce de uma campanha pronta. */
+        content: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx: { db, team }, input }) => {
+      let html: string | undefined;
+      if (input.content) {
+        const renderer = new EmailRenderer(
+          JSON.parse(input.content) as Record<string, unknown>,
+        );
+        html = await renderer.render();
+      }
+
       const template = await db.template.create({
         data: {
           ...input,
+          html,
           teamId: team.id,
         },
       });
