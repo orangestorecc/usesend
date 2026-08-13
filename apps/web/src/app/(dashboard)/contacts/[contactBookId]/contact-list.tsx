@@ -35,7 +35,8 @@ import {
   TooltipTrigger,
 } from "@usesend/ui/src/tooltip";
 import { UnsubscribeReason } from "@prisma/client";
-import { Download, UsersRound } from "lucide-react";
+import { Download, Plus, UsersRound } from "lucide-react";
+import AddContact from "./add-contact";
 import { EmptyState } from "~/components/EmptyState";
 import { TableRowsSkeleton } from "~/components/skeletons";
 
@@ -91,20 +92,26 @@ export default function ContactList({
 
   const readinessQuery = api.contacts.doubleOptInReadiness.useQuery(
     { contactBookId },
-    { enabled: Boolean(doubleOptInEnabled) },
+    { enabled: Boolean(doubleOptInEnabled), refetchInterval: 15_000 },
   );
 
-  const contactsQuery = api.contacts.contacts.useQuery({
-    contactBookId,
-    page: pageNumber,
-    search: search ?? undefined,
-    subscribed:
-      status === "Subscribed"
-        ? true
-        : status === "Unsubscribed"
-          ? false
-          : undefined,
-  });
+  // A adicao de contatos passa por fila e a confirmacao de opt-in acontece em
+  // outra sessao/navegador, entao a lista precisa se atualizar sozinha em vez
+  // de exigir reload. So enquanto a aba estiver em foco.
+  const contactsQuery = api.contacts.contacts.useQuery(
+    {
+      contactBookId,
+      page: pageNumber,
+      search: search ?? undefined,
+      subscribed:
+        status === "Subscribed"
+          ? true
+          : status === "Unsubscribed"
+            ? false
+            : undefined,
+    },
+    { refetchInterval: 10_000 },
+  );
 
   const debouncedSearch = useDebouncedCallback((value: string) => {
     setSearch(value || null);
@@ -213,8 +220,12 @@ export default function ContactList({
           </div>
           <div className="flex gap-2">
             <Select value={status ?? "All"} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[180px] capitalize">
-                {status || "Todos os status"}
+              <SelectTrigger className="w-[180px]">
+                {status === "Subscribed"
+                  ? "Inscrito"
+                  : status === "Unsubscribed"
+                    ? "Cancelado"
+                    : "Todos os status"}
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All" className=" capitalize">
@@ -244,6 +255,15 @@ export default function ContactList({
               )}
               Exportar
             </Button>
+            <AddContact
+              contactBookId={contactBookId}
+              trigger={
+                <Button size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar contato
+                </Button>
+              }
+            />
           </div>
         </div>
         <div className="flex flex-col rounded-xl border border-broder shadow">

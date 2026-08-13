@@ -41,6 +41,7 @@ import {
 } from "@usesend/ui/src/tooltip";
 import { Input } from "@usesend/ui/src/input";
 import { DEFAULT_QUERY_LIMIT } from "~/lib/constants";
+import { emailStatusLabel } from "~/lib/email-status";
 import { useDebouncedCallback } from "use-debounce";
 import { useState } from "react";
 import { SheetTitle, SheetDescription } from "@usesend/ui/src/sheet";
@@ -220,10 +221,8 @@ export default function EmailsList() {
               setStatus(val === "All statuses" ? null : val)
             }
           >
-            <SelectTrigger className="w-full sm:w-[180px] capitalize">
-              {status
-                ? status.toLowerCase().replace("_", " ")
-                : "Todos os status"}
+            <SelectTrigger className="w-full sm:w-[180px]">
+              {status ? emailStatusLabel(status) : "Todos os status"}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All statuses" className=" capitalize">
@@ -241,8 +240,8 @@ export default function EmailsList() {
                 "COMPLAINED",
                 "SUPPRESSED",
               ]).map((status) => (
-                <SelectItem key={status} value={status} className=" capitalize">
-                  {status.toLowerCase().replace("_", " ")}
+                <SelectItem key={status} value={status}>
+                  {emailStatusLabel(status)}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -168,11 +168,19 @@ export function OnboardingWizard() {
           return (
             <div
               key={step}
-              className={`rounded-xl border p-5 transition-colors ${
+              className={`relative rounded-xl border p-5 transition-colors ${
                 eOProximo ? "border-primary/40 bg-muted/30" : ""
               } ${completed ? "opacity-70" : ""}`}
             >
-              <div className="flex items-start gap-3">
+              {/* O passo atual pulsa para puxar o olho sem piscar o conteudo:
+                  o anel fica numa camada propria, o texto segue legivel. */}
+              {eOProximo ? (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-px rounded-xl ring-2 ring-primary/50 animate-pulse motion-reduce:animate-none"
+                />
+              ) : null}
+              <div className="relative flex items-start gap-3">
                 {completed ? (
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green" />
                 ) : (
@@ -180,8 +188,14 @@ export function OnboardingWizard() {
                 )}
                 <div className="flex w-full flex-col gap-2">
                   <div className="flex flex-col">
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Passo {indice + 1}
+                      {eOProximo ? (
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:animate-none" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                        </span>
+                      ) : null}
                     </span>
                     <h2 className="font-medium">{conteudo.titulo}</h2>
                     <p className="text-sm text-muted-foreground">

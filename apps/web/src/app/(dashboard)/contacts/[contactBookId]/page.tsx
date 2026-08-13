@@ -25,7 +25,7 @@ import {
 import { Button } from "@usesend/ui/src/button";
 import { Switch } from "@usesend/ui/src/switch";
 import { useTheme } from "@usesend/ui";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@usesend/ui/src/card";
 import { TextWithCopyButton } from "@usesend/ui/src/text-with-copy";
@@ -44,7 +44,10 @@ import {
   Upload,
   Edit,
   Trash2,
+  Check,
+  Loader2,
 } from "lucide-react";
+import { toast } from "@usesend/ui/src/toaster";
 import EditContactBook from "../edit-contact-book";
 import DeleteContactBook from "../delete-contact-book";
 
@@ -210,6 +213,16 @@ export default function ContactsPage({
 
   const utils = api.useUtils();
 
+  // Feedback de "salvamento automatico": esta tela nao tem botao Salvar, entao
+  // o usuario precisa ver que a alteracao foi persistida.
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (savedAt === null) return;
+    const timer = setTimeout(() => setSavedAt(null), 4000);
+    return () => clearTimeout(timer);
+  }, [savedAt]);
+
   const updateContactBookMutation = api.contacts.updateContactBook.useMutation({
     onMutate: async (data) => {
       await utils.contacts.getContactBookDetails.cancel();
@@ -225,6 +238,13 @@ export default function ContactsPage({
           };
         },
       );
+    },
+    onSuccess: () => {
+      setSavedAt(Date.now());
+    },
+    onError: (error) => {
+      setSavedAt(null);
+      toast.error(error.message || "Não foi possível salvar a alteração");
     },
     onSettled: () => {
       utils.contacts.getContactBookDetails.invalidate({
@@ -471,18 +491,37 @@ export default function ContactsPage({
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={
-                  contactBookDetailQuery.data?.doubleOptInEnabled ?? false
-                }
-                onCheckedChange={(checked) => {
-                  updateContactBookMutation.mutate({
-                    contactBookId,
-                    doubleOptInEnabled: checked,
-                  });
-                }}
-                className="data-[state=checked]:bg-green-500"
-              />
+              <div className="flex items-center gap-3">
+                <span
+                  aria-live="polite"
+                  className="text-xs text-muted-foreground flex items-center gap-1.5 min-w-[150px] justify-end"
+                >
+                  {updateContactBookMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : savedAt !== null ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-green-500" />
+                      Salvo automaticamente
+                    </>
+                  ) : null}
+                </span>
+                <Switch
+                  checked={
+                    contactBookDetailQuery.data?.doubleOptInEnabled ?? false
+                  }
+                  disabled={updateContactBookMutation.isPending}
+                  onCheckedChange={(checked) => {
+                    updateContactBookMutation.mutate({
+                      contactBookId,
+                      doubleOptInEnabled: checked,
+                    });
+                  }}
+                  className="data-[state=checked]:bg-green-500"
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-0">

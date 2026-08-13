@@ -1,4 +1,5 @@
 import { EmailStatus } from "@prisma/client";
+import { emailStatusLabel } from "~/lib/email-status";
 
 export const EmailStatusBadge: React.FC<{ status: EmailStatus }> = ({
   status,
@@ -31,9 +32,9 @@ export const EmailStatusBadge: React.FC<{ status: EmailStatus }> = ({
 
   return (
     <div
-      className={` text-center w-[130px] rounded capitalize py-1 text-xs ${badgeColor}`}
+      className={` text-center w-[130px] rounded py-1 text-xs ${badgeColor}`}
     >
-      {status.toLowerCase().split("_").join(" ")}
+      {emailStatusLabel(status)}
     </div>
   );
 };

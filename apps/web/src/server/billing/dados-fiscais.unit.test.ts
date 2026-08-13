@@ -1,19 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * O time guarda dados fiscais em duas tabelas: `BillingContact`, preenchida no
- * próprio checkout, e `BillingProfile`, de Configurações > Faturamento. O
- * boleto lia só a segunda e recusava quem tinha preenchido a primeira — com os
- * dados visíveis na tela logo acima do botão.
+ * `BillingContact` é a fonte única dos dados fiscais: é o que o checkout grava
+ * e o que Configurações > Faturamento passou a ler e escrever. Antes havia uma
+ * segunda tabela (`BillingProfile`) que o boleto lia sozinha, então quem
+ * preenchia no checkout era recusado com os dados visíveis na tela logo acima
+ * do botão. Os cadastros antigos foram migrados para cá.
  */
 
 const billingContact = { findUnique: vi.fn() };
-const billingProfile = { findUnique: vi.fn() };
 
 vi.mock("~/server/db", () => ({
   db: {
     billingContact: { findUnique: (...a: unknown[]) => billingContact.findUnique(...a) },
-    billingProfile: { findUnique: (...a: unknown[]) => billingProfile.findUnique(...a) },
   },
 }));
 
@@ -21,7 +20,6 @@ const { dadosFiscaisDoPagador } = await import("./payment-service");
 
 beforeEach(() => {
   billingContact.findUnique.mockResolvedValue(null);
-  billingProfile.findUnique.mockResolvedValue(null);
 });
 
 describe("dados fiscais do pagador", () => {
@@ -45,9 +43,9 @@ describe("dados fiscais do pagador", () => {
     expect(dados.addressLine1).toBe("Av. Ipiranga, 100");
   });
 
-  it("deriva PF/PJ do documento, não do default do profile", async () => {
-    // O `personType` do profile é "PJ" por default. Quem preencheu só o
-    // contato, com CPF, teria o boleto emitido como pessoa jurídica.
+  it("deriva PF/PJ do documento, não do default do cadastro", async () => {
+    // O `personType` é "PJ" por default. Quem cadastrou um CPF sem corrigir o
+    // tipo teria o boleto emitido como pessoa jurídica.
     billingContact.findUnique.mockResolvedValue({
       responsavel: "Rafael",
       documento: "964.002.420-15", // CPF, com máscara
@@ -63,24 +61,25 @@ describe("dados fiscais do pagador", () => {
     expect((await dadosFiscaisDoPagador(1)).personType).toBe("PJ");
   });
 
-  it("cai para o profile quando o contato não existe", async () => {
-    billingProfile.findUnique.mockResolvedValue({
-      name: "Empresa Antiga LTDA",
-      document: "11222333000181",
-      personType: "PJ",
-      city: "São Paulo",
-      state: "SP",
-      postalCode: "01000000",
-      addressLine1: "Rua Antiga, 1",
+  it("usa personType quando o documento não decide sozinho", async () => {
+    // Cadastro antigo migrado do BillingProfile, ainda sem documento.
+    billingContact.findUnique.mockResolvedValue({
+      responsavel: "Fulano",
+      razaoSocial: "Empresa Antiga LTDA",
+      documento: null,
+      personType: "PF",
+      cidade: "São Paulo",
+      uf: "SP",
     });
 
     const dados = await dadosFiscaisDoPagador(1);
 
     expect(dados.name).toBe("Empresa Antiga LTDA");
     expect(dados.city).toBe("São Paulo");
+    expect(dados.personType).toBe("PF");
   });
 
-  it("sem nenhuma das duas fontes, devolve vazio para o checkout recusar", async () => {
+  it("sem cadastro nenhum, devolve vazio para o checkout recusar", async () => {
     const dados = await dadosFiscaisDoPagador(1);
 
     expect(dados.name).toBeNull();

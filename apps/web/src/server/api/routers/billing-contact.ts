@@ -71,11 +71,18 @@ export const billingContactRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const ouNulo = (v?: string) => (v && v.length ? v : null);
 
+      const email = input.email.toLowerCase();
+      const documento = ouNulo(input.documento);
+      // O tipo de pessoa sai do documento, que e o dado que o usuario informou
+      // de fato. Configuracoes > Faturamento le esse mesmo campo.
+      const digitos = documento?.replace(/\D/g, "") ?? "";
+
       const dados = {
         responsavel: input.responsavel,
-        email: input.email.toLowerCase(),
+        email,
+        personType: digitos.length === 11 ? "PF" : "PJ",
         whatsapp: input.whatsapp,
-        documento: ouNulo(input.documento),
+        documento,
         razaoSocial: ouNulo(input.razaoSocial),
         nomeFantasia: ouNulo(input.nomeFantasia),
         cep: ouNulo(input.cep),
@@ -87,10 +94,21 @@ export const billingContactRouter = createTRPCRouter({
         uf: ouNulo(input.uf),
       };
 
+      // Configuracoes > Faturamento permite varios e-mails de cobranca. O
+      // checkout so edita o principal, entao aqui garantimos que ele esteja na
+      // lista sem descartar os extras que o time ja tinha cadastrado.
+      const atual = await db.billingContact.findUnique({
+        where: { teamId: ctx.team.id },
+        select: { billingEmails: true },
+      });
+      const billingEmails = atual?.billingEmails.includes(email)
+        ? atual.billingEmails
+        : [email, ...(atual?.billingEmails ?? [])];
+
       return db.billingContact.upsert({
         where: { teamId: ctx.team.id },
-        create: { teamId: ctx.team.id, ...dados },
-        update: dados,
+        create: { teamId: ctx.team.id, ...dados, billingEmails },
+        update: { ...dados, billingEmails },
       });
     }),
 });

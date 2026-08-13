@@ -403,7 +403,7 @@ export function NavUser({
               <DropdownMenuItem asChild>
                 <Link href="/settings">
                   <GaugeIcon />
-                  Uso
+                  Meu plano
                 </Link>
               </DropdownMenuItem>
               <div className="px-2 py-0.5">

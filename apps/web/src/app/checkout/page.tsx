@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@usesend/ui/src/button";
 import { Input } from "@usesend/ui/src/input";
@@ -162,6 +162,16 @@ function CheckoutInner() {
   const checkout = api.payments.checkout.useMutation();
   const cobrancaGerada = Boolean(pix || boleto);
 
+  // O checkout costuma ser aberto em aba nova, onde nao existe historico para
+  // voltar. Nesse caso mandamos o usuario para o painel em vez de nao fazer nada.
+  const voltar = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/dashboard");
+  }, [router]);
+
   // Polling do status enquanto PIX/boleto pendente.
   const chargeQuery = api.payments.getCharge.useQuery(
     { chargeId: chargeId ?? "" },
@@ -279,18 +289,26 @@ function CheckoutInner() {
         <div className="w-full max-w-sm">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.back()}
-              className="rounded-md p-1 opacity-60 transition-opacity hover:opacity-100"
-              aria-label="Voltar"
+              type="button"
+              onClick={voltar}
+              className="flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-[#EDEEF0] transition-colors hover:border-white/30 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               <ArrowLeft className="h-4 w-4" />
+              Voltar
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/brand/madmail-symbol.png"
-              alt="Madmail"
-              className="h-8 w-8 rounded-lg"
-            />
+            <button
+              type="button"
+              onClick={voltar}
+              aria-label="Voltar"
+              className="rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/madmail-symbol.png"
+                alt="Madmail"
+                className="h-8 w-8 rounded-lg"
+              />
+            </button>
           </div>
 
           <div className="mt-10 text-sm opacity-70">

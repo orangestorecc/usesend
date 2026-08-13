@@ -18,7 +18,7 @@ export default function ApiKeysPage({
       <h1 className="font-bold text-lg">Configurações</h1>
       <div className="flex gap-4 mt-4">
         {isCloud() ? (
-          <SettingsNavButton href="/settings">Uso</SettingsNavButton>
+          <SettingsNavButton href="/settings">Meu plano</SettingsNavButton>
         ) : null}
         {currentIsAdmin && isCloud() ? (
           <SettingsNavButton href="/settings/billing">

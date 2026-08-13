@@ -67,9 +67,23 @@ export default function AddContact({
     ) : null);
 
   async function onContactsAdd(values: z.infer<typeof contactsSchema>) {
-    const contactsArray = values.contacts.split(",").map((email) => ({
-      email: email.trim(),
-    }));
+    // Aceita virgula, ponto-e-virgula, espaco e quebra de linha como separador,
+    // ignora entradas vazias e remove duplicados dentro do mesmo envio.
+    const emails = Array.from(
+      new Set(
+        values.contacts
+          .split(/[,;\s]+/)
+          .map((email) => email.trim())
+          .filter(Boolean),
+      ),
+    );
+
+    if (emails.length === 0) {
+      toast.error("Informe pelo menos um e-mail");
+      return;
+    }
+
+    const contactsArray = emails.map((email) => ({ email }));
 
     addContactsMutation.mutate(
       {
@@ -84,7 +98,11 @@ export default function AddContact({
           } else {
             onOpenChange?.(false);
           }
-          toast.success("Contatos na fila para processamento");
+          toast.success(
+            emails.length === 1
+              ? "Contato na fila para processamento"
+              : `${emails.length} contatos na fila para processamento`,
+          );
         },
         onError: async (error) => {
           toast.error(error.message);

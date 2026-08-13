@@ -18,6 +18,7 @@ import { Plus, X, Download, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { useTeam } from "~/providers/team-context";
 import { api } from "~/trpc/react";
+import { InvoiceDetailsDialog } from "./invoice-details-dialog";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", {
@@ -60,6 +61,7 @@ export default function BillingPage() {
   const updateFiscal = api.billingProfile.updateFiscal.useMutation();
 
   // Contato de faturamento
+  const [faturaAberta, setFaturaAberta] = useState<string | null>(null);
   const [emails, setEmails] = useState<string[]>([""]);
   const [whatsapp, setWhatsapp] = useState("");
   // Fiscal
@@ -317,16 +319,31 @@ export default function BillingPage() {
       </SectionCard>
 
       {/* Faturas */}
-      <SectionCard title="Faturas" description="Histórico de cobranças.">
+      <SectionCard
+        title="Faturas"
+        description="Histórico de cobranças. Clique para ver os detalhes."
+      >
         {invoicesQuery.data?.length ? (
           <div className="divide-y">
             {invoicesQuery.data.map((inv) => (
               <div
                 key={inv.id}
-                className="flex items-center justify-between py-3 text-sm"
+                role="button"
+                tabIndex={0}
+                onClick={() => setFaturaAberta(inv.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setFaturaAberta(inv.id);
+                  }
+                }}
+                className="flex cursor-pointer items-center justify-between py-3 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="text-muted-foreground">
                   {format(new Date(inv.issuedAt), "dd MMM yyyy")}
+                </span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {inv.number}
                 </span>
                 <span className="font-mono">{brl(inv.amountCents)}</span>
                 <span
@@ -347,6 +364,7 @@ export default function BillingPage() {
                 {inv.pdfUrl ? (
                   <a
                     href={inv.pdfUrl}
+                    onClick={(e) => e.stopPropagation()}
                     className="rounded p-1.5 text-muted-foreground hover:bg-muted"
                   >
                     <Download className="h-4 w-4" />
@@ -363,6 +381,13 @@ export default function BillingPage() {
           </p>
         )}
       </SectionCard>
+
+      <InvoiceDetailsDialog
+        invoiceId={faturaAberta}
+        onOpenChange={(open) => {
+          if (!open) setFaturaAberta(null);
+        }}
+      />
     </div>
   );
 }

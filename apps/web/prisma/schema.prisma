@@ -1058,11 +1058,17 @@ model Charge {
   product          String?
   promoCode        String?
   failReason       String?
+  /** Bandeira e final do cartao, para a tela de detalhe da fatura. */
+  cardBrand        String?
+  cardLast4        String?
   paidAt           DateTime?
   createdAt        DateTime  @default(now())
 
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
   @@index([teamId, createdAt])
   @@index([providerChargeId])
+  @@index([invoiceId])
 }
 
 // Log de todas as chamadas aos gateways de pagamento (saída) e webhooks
@@ -1117,7 +1123,11 @@ model UnsubscribePageSettings {
   updatedAt        DateTime @updatedAt
 }
 
-// Dados de faturamento e fiscais do time (responsável financeiro p/ NF).
+/// DEPRECADO. O cadastro fiscal foi unificado em `BillingContact`, que e o que
+/// o checkout ja gravava. Nenhum codigo le mais esta tabela; ela fica so como
+/// rede de seguranca do backfill (migration
+/// 20260814120000_unifica_responsavel_financeiro_e_detalhe_fatura) e pode ser
+/// removida numa migration futura, depois de confirmada em producao.
 model BillingProfile {
   id            String   @id @default(cuid())
   teamId        Int      @unique
@@ -1151,7 +1161,14 @@ model Invoice {
   dueAt       DateTime?
   paidAt      DateTime?
   pdfUrl      String?
+  /** Nota fiscal: pending enquanto nao ha integracao de NFS-e; issued quando sai. */
+  nfStatus    String    @default("pending") // pending | issued | not_applicable
+  nfNumber    String?
+  nfUrl       String?
   createdAt   DateTime  @default(now())
+
+  /** Cobrancas que quitam esta fatura -- e daqui que vem boleto, PIX e cartao. */
+  charges     Charge[]
 
   @@index([teamId, createdAt])
 }
@@ -1224,7 +1241,13 @@ model BillingContact {
   teamId       Int      @unique
   /** Nome da pessoa responsavel pelo financeiro. */
   responsavel  String
+  /** E-mail principal de cobranca. Sempre igual a billingEmails[0]. */
   email        String
+  /** Demais e-mails que recebem copia da cobranca (veio do BillingProfile). */
+  billingEmails String[] @default([])
+  /** PF | PJ. Antes era inferido pela contagem de digitos do documento. */
+  personType   String   @default("PJ")
+  country      String   @default("BR")
   /** WhatsApp com DDD, so digitos. */
   whatsapp     String
   /** CPF ou CNPJ para a nota fiscal. Opcional ate a NF ser obrigatoria. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@usesend/ui/src/button";
 import { Input } from "@usesend/ui/src/input";
 import { Label } from "@usesend/ui/src/label";
@@ -27,8 +27,25 @@ import TestImportBlock from "./test-import-block";
 
 const NEW_BOOK = "__new__";
 
-export default function AddPlatform() {
-  const [open, setOpen] = useState(false);
+export default function AddPlatform({
+  open: controlledOpen,
+  onOpenChange,
+  trigger,
+}: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: ReactNode;
+} = {}) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(next);
+      return;
+    }
+    setUncontrolledOpen(next);
+  };
   const [name, setName] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -109,12 +126,16 @@ export default function AddPlatform() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-1 h-4 w-4" />
-          Adicionar plataforma
-        </Button>
-      </DialogTrigger>
+      {isControlled && !trigger ? null : (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button>
+              <Plus className="mr-1 h-4 w-4" />
+              Adicionar plataforma
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="flex max-h-[85vh] flex-col gap-0 p-0">
         <DialogHeader className="border-b px-6 py-4">
           <DialogTitle>Nova plataforma — OrangeStore</DialogTitle>

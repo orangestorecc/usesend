@@ -1,7 +1,8 @@
 "use client";
 
 import { Badge } from "@usesend/ui/src/badge";
-import { ExternalLinkIcon } from "lucide-react";
+import { Button } from "@usesend/ui/src/button";
+import { ExternalLinkIcon, PlusIcon } from "lucide-react";
 
 /**
  * Catálogo de plataformas integráveis.
@@ -101,13 +102,10 @@ export function CatalogoPlataformas({
 
             <div className="mt-3 flex items-center gap-3">
               {p.disponivel && onConectar ? (
-                <button
-                  type="button"
-                  onClick={() => onConectar(p.id)}
-                  className="text-xs font-medium underline"
-                >
-                  Conectar
-                </button>
+                <Button size="sm" onClick={() => onConectar(p.id)}>
+                  <PlusIcon className="mr-1 h-3.5 w-3.5" />
+                  Adicionar integração
+                </Button>
               ) : null}
               {p.docs ? (
                 <a
