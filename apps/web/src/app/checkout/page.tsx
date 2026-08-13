@@ -41,7 +41,11 @@ const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 type PixState = { copiaECola: string; qrImage: string | null };
-type BoletoState = { url: string | null; linhaDigitavel: string | null };
+type BoletoState = {
+  url: string | null;
+  linhaDigitavel: string | null;
+  codigoBarras: string | null;
+};
 
 function CheckoutInner() {
   const sp = useSearchParams();
@@ -380,12 +384,36 @@ function CheckoutInner() {
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Cole no app do banco para pagar sem ler o código.
+                  </p>
+                </div>
+              ) : null}
+              {boleto.codigoBarras ? (
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    Código de barras
+                  </Label>
+                  <div className="mt-1 flex gap-2">
+                    <Input
+                      readOnly
+                      value={boleto.codigoBarras}
+                      className="font-mono text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => copy(boleto.codigoBarras!)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ) : null}
               {boleto.url ? (
                 <a href={boleto.url} target="_blank" rel="noreferrer">
                   <Button className="w-full" variant="outline">
-                    <Barcode className="mr-2 h-4 w-4" /> Abrir boleto (PDF)
+                    <Barcode className="mr-2 h-4 w-4" /> Baixar boleto (PDF)
                   </Button>
                 </a>
               ) : null}

@@ -274,7 +274,8 @@ export type BoletoChargeInput = {
 export type BoletoChargeResult = {
   codigoSolicitacao: string;
   linhaDigitavel: string | null;
-  pdfUrl: string | null;
+  /** Numeração do código de barras (44 dígitos). */
+  codigoBarras: string | null;
   copiaECola: string | null; // Inter emite boleto híbrido com PIX
 };
 
@@ -327,8 +328,9 @@ export async function createBoleto(
 
   const codigoSolicitacao: string = res.json.codigoSolicitacao;
 
-  // Recupera detalhes (linha digitável / pix do boleto híbrido).
+  // Recupera detalhes (linha digitável / código de barras / pix do híbrido).
   let linhaDigitavel: string | null = null;
+  let codigoBarras: string | null = null;
   let copiaECola: string | null = null;
   try {
     const detail = await interRequest(cfg, {
@@ -338,16 +340,54 @@ export async function createBoleto(
       headers: { Authorization: `Bearer ${token}` },
     });
     linhaDigitavel = detail.json?.boleto?.linhaDigitavel ?? null;
+    codigoBarras = detail.json?.boleto?.codigoBarras ?? null;
     // Mesma armadilha de grafia do PIX imediato (ver createPixCharge).
     copiaECola =
       detail.json?.pix?.pixCopiaECola ??
       detail.json?.pix?.pixCopiaeCola ??
       null;
   } catch {
-    // segue — o cliente pode buscar o PDF pelo código
+    // segue — a linha digitável pode ser buscada de novo pelo código
   }
 
-  const pdfUrl = `${BASE()}/cobranca/v3/cobrancas/${codigoSolicitacao}/pdf`;
+  return { codigoSolicitacao, linhaDigitavel, codigoBarras, copiaECola };
+}
 
-  return { codigoSolicitacao, linhaDigitavel, pdfUrl, copiaECola };
+/**
+ * Baixa o PDF do boleto.
+ *
+ * Precisa existir porque a URL do Inter não é pública: exige Bearer + mTLS, e
+ * o navegador do cliente não tem nenhum dos dois. Antes o checkout entregava
+ * essa URL crua como "Abrir boleto (PDF)" e o link respondia erro de
+ * autenticação. Quem serve o arquivo é a nossa rota, que chama isto aqui.
+ */
+export async function fetchBoletoPdf(
+  codigoSolicitacao: string,
+): Promise<Buffer> {
+  const cfg = await requireGateway("inter", [
+    "clientId",
+    "clientSecret",
+    "certificate",
+    "privateKey",
+  ]);
+  const token = await getToken(
+    cfg,
+    "boleto-cobranca.write boleto-cobranca.read",
+  );
+
+  const res = await interRequest(cfg, {
+    method: "GET",
+    path: `/cobranca/v3/cobrancas/${codigoSolicitacao}/pdf`,
+    operation: "boleto.pdf",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  // A API devolve o arquivo em base64 dentro de um JSON.
+  const base64: unknown = res.json?.pdf;
+  if (res.status >= 300 || typeof base64 !== "string" || !base64) {
+    throw new Error(
+      `Inter: não foi possível baixar o PDF do boleto (${res.status}).`,
+    );
+  }
+  return Buffer.from(base64, "base64");
 }

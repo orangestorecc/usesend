@@ -262,8 +262,73 @@ export type CheckoutResult =
       chargeId: string;
       method: Method;
       pix?: { copiaECola: string; qrImage: string | null };
-      boleto?: { url: string | null; linhaDigitavel: string | null };
+      boleto?: {
+        url: string | null;
+        linhaDigitavel: string | null;
+        codigoBarras: string | null;
+      };
     };
+
+/** Dados fiscais do pagador, no formato que os gateways pedem. */
+type DadosFiscais = {
+  name: string | null;
+  document: string | null;
+  personType: "PF" | "PJ";
+  postalCode: string | null;
+  addressLine1: string | null;
+  city: string | null;
+  state: string | null;
+};
+
+/**
+ * Reúne os dados fiscais do time.
+ *
+ * O time tem DUAS tabelas com a mesma informação: `BillingContact`, que é o
+ * bloco "Responsável financeiro" preenchido dentro do próprio checkout, e
+ * `BillingProfile`, mais antiga, alimentada por Configurações > Faturamento.
+ * O boleto só lia a segunda, então quem preenchia no checkout esbarrava em
+ * "preencha os dados fiscais" com os dados na tela logo acima.
+ *
+ * A ordem é essa de propósito: o contato é o que o cliente acabou de
+ * confirmar, então tem precedência campo a campo, e o profile cobre o resto.
+ */
+export async function dadosFiscaisDoPagador(
+  teamId: number,
+): Promise<DadosFiscais> {
+  const [contact, profile] = await Promise.all([
+    db.billingContact.findUnique({ where: { teamId } }),
+    db.billingProfile.findUnique({ where: { teamId } }),
+  ]);
+
+  const document = contact?.documento ?? profile?.document ?? null;
+  // PF/PJ vem do próprio documento: 11 dígitos é CPF, 14 é CNPJ. Confiar no
+  // campo `personType` do profile daria PJ (o default) para quem preencheu
+  // apenas o contato, e o boleto sairia com tipo de pessoa errado.
+  const digitos = document?.replace(/\D/g, "") ?? "";
+  const personType: "PF" | "PJ" =
+    digitos.length === 11
+      ? "PF"
+      : digitos.length === 14
+        ? "PJ"
+        : profile?.personType === "PF"
+          ? "PF"
+          : "PJ";
+
+  const logradouro = contact?.logradouro
+    ? [contact.logradouro, contact.numero].filter(Boolean).join(", ")
+    : null;
+
+  return {
+    name:
+      contact?.razaoSocial ?? contact?.responsavel ?? profile?.name ?? null,
+    document,
+    personType,
+    postalCode: contact?.cep ?? profile?.postalCode ?? null,
+    addressLine1: logradouro ?? profile?.addressLine1 ?? null,
+    city: contact?.cidade ?? profile?.city ?? null,
+    state: contact?.uf ?? profile?.state ?? null,
+  };
+}
 
 /**
  * Entrada única do checkout. Cria a cobrança no provedor certo e devolve o que
@@ -292,9 +357,7 @@ export async function createCheckout(
     return { status: "paid", chargeId: charge.id };
   }
 
-  const profile = await db.billingProfile.findUnique({
-    where: { teamId: input.teamId },
-  });
+  const profile = await dadosFiscaisDoPagador(input.teamId);
 
   if (input.method === "card") {
     // Parcelamento: só aceita o que o admin habilitou (padrão: apenas 1x).
@@ -426,9 +489,9 @@ export async function createCheckout(
   }
 
   // boleto
-  if (!profile?.document || !profile?.name) {
+  if (!profile.document || !profile.name) {
     throw new Error(
-      "Para boleto, preencha os dados fiscais (nome e CPF/CNPJ) em Configurações > Faturamento.",
+      "Para boleto, informe nome e CPF/CNPJ no responsável financeiro, aqui mesmo no checkout.",
     );
   }
   const charge = await db.charge.create({
@@ -452,19 +515,22 @@ export async function createCheckout(
     payer: {
       name: profile.name,
       document: profile.document,
-      personType: profile.personType === "PF" ? "PF" : "PJ",
+      personType: profile.personType,
       postalCode: profile.postalCode ?? undefined,
       address: profile.addressLine1 ?? undefined,
       city: profile.city ?? undefined,
       state: profile.state ?? undefined,
     },
   });
+  // O PDF é servido pela nossa rota, não pela URL do Inter: a do banco exige
+  // Bearer + mTLS e responderia erro de autenticação no navegador do cliente.
+  const pdfUrl = `/api/billing/boleto/${charge.id}/pdf`;
   await db.charge.update({
     where: { id: charge.id },
     data: {
       providerChargeId: boleto.codigoSolicitacao,
-      boletoUrl: boleto.pdfUrl,
-      boletoBarcode: boleto.linhaDigitavel,
+      boletoUrl: pdfUrl,
+      boletoBarcode: boleto.codigoBarras ?? boleto.linhaDigitavel,
       pixQrCode: boleto.copiaECola,
     },
   });
@@ -472,6 +538,10 @@ export async function createCheckout(
     status: "pending",
     chargeId: charge.id,
     method: "boleto",
-    boleto: { url: boleto.pdfUrl, linhaDigitavel: boleto.linhaDigitavel },
+    boleto: {
+      url: pdfUrl,
+      linhaDigitavel: boleto.linhaDigitavel,
+      codigoBarras: boleto.codigoBarras,
+    },
   };
 }
