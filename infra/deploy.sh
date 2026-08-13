@@ -72,6 +72,12 @@ log "Build"
 # Bônus: se o build falhar ou for interrompido, a versão no ar NUNCA foi
 # tocada — não existe mais "restaurar", só descartar o rascunho.
 rm -rf "$WEB/.next-nova"
+# Os tipos gerados pelo build anterior ficam em .next/types e continuam
+# incluídos pelo tsconfig durante o build novo (que escreve em .next-nova).
+# Tipos de versões diferentes se misturam e o typecheck quebra com
+# "Cannot find module './routes.js'". O runtime não lê .next/types, então
+# remover é seguro e resolve na origem.
+rm -rf "$WEB/.next/types"
 descartar_build_interrompido() {
   rm -rf "$WEB/.next-nova"
 }
