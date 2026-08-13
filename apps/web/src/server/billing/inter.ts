@@ -1,4 +1,5 @@
 import https from "node:https";
+import QRCode from "qrcode";
 import { requireGateway, isPaymentsSandbox, type InterConfig } from "./gateway-config";
 import { logGatewayCall } from "./gateway-log";
 
@@ -222,27 +223,34 @@ export async function createPixCharge(
   }
 
   const txid: string = res.json.txid;
-  const copiaECola: string = res.json.pixCopiaeCola ?? "";
+  // O Inter devolve "pixCopiaECola" (E maiúsculo), como na spec do BACEN. A
+  // grafia com "e" minúsculo aparece em exemplos da doc e era a que estava
+  // aqui: o campo vinha sempre vazio e o cliente ficava sem chave para pagar.
+  // Aceita as duas para não depender de qual grafia o banco usa.
+  const copiaECola: string =
+    res.json.pixCopiaECola ?? res.json.pixCopiaeCola ?? "";
   const locId: number | undefined = res.json.loc?.id;
 
-  // Busca a imagem do QR (base64) a partir do location.
+  if (!copiaECola) {
+    throw new Error(
+      "Inter PIX: cobrança criada sem copia-e-cola — sem ele não há como pagar.",
+    );
+  }
+
+  // O QR sai do próprio copia-e-cola (que é o payload EMV do PIX), gerado
+  // aqui. Antes buscávamos GET /pix/v2/loc/{id}/qrcode, que não existe na API
+  // do Inter e respondia 404 — o erro caía no catch e o checkout exibia o
+  // bloco do PIX sem QR nenhum. Gerar localmente também remove uma ida à rede
+  // no meio do checkout.
   let qrImage: string | null = null;
-  if (locId) {
-    try {
-      const qr = await interRequest(cfg, {
-        method: "GET",
-        path: `/pix/v2/loc/${locId}/qrcode`,
-        operation: "pix.qrcode",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (qr.json?.imagemQrcode) {
-        qrImage = qr.json.imagemQrcode.startsWith("data:")
-          ? qr.json.imagemQrcode
-          : `data:image/png;base64,${qr.json.imagemQrcode}`;
-      }
-    } catch {
-      // segue sem imagem — o copia-e-cola já basta
-    }
+  try {
+    qrImage = await QRCode.toDataURL(copiaECola, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 320,
+    });
+  } catch {
+    // O copia-e-cola sozinho já permite pagar; não vale derrubar a cobrança.
   }
 
   return { txid, copiaECola, qrImage, locId };
@@ -330,7 +338,11 @@ export async function createBoleto(
       headers: { Authorization: `Bearer ${token}` },
     });
     linhaDigitavel = detail.json?.boleto?.linhaDigitavel ?? null;
-    copiaECola = detail.json?.pix?.pixCopiaeCola ?? null;
+    // Mesma armadilha de grafia do PIX imediato (ver createPixCharge).
+    copiaECola =
+      detail.json?.pix?.pixCopiaECola ??
+      detail.json?.pix?.pixCopiaeCola ??
+      null;
   } catch {
     // segue — o cliente pode buscar o PDF pelo código
   }
