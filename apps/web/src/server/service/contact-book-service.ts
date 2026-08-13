@@ -1,4 +1,5 @@
 import { CampaignStatus } from "@prisma/client";
+import { LIMIT_REASON_MESSAGES } from "~/lib/constants/plans";
 import {
   DEFAULT_DOUBLE_OPT_IN_CONTENT,
   DEFAULT_DOUBLE_OPT_IN_SUBJECT,
@@ -46,14 +47,22 @@ export async function createContactBook(
   name: string,
   variables?: string[],
   client: ContactBookDbClient = db,
+  options?: {
+    /** Lista descartável do "Rodar teste": não consome a cota do plano. */
+    isTest?: boolean;
+    doubleOptInEnabled?: boolean;
+  },
 ) {
-  const { isLimitReached, reason } =
-    await LimitService.checkContactBookLimit(teamId);
+  const { isLimitReached, reason } = options?.isTest
+    ? { isLimitReached: false, reason: undefined }
+    : await LimitService.checkContactBookLimit(teamId);
 
   if (isLimitReached) {
     throw new UnsendApiError({
       code: "FORBIDDEN",
-      message: reason ?? "Contact book limit reached",
+      message: reason
+        ? LIMIT_REASON_MESSAGES[reason]
+        : "Você atingiu o limite de listas de contatos do seu plano.",
     });
   }
 
@@ -74,7 +83,8 @@ export async function createContactBook(
       teamId,
       properties: {},
       variables: normalizedVariables,
-      doubleOptInEnabled: true,
+      isTest: options?.isTest ?? false,
+      doubleOptInEnabled: options?.doubleOptInEnabled ?? true,
       doubleOptInSubject: DEFAULT_DOUBLE_OPT_IN_SUBJECT,
       doubleOptInContent: DEFAULT_DOUBLE_OPT_IN_CONTENT,
     },

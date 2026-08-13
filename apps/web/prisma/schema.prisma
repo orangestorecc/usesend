@@ -492,6 +492,8 @@ model ContactBook {
   variables          String[]  @default([])
   properties         Json
   doubleOptInEnabled Boolean   @default(false)
+  /** Lista criada pelo "Rodar teste" de integração: não conta no limite do plano. */
+  isTest             Boolean   @default(false)
   doubleOptInFrom    String?
   doubleOptInSubject String?
   doubleOptInContent String?

@@ -56,7 +56,10 @@ export class LimitService {
     }
 
     const team = await TeamService.getTeamCached(teamId);
-    const currentCount = await db.contactBook.count({ where: { teamId } });
+    // Listas de teste de integração são descartáveis e não consomem a cota.
+    const currentCount = await db.contactBook.count({
+      where: { teamId, isTest: false },
+    });
 
     const limit = PLAN_LIMITS[getActivePlan(team)].contactBooks;
     if (isLimitExceeded(currentCount, limit)) {

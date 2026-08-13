@@ -44,6 +44,7 @@ import {
   getContactBooks,
   updateContactBook,
 } from "~/server/service/contact-book-service";
+import { LIMIT_REASON_MESSAGES, LimitReason } from "~/lib/constants/plans";
 
 describe("contact-book-service", () => {
   beforeEach(() => {
@@ -85,6 +86,7 @@ describe("contact-book-service", () => {
         teamId: 12,
         properties: {},
         variables: [],
+        isTest: false,
         doubleOptInEnabled: true,
         doubleOptInSubject: DEFAULT_DOUBLE_OPT_IN_SUBJECT,
         doubleOptInContent: DEFAULT_DOUBLE_OPT_IN_CONTENT,
@@ -95,12 +97,12 @@ describe("contact-book-service", () => {
   it("throws when the contact book limit is reached", async () => {
     mockCheckContactBookLimit.mockResolvedValue({
       isLimitReached: true,
-      reason: "limit reached",
+      reason: LimitReason.CONTACT_BOOK,
     });
 
     await expect(createContactBook(12, "Newsletter")).rejects.toMatchObject({
       code: "FORBIDDEN",
-      message: "limit reached",
+      message: LIMIT_REASON_MESSAGES[LimitReason.CONTACT_BOOK],
     });
     expect(mockDb.contactBook.create).not.toHaveBeenCalled();
   });
