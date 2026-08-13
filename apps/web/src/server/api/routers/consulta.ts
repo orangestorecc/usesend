@@ -11,6 +11,7 @@ import {
   ConsultaCepError,
   consultarCep,
 } from "~/server/service/consulta-cep-service";
+import { listarIdentidadesSes } from "~/server/service/ses-identidades-service";
 
 /**
  * Consultas de apoio ao cadastro (CNPJ e CEP).
@@ -47,6 +48,17 @@ export const consultaRouter = createTRPCRouter({
         }
         throw e;
       }
+    }),
+
+  /**
+   * Domínios e endereços cadastrados no SES da nossa conta, com o estado de
+   * verificação de cada um. Lê direto da AWS: o banco só conhece os domínios
+   * criados pelo Madmail, e a conta costuma ter outros, criados no console.
+   */
+  identidadesSes: adminProcedure
+    .input(z.object({ regiao: z.string().default("us-east-1") }))
+    .query(async ({ input }) => {
+      return listarIdentidadesSes(input.regiao);
     }),
 
   /** Estado da integração, para a tela do admin. */

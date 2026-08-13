@@ -267,7 +267,8 @@ export default function AutomationEditPage({
               triggerEventName,
               readOnly,
               onTriggerNameChange: setTriggerEventName,
-              onAddStep: () => {},
+              onAddStep: addStep,
+              stepKey: n.id,
             } as TriggerNodeData,
           };
         }
@@ -278,10 +279,11 @@ export default function AutomationEditPage({
             ...data,
             readOnly,
             onClick: (key: string) => setConfigStepKey(key),
+            onAddStep: addStep,
           } as StepNodeData,
         };
       }),
-    [nodes, triggerEventName, readOnly],
+    [nodes, triggerEventName, readOnly, addStep],
   );
 
   const handleSave = useCallback(() => {
@@ -424,6 +426,8 @@ export default function AutomationEditPage({
         </div>
       )}
 
+      {/* fitViewOptions com teto de zoom: sem ele, o fitView aproxima demais
+          quando há poucos nós e o palco abre gigante. */}
       <div className="relative flex-1 min-h-[600px] rounded-xl border border-border overflow-hidden">
         <ReactFlow
           nodes={nodesWithHandlers}
@@ -436,38 +440,20 @@ export default function AutomationEditPage({
           nodesConnectable={false}
           elementsSelectable={!readOnly}
           fitView
+          fitViewOptions={{ padding: 0.4, maxZoom: 0.9 }}
+          minZoom={0.3}
+          className="[&_.react-flow__attribution]:!bg-transparent [&_.react-flow__attribution_a]:!text-muted-foreground/60 [&_.react-flow__attribution_a]:text-[10px]"
         >
           <Background />
-          <Controls showInteractive={false} />
+          {/* Os controles do React Flow vêm com fundo branco fixo — no tema
+              escuro viravam um bloco branco. As classes forçam as cores do
+              tema. */}
+          <Controls
+            showInteractive={false}
+            className="[&>button]:!border-border [&>button]:!bg-card [&>button:hover]:!bg-accent [&>button>svg]:!fill-foreground !shadow-none !border !border-border !rounded-lg overflow-hidden"
+          />
         </ReactFlow>
 
-        {!readOnly && (
-          <div className="absolute inset-0 pointer-events-none">
-            {nodesWithHandlers.map((n) => {
-              const branches: Array<"true" | "false" | "timeout" | undefined> =
-                n.type === "step" && (n.data as unknown as StepNodeData).type === "condition"
-                  ? ["true", "false"]
-                  : n.type === "step" && (n.data as unknown as StepNodeData).type === "wait_for_event"
-                    ? [undefined, "timeout"]
-                    : [undefined];
-
-              return branches.map((branch, i) => (
-                <div
-                  key={`${n.id}-${branch ?? "default"}`}
-                  className="absolute pointer-events-auto"
-                  style={{
-                    left: n.position.x + (branches.length > 1 ? (i === 0 ? 30 : 190) : 110),
-                    top: n.position.y + 100,
-                  }}
-                >
-                  <AddStepMenu
-                    onSelect={(type) => addStep(n.id, type, branch)}
-                  />
-                </div>
-              ));
-            })}
-          </div>
-        )}
       </div>
 
       <ConfigPanel

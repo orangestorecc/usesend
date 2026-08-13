@@ -34,12 +34,12 @@ export function AddStepMenu({
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
           size="sm"
-          className="rounded-full h-7 w-7 p-0 border-dashed"
+          className="nodrag h-9 w-9 rounded-full p-0 shadow-md"
           title={label ?? "Adicionar etapa"}
+          aria-label={label ?? "Adicionar etapa"}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-5 w-5" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="center">

@@ -11,7 +11,9 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { api } from "~/trpc/react";
 import Spinner from "@usesend/ui/src/spinner";
-import EditSesConfiguration from "./edit-ses-configuration";
+import Link from "next/link";
+import { Button } from "@usesend/ui/src/button";
+import { Pencil } from "lucide-react";
 import { TextWithCopyButton } from "@usesend/ui/src/text-with-copy";
 
 export default function SesConfigurations() {
@@ -71,7 +73,12 @@ export default function SesConfigurations() {
                   <TableCell>{sesSetting.sesEmailRateLimit}</TableCell>
                   <TableCell>{sesSetting.transactionalQuota}%</TableCell>
                   <TableCell>
-                    <EditSesConfiguration setting={sesSetting} />
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/admin/ses/${sesSetting.id}`}>
+                        <Pencil className="mr-1 h-3.5 w-3.5" />
+                        Editar
+                      </Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
