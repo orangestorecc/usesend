@@ -70,6 +70,13 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter=web db:generate
 
+      # O SDK e consumido como pacote do workspace ("usesend-js") e aponta
+      # para ./dist, que so existe depois do build. Sem este passo, toda suite
+      # que alcanca o mailer.ts morre antes de rodar com "Failed to resolve
+      # entry for package usesend-js" — cinco suites tRPC caiam por isso.
+      - name: Build SDK
+        run: pnpm --filter=usesend-js build
+
       - name: Type check
         run: pnpm --filter=web typecheck
 
