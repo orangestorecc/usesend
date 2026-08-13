@@ -1,6 +1,19 @@
 # Spec — Wizard de Onboarding e UX de Ativação (Madmail)
 
-Status: proposta · Autor: Diretor de Produto · Data: 2026-08-13
+Status: implementada · Autor: Diretor de Produto · Data: 2026-08-13
+
+> **Correções feitas durante a implementação**
+>
+> 1. A trava de servidor do double opt-in **já existia**: `sendDoubleOptInConfirmationEmail`
+>    chamava `validateDomainFromEmail`. O problema real era o erro chegar tarde e
+>    sem explicação. O que foi adicionado é o `resolveDoubleOptInSender`, que
+>    devolve o motivo do bloqueio *sem lançar*, permitindo à UI explicar antes do
+>    clique — e a checagem passou a valer também quando a lista tem um remetente
+>    configurado (antes, esse caminho só era validado no envio).
+> 2. `create-campaign.tsx` **já travava** por domínio não verificado. Faltava só a lista.
+> 3. O PDF é gerado pela impressão do navegador (`?format=print`) em vez de um
+>    binário do servidor — o projeto não tem biblioteca de PDF e não valeu somar
+>    uma dependência para um documento de uma página.
 
 ## 1. Decisão de formato: Sessão interna + Modal de boas-vindas
 

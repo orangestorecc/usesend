@@ -1,0 +1,165 @@
+---
+title: "Configurar seu domínio de envio"
+description: "Passo a passo para adicionar os registros de DNS nos principais provedores brasileiros"
+---
+
+Antes de disparar qualquer e-mail, você precisa provar que o domínio é seu. Isso
+é feito adicionando alguns registros no painel onde o domínio foi comprado —
+tecnicamente chamados de **DKIM**, **SPF** e **DMARC**.
+
+Na prática: são três ou quatro linhas que você copia da Madmail e cola no painel
+do seu provedor. Leva cerca de 10 minutos.
+
+<Note>
+Se você não mexe com isso, não tem problema. Na tela do seu domínio existe o
+botão **"Gerar PDF para o técnico"** — baixe e mande para quem cuida do seu
+site. O documento já vai escrito com todos os valores prontos.
+</Note>
+
+## Antes de começar: use um subdomínio
+
+Recomendamos cadastrar um **subdomínio**, como `envios.sualoja.com.br`, em vez do
+domínio principal `sualoja.com.br`.
+
+O motivo é prático. Se algo der errado nos seus disparos de marketing — uma lista
+antiga com muitos endereços inválidos, por exemplo — a reputação afetada fica
+restrita ao subdomínio. Seu `contato@sualoja.com.br` continua chegando
+normalmente nos clientes.
+
+## Onde encontrar os registros
+
+1. No menu lateral, abra **Domínios**
+2. Clique no domínio que você cadastrou
+3. A aba **Registros** mostra tudo o que precisa ser adicionado
+
+Cada linha tem três informações que você vai copiar: o **Tipo**, o **Nome**
+(também chamado de "Host") e o **Valor** (também chamado de "Conteúdo" ou
+"Aponta para").
+
+## A pegadinha mais comum
+
+Quase todo erro de configuração é o mesmo: **o domínio duplicado no campo Nome**.
+
+A Madmail mostra o nome completo, por exemplo:
+
+```
+usesend._domainkey.envios
+```
+
+Alguns painéis completam o domínio sozinhos. Se, ao digitar, o campo já mostrar
+`.sualoja.com.br` no final, digite **apenas a parte da esquerda**. Se você colar o
+valor completo nesses painéis, o registro final vira
+`usesend._domainkey.envios.sualoja.com.br.sualoja.com.br` — e nunca valida.
+
+Na dúvida, salve e confira: bons painéis mostram o nome final depois de salvar.
+
+## Passo a passo por provedor
+
+<AccordionGroup>
+
+<Accordion title="Registro.br">
+1. Acesse [registro.br](https://registro.br) e faça login
+2. Clique no seu domínio na lista
+3. Abra a aba **DNS** e depois **Editar Zona**
+4. Clique em **Nova entrada** para cada registro
+5. Preencha **Nome**, escolha o **Tipo** e cole o **Valor**
+6. Clique em **Salvar alterações** no fim da página
+
+O Registro.br **não** completa o domínio sozinho: use o nome exatamente como a
+Madmail mostra.
+</Accordion>
+
+<Accordion title="Cloudflare">
+1. Acesse o painel da Cloudflare e escolha o domínio
+2. No menu lateral, clique em **DNS** → **Records**
+3. Clique em **Add record** para cada registro
+4. Escolha o **Type**, preencha **Name** e **Content**
+5. Em **Proxy status**, deixe como **DNS only** (nuvem cinza, não laranja)
+6. Clique em **Save**
+
+<Warning>
+Registros de e-mail **não podem** passar pelo proxy da Cloudflare. Se a nuvem
+estiver laranja, a validação falha. Ela precisa estar cinza.
+</Warning>
+
+A Cloudflare completa o domínio automaticamente — digite só a parte da esquerda.
+</Accordion>
+
+<Accordion title="Hostinger">
+1. Acesse o hPanel e vá em **Domínios**
+2. Escolha o domínio e clique em **DNS / Nameservers**
+3. Na seção **Gerenciar registros DNS**, use o formulário de adicionar
+4. Escolha o **Tipo**, preencha **Nome** e **Aponta para**
+5. Deixe o TTL no padrão e clique em **Adicionar registro**
+
+A Hostinger completa o domínio sozinha. Para um registro na raiz, use `@`.
+</Accordion>
+
+<Accordion title="GoDaddy">
+1. Acesse **Meus Produtos** e clique em **DNS** ao lado do domínio
+2. Clique em **Adicionar** na seção de registros
+3. Escolha o **Tipo**, preencha **Nome** e **Valor**
+4. Clique em **Salvar**
+
+A GoDaddy completa o domínio automaticamente — digite só a parte da esquerda.
+Para registros MX, o campo **Prioridade** deve ser `10`.
+</Accordion>
+
+<Accordion title="Locaweb">
+1. Acesse o Painel de Controle e vá em **Domínios**
+2. Escolha o domínio e clique em **Zona DNS** ou **DNS Avançado**
+3. Use **Adicionar registro** para cada linha
+4. Preencha **Nome**, **Tipo** e **Valor** e salve
+
+Em alguns planos a edição da zona precisa ser liberada pelo suporte. Se não
+encontrar a opção, abra um chamado pedindo acesso à zona DNS.
+</Accordion>
+
+<Accordion title="KingHost">
+1. Acesse o Painel do Cliente e vá em **Domínios**
+2. Clique em **Gerenciar DNS** no domínio desejado
+3. Use **Adicionar novo registro** para cada linha
+4. Preencha os campos e clique em **Salvar**
+</Accordion>
+
+</AccordionGroup>
+
+## Cuidados com registros que já existem
+
+<Warning>
+**Não apague** registros SPF, MX ou TXT que já estejam no domínio. Os da Madmail
+são adicionais.
+</Warning>
+
+Um caso merece atenção: se o domínio **já tiver um registro SPF** (começa com
+`v=spf1`), não crie um segundo. Dois registros SPF no mesmo host invalidam os
+dois. Some as diretivas em um único registro:
+
+```
+v=spf1 include:_spf.google.com include:amazonses.com ~all
+```
+
+Repare que os registros de SPF da Madmail ficam em um host separado (`mail.` ou
+`mail.envios.`), então na maioria dos casos não há conflito nenhum.
+
+## Quanto tempo demora
+
+A propagação leva de **15 minutos a 24 horas**, dependendo do provedor. Na maior
+parte das vezes, menos de uma hora.
+
+Você não precisa avisar ninguém: assim que os registros propagarem, o painel da
+Madmail passa a exibir o domínio como **Validado** automaticamente. Se a tela do
+onboarding estiver aberta, ela se atualiza sozinha.
+
+## Se não validar
+
+Confira nesta ordem:
+
+1. **O nome está duplicado?** É a causa mais comum — veja a seção acima.
+2. **Faltou algum registro?** Todos os da aba **Registros** precisam existir.
+3. **O valor foi cortado?** Valores de DKIM são longos; confirme que colou inteiro.
+4. **A Cloudflare está com proxy ligado?** A nuvem precisa estar cinza.
+5. **Passaram mais de 24 horas?** Aí é sinal de que algo está errado, não de lentidão.
+
+Se ainda assim não validar, fale com a gente pelo suporte com o nome do domínio
+em mãos.

@@ -37,6 +37,7 @@
           {
             "group": "Guias",
             "pages": [
+              "guides/dominios",
               "guides/webhooks",
               "guides/double-opt-in",
               "guides/campaign-personalization",

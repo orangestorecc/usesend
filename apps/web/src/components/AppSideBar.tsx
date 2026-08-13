@@ -56,6 +56,7 @@ import {
   DropdownMenuTrigger,
 } from "@usesend/ui/src/dropdown-menu";
 import { FeedbackDialog } from "./FeedbackDialog";
+import { OnboardingWidget } from "./OnboardingWidget";
 import { env } from "~/env";
 
 // General items
@@ -274,6 +275,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <OnboardingWidget />
         <SidebarGroupContent>
           <SidebarMenu>
             {showFeedback ? (

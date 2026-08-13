@@ -9,6 +9,8 @@ import {
 } from "~/server/api/trpc";
 import * as contactService from "~/server/service/contact-service";
 import * as contactBookService from "~/server/service/contact-book-service";
+import * as doubleOptInService from "~/server/service/double-opt-in-service";
+import { DoubleOptInBlockedError } from "~/server/service/double-opt-in-service";
 
 export const contactsRouter = createTRPCRouter({
   getContactBooks: teamProcedure
@@ -245,9 +247,43 @@ export const contactsRouter = createTRPCRouter({
           });
         }
 
+        if (error instanceof DoubleOptInBlockedError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error.message,
+          });
+        }
+
         throw error;
       }
     }),
+
+  /** Diz a UI se o pedido de opt-in pode sair e quantos contatos estao esperando. */
+  doubleOptInReadiness: contactBookProcedure.query(
+    async ({ ctx: { contactBook, team } }) => {
+      return doubleOptInService.getDoubleOptInReadiness({
+        contactBookId: contactBook.id,
+        teamId: team.id,
+      });
+    },
+  ),
+
+  sendBulkDoubleOptIn: contactBookProcedure.mutation(
+    async ({ ctx: { contactBook, team } }) => {
+      try {
+        return await doubleOptInService.sendBulkDoubleOptInInContactBook({
+          contactBookId: contactBook.id,
+          teamId: team.id,
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+        }
+
+        throw error;
+      }
+    },
+  ),
 
   exportContacts: contactBookProcedure
     .input(

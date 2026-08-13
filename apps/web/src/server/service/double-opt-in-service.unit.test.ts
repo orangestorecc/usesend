@@ -12,9 +12,15 @@ const {
     contact: {
       findUnique: vi.fn(),
       update: vi.fn(),
+      count: vi.fn(),
+      findMany: vi.fn(),
     },
     domain: {
       findFirst: vi.fn(),
+    },
+    contactBook: {
+      findFirst: vi.fn(),
+      update: vi.fn(),
     },
   },
   mockSendEmail: vi.fn(),
@@ -49,6 +55,8 @@ vi.mock("@usesend/email-editor/src/renderer", () => ({
 
 import {
   confirmDoubleOptInSubscription,
+  getDoubleOptInReadiness,
+  sendBulkDoubleOptInInContactBook,
   sendDoubleOptInConfirmationEmail,
 } from "~/server/service/double-opt-in-service";
 
@@ -66,6 +74,10 @@ describe("double-opt-in-service", () => {
 
     mockDb.contact.findUnique.mockReset();
     mockDb.contact.update.mockReset();
+    mockDb.contact.count.mockReset();
+    mockDb.contact.findMany.mockReset();
+    mockDb.contactBook.findFirst.mockReset();
+    mockDb.contactBook.update.mockReset();
     mockDb.domain.findFirst.mockReset();
     mockSendEmail.mockReset();
     mockRendererRender.mockReset();
@@ -134,7 +146,7 @@ describe("double-opt-in-service", () => {
         teamId: 7,
       }),
     ).rejects.toThrow(
-      "Double opt-in requires at least one verified domain to send confirmation emails",
+      "Valide um domínio de envio antes de pedir a confirmação dos contatos",
     );
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
@@ -251,6 +263,9 @@ describe("double-opt-in-service", () => {
       },
     });
     mockRendererRender.mockResolvedValue("<p>Test</p>");
+    // O remetente configurado tambem precisa apontar para um dominio verificado:
+    // antes essa checagem so acontecia no envio, e o erro chegava tarde demais.
+    mockDb.domain.findFirst.mockResolvedValue({ id: 1 });
 
     await sendDoubleOptInConfirmationEmail({
       contactId: "contact_1",
@@ -258,13 +273,125 @@ describe("double-opt-in-service", () => {
       teamId: 7,
     });
 
-    expect(mockDb.domain.findFirst).not.toHaveBeenCalled();
+    expect(mockDb.domain.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          teamId: 7,
+          name: "example.com",
+          status: "SUCCESS",
+        }),
+      }),
+    );
     expect(mockValidateDomainFromEmail).toHaveBeenCalledWith(
       "Newsletter <hello@example.com>",
       7,
     );
     const sendArgs = mockSendEmail.mock.calls[0]?.[0];
     expect(sendArgs.from).toBe("Newsletter <hello@example.com>");
+  });
+
+  describe("readiness e disparo em massa", () => {
+    it("reporta bloqueio quando o time nao tem dominio verificado", async () => {
+      mockDb.contactBook.findFirst.mockResolvedValue({
+        doubleOptInEnabled: true,
+        doubleOptInFrom: null,
+        lastBulkOptInAt: null,
+      });
+      mockDb.domain.findFirst.mockResolvedValue(null);
+      mockDb.contact.count.mockResolvedValue(3);
+
+      const readiness = await getDoubleOptInReadiness({
+        contactBookId: "book_1",
+        teamId: 7,
+      });
+
+      expect(readiness.canSend).toBe(false);
+      expect(readiness.blockReason).toBe("NO_VERIFIED_DOMAIN");
+      expect(readiness.pendingCount).toBe(3);
+    });
+
+    it("nao dispara em massa sem dominio verificado", async () => {
+      mockDb.contactBook.findFirst.mockResolvedValue({
+        doubleOptInEnabled: true,
+        doubleOptInFrom: null,
+        lastBulkOptInAt: null,
+      });
+      mockDb.domain.findFirst.mockResolvedValue(null);
+      mockDb.contact.count.mockResolvedValue(2);
+
+      await expect(
+        sendBulkDoubleOptInInContactBook({
+          contactBookId: "book_1",
+          teamId: 7,
+        }),
+      ).rejects.toThrow(
+        "Valide um domínio de envio antes de pedir a confirmação dos contatos",
+      );
+
+      expect(mockDb.contact.findMany).not.toHaveBeenCalled();
+      expect(mockSendEmail).not.toHaveBeenCalled();
+    });
+
+    it("respeita o rate limit de 15 minutos por lista", async () => {
+      mockDb.contactBook.findFirst.mockResolvedValue({
+        doubleOptInEnabled: true,
+        doubleOptInFrom: null,
+        // Disparo ha 5 minutos: ainda dentro da janela.
+        lastBulkOptInAt: new Date("2026-02-07T23:55:00.000Z"),
+      });
+      mockDb.domain.findFirst.mockResolvedValue({ name: "example.com" });
+      mockDb.contact.count.mockResolvedValue(4);
+
+      await expect(
+        sendBulkDoubleOptInInContactBook({
+          contactBookId: "book_1",
+          teamId: 7,
+        }),
+      ).rejects.toThrow("Aguarde alguns minutos");
+
+      expect(mockDb.contact.findMany).not.toHaveBeenCalled();
+    });
+
+    it("marca o disparo antes de enviar para nao duplicar em um retry", async () => {
+      mockDb.contactBook.findFirst.mockResolvedValue({
+        doubleOptInEnabled: true,
+        doubleOptInFrom: null,
+        lastBulkOptInAt: null,
+      });
+      mockDb.domain.findFirst.mockResolvedValue({ name: "example.com" });
+      mockDb.contact.count.mockResolvedValue(1);
+      mockDb.contact.findMany.mockResolvedValue([{ id: "contact_1" }]);
+      mockDb.contact.findUnique.mockResolvedValue({
+        id: "contact_1",
+        email: "alice@example.com",
+        firstName: "Alice",
+        lastName: "Smith",
+        contactBookId: "book_1",
+        contactBook: {
+          id: "book_1",
+          name: "Newsletter",
+          doubleOptInEnabled: true,
+          doubleOptInFrom: null,
+          doubleOptInSubject: "Confirme",
+          doubleOptInContent: JSON.stringify({ type: "doc", content: [] }),
+        },
+      });
+      mockRendererRender.mockResolvedValue("<p>Test</p>");
+
+      const resultado = await sendBulkDoubleOptInInContactBook({
+        contactBookId: "book_1",
+        teamId: 7,
+      });
+
+      expect(mockDb.contactBook.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "book_1" },
+          data: { lastBulkOptInAt: new Date("2026-02-08T00:00:00.000Z") },
+        }),
+      );
+      expect(resultado).toEqual({ sent: 1, failed: 0, total: 1 });
+      expect(mockSendEmail).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("rejects invalid confirmation links", async () => {

@@ -3,6 +3,13 @@
 import { Button } from "@usesend/ui/src/button";
 import { Input } from "@usesend/ui/src/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@usesend/ui/src/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -42,14 +49,21 @@ const campaignSchema = z.object({
   subject: z.string({ required_error: "O assunto é obrigatório" }).min(1, {
     message: "O assunto é obrigatório",
   }),
+  contactBookId: z
+    .string({ required_error: "Escolha para quem enviar" })
+    .min(1, { message: "Escolha para quem enviar" }),
 });
 
 export default function CreateCampaign() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
+  const [nomeDaNovaLista, setNomeDaNovaLista] = useState("");
+
   const createCampaignMutation = api.campaign.createCampaign.useMutation();
+  const criarListaMutation = api.contacts.createContactBook.useMutation();
   const dominiosQuery = api.domain.domains.useQuery();
+  const listasQuery = api.contacts.getContactBooks.useQuery({});
 
   const estadoDominios = estadoDosDominios(
     dominiosQuery.data,
@@ -65,6 +79,7 @@ export default function CreateCampaign() {
       name: "",
       from: "",
       subject: "",
+      contactBookId: "",
     },
   });
 
@@ -76,6 +91,7 @@ export default function CreateCampaign() {
         name: values.name,
         from: values.from,
         subject: values.subject,
+        contactBookId: values.contactBookId,
       },
       {
         onSuccess: async (data) => {
@@ -157,6 +173,85 @@ export default function CreateCampaign() {
                       <Input placeholder="Assunto da campanha" {...field} />
                     </FormControl>
                     {formState.errors.subject ? <FormMessage /> : null}
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={campaignForm.control}
+                name="contactBookId"
+                render={({ field, formState }) => (
+                  <FormItem>
+                    <FormLabel>Enviar para qual lista</FormLabel>
+                    <FormControl>
+                      {listasQuery.data && listasQuery.data.length === 0 ? (
+                        <div className="rounded-lg border border-dashed p-4 flex flex-col gap-2">
+                          <p className="text-sm text-muted-foreground">
+                            Você ainda não tem nenhuma lista de contatos. Crie a
+                            primeira aqui mesmo — o resto do formulário continua
+                            preenchido.
+                          </p>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Nome da lista (ex.: Clientes)"
+                              value={nomeDaNovaLista}
+                              onChange={(e) =>
+                                setNomeDaNovaLista(e.target.value)
+                              }
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={
+                                criarListaMutation.isPending ||
+                                nomeDaNovaLista.trim().length === 0
+                              }
+                              onClick={() => {
+                                criarListaMutation.mutate(
+                                  { name: nomeDaNovaLista.trim() },
+                                  {
+                                    onSuccess: async (lista) => {
+                                      await utils.contacts.getContactBooks.invalidate();
+                                      field.onChange(lista.id);
+                                      setNomeDaNovaLista("");
+                                      toast.success("Lista criada");
+                                    },
+                                    onError: (error) =>
+                                      toast.error(error.message),
+                                  },
+                                );
+                              }}
+                            >
+                              {criarListaMutation.isPending ? (
+                                <Spinner className="w-4 h-4" />
+                              ) : (
+                                "Criar lista"
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Escolha uma lista" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(listasQuery.data ?? []).map((lista) => (
+                              <SelectItem key={lista.id} value={lista.id}>
+                                {lista.emoji} {lista.name} ·{" "}
+                                {lista._count.contacts}{" "}
+                                {lista._count.contacts === 1
+                                  ? "contato"
+                                  : "contatos"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </FormControl>
+                    {formState.errors.contactBookId ? <FormMessage /> : null}
                   </FormItem>
                 )}
               />

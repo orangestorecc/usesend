@@ -39,6 +39,9 @@ vi.mock("~/server/service/webhook-service", () => ({
 
 vi.mock("~/server/service/double-opt-in-service", () => ({
   sendDoubleOptInConfirmationEmail: mockSendDoubleOptInConfirmationEmail,
+  // O contact-service distingue bloqueio de dominio de falha real via
+  // instanceof, entao a classe precisa existir tambem no mock.
+  DoubleOptInBlockedError: class DoubleOptInBlockedError extends Error {},
 }));
 
 vi.mock("~/server/service/contact-queue-service", () => ({

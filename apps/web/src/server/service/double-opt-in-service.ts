@@ -13,6 +13,90 @@ import { validateDomainFromEmail } from "./domain-service";
 
 const DOUBLE_OPT_IN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Cooldown por contato: nao reenviar pedido de confirmacao antes disso. */
+export const DOUBLE_OPT_IN_CONTACT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+/** Rate limit do disparo em massa por lista. */
+export const DOUBLE_OPT_IN_BULK_INTERVAL_MS = 15 * 60 * 1000;
+/** Teto de contatos por disparo em massa. */
+export const DOUBLE_OPT_IN_BULK_MAX = 1000;
+
+export type DoubleOptInBlockReason =
+  | "DOUBLE_OPT_IN_DISABLED"
+  | "NO_VERIFIED_DOMAIN"
+  | "SENDER_DOMAIN_NOT_VERIFIED";
+
+/**
+ * O remetente do pedido de opt-in precisa sair de um dominio verificado do time.
+ * Retorna o `from` resolvido ou o motivo do bloqueio — sem lancar, para que a UI
+ * consiga explicar o problema antes do usuario clicar.
+ */
+export async function resolveDoubleOptInSender({
+  teamId,
+  doubleOptInEnabled,
+  doubleOptInFrom,
+}: {
+  teamId: number;
+  doubleOptInEnabled: boolean;
+  doubleOptInFrom: string | null;
+}): Promise<
+  { from: string; reason: null } | { from: null; reason: DoubleOptInBlockReason }
+> {
+  if (!doubleOptInEnabled) {
+    return { from: null, reason: "DOUBLE_OPT_IN_DISABLED" };
+  }
+
+  const configuredFrom = doubleOptInFrom?.trim();
+
+  if (!configuredFrom) {
+    const domain = await db.domain.findFirst({
+      where: { teamId, status: DomainStatus.SUCCESS },
+      select: { name: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (!domain) {
+      return { from: null, reason: "NO_VERIFIED_DOMAIN" };
+    }
+
+    return { from: `hello@${domain.name}`, reason: null };
+  }
+
+  const senderDomain = extractDomainFromEmail(configuredFrom);
+
+  if (!senderDomain) {
+    return { from: null, reason: "SENDER_DOMAIN_NOT_VERIFIED" };
+  }
+
+  const domain = await db.domain.findFirst({
+    where: { teamId, name: senderDomain, status: DomainStatus.SUCCESS },
+    select: { id: true },
+  });
+
+  if (!domain) {
+    return { from: null, reason: "SENDER_DOMAIN_NOT_VERIFIED" };
+  }
+
+  return { from: configuredFrom, reason: null };
+}
+
+function extractDomainFromEmail(email: string) {
+  const match = email.match(/<([^>]+)>/);
+  const address = match?.[1] ?? email;
+  const domain = address.split("@")[1]?.trim().replace(/>$/, "");
+  return domain && domain.length > 0 ? domain : undefined;
+}
+
+export class DoubleOptInBlockedError extends Error {
+  constructor(public readonly reason: DoubleOptInBlockReason) {
+    super(
+      reason === "DOUBLE_OPT_IN_DISABLED"
+        ? "O double opt-in está desligado nesta lista"
+        : "Valide um domínio de envio antes de pedir a confirmação dos contatos",
+    );
+    this.name = "DoubleOptInBlockedError";
+  }
+}
+
 function createDoubleOptInHash(contactId: string, expiresAt: number) {
   return createHash("sha256")
     .update(`${contactId}-${expiresAt}-${env.NEXTAUTH_SECRET}`)
@@ -84,33 +168,17 @@ export async function sendDoubleOptInConfirmationEmail({
     return;
   }
 
-  const configuredFrom = contact.contactBook.doubleOptInFrom?.trim();
-  let from: string;
+  const sender = await resolveDoubleOptInSender({
+    teamId,
+    doubleOptInEnabled: contact.contactBook.doubleOptInEnabled,
+    doubleOptInFrom: contact.contactBook.doubleOptInFrom,
+  });
 
-  if (!configuredFrom) {
-    const domain = await db.domain.findFirst({
-      where: {
-        teamId,
-        status: DomainStatus.SUCCESS,
-      },
-      select: {
-        name: true,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    });
-
-    if (!domain) {
-      throw new Error(
-        "Double opt-in requires at least one verified domain to send confirmation emails",
-      );
-    }
-
-    from = `hello@${domain.name}`;
-  } else {
-    from = configuredFrom;
+  if (sender.reason !== null) {
+    throw new DoubleOptInBlockedError(sender.reason);
   }
+
+  const from = sender.from;
 
   const confirmationUrl = createDoubleOptInConfirmationUrl(contact.id);
 
@@ -162,6 +230,168 @@ export async function sendDoubleOptInConfirmationEmail({
     html: replaceTemplateTokens(html, { doubleOptInUrl: confirmationUrl }),
     teamId,
   });
+
+  await db.contact.update({
+    where: { id: contact.id },
+    data: { doubleOptInSentAt: new Date() },
+  });
+}
+
+/** Contatos criados mas nunca confirmados (nao confundir com descadastrados). */
+const PENDING_CONTACT_FILTER = {
+  subscribed: false,
+  unsubscribeReason: null,
+} as const;
+
+/**
+ * Tudo que a UI precisa para explicar ao lojista por que o pedido de opt-in
+ * ainda nao pode sair, sem tentar enviar e falhar.
+ */
+export async function getDoubleOptInReadiness({
+  contactBookId,
+  teamId,
+}: {
+  contactBookId: string;
+  teamId: number;
+}) {
+  const contactBook = await db.contactBook.findFirst({
+    where: { id: contactBookId, teamId },
+    select: {
+      doubleOptInEnabled: true,
+      doubleOptInFrom: true,
+      lastBulkOptInAt: true,
+    },
+  });
+
+  if (!contactBook) {
+    throw new Error("Contact book not found");
+  }
+
+  const sender = await resolveDoubleOptInSender({
+    teamId,
+    doubleOptInEnabled: contactBook.doubleOptInEnabled,
+    doubleOptInFrom: contactBook.doubleOptInFrom,
+  });
+
+  const now = Date.now();
+
+  const [pendingCount, eligibleCount] = await Promise.all([
+    db.contact.count({ where: { contactBookId, ...PENDING_CONTACT_FILTER } }),
+    db.contact.count({
+      where: {
+        contactBookId,
+        ...PENDING_CONTACT_FILTER,
+        OR: [
+          { doubleOptInSentAt: null },
+          {
+            doubleOptInSentAt: {
+              lt: new Date(now - DOUBLE_OPT_IN_CONTACT_COOLDOWN_MS),
+            },
+          },
+        ],
+      },
+    }),
+  ]);
+
+  const bulkAvailableAt = contactBook.lastBulkOptInAt
+    ? new Date(
+        contactBook.lastBulkOptInAt.getTime() + DOUBLE_OPT_IN_BULK_INTERVAL_MS,
+      )
+    : null;
+
+  return {
+    doubleOptInEnabled: contactBook.doubleOptInEnabled,
+    canSend: sender.reason === null,
+    blockReason: sender.reason,
+    pendingCount,
+    eligibleCount,
+    bulkAvailableAt:
+      bulkAvailableAt && bulkAvailableAt.getTime() > now ? bulkAvailableAt : null,
+  };
+}
+
+/**
+ * Dispara pedidos de confirmacao para todos os contatos pendentes da lista.
+ * Respeita cooldown por contato e rate limit por lista — sem isso o botao vira
+ * um vetor de spam de um clique so.
+ */
+export async function sendBulkDoubleOptInInContactBook({
+  contactBookId,
+  teamId,
+}: {
+  contactBookId: string;
+  teamId: number;
+}) {
+  const readiness = await getDoubleOptInReadiness({ contactBookId, teamId });
+
+  if (!readiness.canSend) {
+    throw new DoubleOptInBlockedError(
+      readiness.blockReason ?? "NO_VERIFIED_DOMAIN",
+    );
+  }
+
+  if (readiness.bulkAvailableAt) {
+    throw new Error(
+      "Aguarde alguns minutos antes de disparar novamente os pedidos de confirmação desta lista",
+    );
+  }
+
+  const contacts = await db.contact.findMany({
+    where: {
+      contactBookId,
+      ...PENDING_CONTACT_FILTER,
+      OR: [
+        { doubleOptInSentAt: null },
+        {
+          doubleOptInSentAt: {
+            lt: new Date(Date.now() - DOUBLE_OPT_IN_CONTACT_COOLDOWN_MS),
+          },
+        },
+      ],
+    },
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+    take: DOUBLE_OPT_IN_BULK_MAX,
+  });
+
+  if (contacts.length === 0) {
+    return { sent: 0, failed: 0, total: 0 };
+  }
+
+  // Marca o disparo antes de enviar: se algo estourar no meio, o rate limit ja
+  // esta valendo e um retry impaciente nao duplica os e-mails ja enviados.
+  await db.contactBook.update({
+    where: { id: contactBookId },
+    data: { lastBulkOptInAt: new Date() },
+  });
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const contact of contacts) {
+    try {
+      await sendDoubleOptInConfirmationEmail({
+        contactId: contact.id,
+        contactBookId,
+        teamId,
+      });
+      sent += 1;
+    } catch (error) {
+      failed += 1;
+      logger.error(
+        { error, contactId: contact.id, contactBookId, teamId },
+        "[DoubleOptInService]: Failed to send bulk double opt-in email",
+      );
+
+      // Bloqueio de dominio/plano vale para a lista inteira: nao adianta
+      // continuar martelando os outros contatos.
+      if (error instanceof DoubleOptInBlockedError) {
+        break;
+      }
+    }
+  }
+
+  return { sent, failed, total: contacts.length };
 }
 
 export async function confirmDoubleOptInSubscription({

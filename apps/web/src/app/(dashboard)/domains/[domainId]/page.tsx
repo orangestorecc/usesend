@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@usesend/ui/src/select";
 import { TextWithCopyButton } from "@usesend/ui/src/text-with-copy";
+import { DnsInstructionsActions } from "~/components/DnsInstructionsActions";
 import { Switch } from "@usesend/ui/src/switch";
 import { Button } from "@usesend/ui/src/button";
 import React, { use } from "react";
@@ -161,7 +162,10 @@ function RecordsView({ domain }: { domain: DomainResponse }) {
 
   return (
     <div className="flex flex-col gap-6 rounded-lg border p-6 shadow-sm">
-      <p className="text-xl font-semibold">Registros DNS</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xl font-semibold">Registros DNS</p>
+        <DnsInstructionsActions domainId={domain.id} />
+      </div>
 
       <RecordGroup title="Verificação do domínio" subtitle="DKIM" records={verification} />
       <RecordGroup title="Habilitar envio" subtitle="SPF" records={sending} />

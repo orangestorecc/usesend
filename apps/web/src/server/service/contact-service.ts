@@ -11,7 +11,10 @@ import { db } from "../db";
 import { ContactQueueService } from "./contact-queue-service";
 import { WebhookService } from "./webhook-service";
 import { logger } from "../logger/log";
-import { sendDoubleOptInConfirmationEmail } from "./double-opt-in-service";
+import {
+  DoubleOptInBlockedError,
+  sendDoubleOptInConfirmationEmail,
+} from "./double-opt-in-service";
 
 export type ContactInput = {
   email: string;
@@ -141,15 +144,25 @@ export async function addOrUpdateContact(
         teamId: teamId ?? contactBook.teamId,
       });
     } catch (error) {
-      logger.error(
-        {
-          error,
-          contactId: savedContact.id,
-          contactBookId,
-          teamId: teamId ?? contactBook.teamId,
-        },
-        "[ContactService]: Failed to send double opt-in confirmation email",
-      );
+      const context = {
+        contactId: savedContact.id,
+        contactBookId,
+        teamId: teamId ?? contactBook.teamId,
+      };
+
+      // Sem dominio verificado o contato fica pendente de proposito: a UI da
+      // lista mostra o banner e o usuario dispara os pedidos depois de validar.
+      if (error instanceof DoubleOptInBlockedError) {
+        logger.info(
+          { ...context, reason: error.reason },
+          "[ContactService]: Double opt-in pending, sending is blocked",
+        );
+      } else {
+        logger.error(
+          { error, ...context },
+          "[ContactService]: Failed to send double opt-in confirmation email",
+        );
+      }
     }
   }
 

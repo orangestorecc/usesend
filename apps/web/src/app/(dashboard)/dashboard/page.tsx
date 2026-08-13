@@ -7,6 +7,7 @@ import { useUrlState } from "~/hooks/useUrlState";
 import { ReputationMetrics } from "./reputation-metrics";
 import { KpiStrip } from "./kpi-strip";
 import { RecentEmails } from "./recent-emails";
+import { OnboardingDashboardCard } from "~/components/OnboardingDashboardCard";
 
 export default function Dashboard() {
   const [days, setDays] = useUrlState("days", "30");
@@ -34,6 +35,8 @@ export default function Dashboard() {
           />
         </div>
         <div className="space-y-8">
+          <OnboardingDashboardCard />
+
           <KpiStrip days={numDays} domain={domain} campaign={campaign} />
 
           <EmailChart days={numDays} domain={domain} campaign={campaign} />

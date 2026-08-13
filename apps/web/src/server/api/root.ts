@@ -35,6 +35,7 @@ import { automationRouter } from "./routers/automation";
 import { userRouter } from "./routers/user";
 import { mfaRouter } from "./routers/mfa";
 import { reputationRouter } from "./routers/reputation";
+import { onboardingRouter } from "./routers/onboarding";
 
 /**
  * This is the primary router for your server.
@@ -78,6 +79,7 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   mfa: mfaRouter,
   reputation: reputationRouter,
+  onboarding: onboardingRouter,
 });
 
 // export type definition of API

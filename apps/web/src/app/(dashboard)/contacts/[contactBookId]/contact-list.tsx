@@ -24,6 +24,7 @@ import { getGravatarUrl } from "~/utils/gravatar-utils";
 import DeleteContact from "./delete-contact";
 import EditContact from "./edit-contact";
 import { ResendDoubleOptInConfirmation } from "./resend-double-opt-in-confirmation";
+import { DoubleOptInBanner } from "./double-opt-in-banner";
 import { Input } from "@usesend/ui/src/input";
 import { useDebouncedCallback } from "use-debounce";
 import { getContactPropertyValue } from "~/lib/contact-properties";
@@ -87,6 +88,11 @@ export default function ContactList({
   const [search, setSearch] = useUrlState("search");
 
   const pageNumber = Number(page);
+
+  const readinessQuery = api.contacts.doubleOptInReadiness.useQuery(
+    { contactBookId },
+    { enabled: Boolean(doubleOptInEnabled) },
+  );
 
   const contactsQuery = api.contacts.contacts.useQuery({
     contactBookId,
@@ -193,6 +199,9 @@ export default function ContactList({
   return (
     <TooltipProvider>
       <div className="mt-10 flex flex-col gap-4">
+        {doubleOptInEnabled ? (
+          <DoubleOptInBanner contactBookId={contactBookId} />
+        ) : null}
         <div className="flex justify-between items-center">
           <div>
             <Input
@@ -320,6 +329,12 @@ export default function ContactList({
                               contactBookId={contactBookId}
                               contactId={contact.id}
                               email={contact.email}
+                              bloqueio={
+                                readinessQuery.data &&
+                                !readinessQuery.data.canSend
+                                  ? readinessQuery.data.blockReason
+                                  : null
+                              }
                             />
                           ) : null}
                           <EditContact

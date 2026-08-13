@@ -95,10 +95,24 @@ export const campaignRouter = createTRPCRouter({
         name: z.string(),
         from: z.string(),
         subject: z.string(),
+        contactBookId: z.string(),
       }),
     )
     .mutation(async ({ ctx: { db, team }, input }) => {
       const domain = await validateDomainFromEmail(input.from, team.id);
+
+      // A lista e obrigatoria ja na criacao para nao existir campanha sem alvo.
+      const contactBook = await db.contactBook.findFirst({
+        where: { id: input.contactBookId, teamId: team.id },
+        select: { id: true },
+      });
+
+      if (!contactBook) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selecione uma lista de contatos válida",
+        });
+      }
 
       const campaign = await db.campaign.create({
         data: {

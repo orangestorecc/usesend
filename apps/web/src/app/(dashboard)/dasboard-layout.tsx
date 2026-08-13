@@ -9,6 +9,7 @@ import {
 import { useIsMobile } from "@usesend/ui/src/hooks/use-mobile";
 import { UpgradeModal } from "~/components/payments/UpgradeModal";
 import { ReputationBanner } from "~/components/ReputationBanner";
+import { OnboardingReminder } from "~/components/OnboardingReminder";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -45,6 +46,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </SidebarInset>
       </SidebarProvider>
       <UpgradeModal />
+      <OnboardingReminder />
     </div>
   );
 }

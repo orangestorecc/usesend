@@ -148,6 +148,10 @@ export const ScheduleCampaign: React.FC<{
 
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
 
+  // Campanhas antigas podem ter ficado sem lista; travar aqui evita o erro
+  // so aparecer depois que o usuario escolheu data e hora.
+  const semLista = !campaign.contactBookId;
+
   return (
     <div className="flex items-center gap-2">
       <Dialog
@@ -160,7 +164,17 @@ export const ScheduleCampaign: React.FC<{
         }}
       >
         <DialogTrigger asChild>
-          <Button variant="default">Agendar campanha</Button>
+          <Button
+            variant="default"
+            disabled={semLista}
+            title={
+              semLista
+                ? "Escolha a lista de contatos desta campanha antes de agendar"
+                : undefined
+            }
+          >
+            Agendar campanha
+          </Button>
         </DialogTrigger>
         <DialogContent ref={dialogContentRef}>
           <DialogHeader>
