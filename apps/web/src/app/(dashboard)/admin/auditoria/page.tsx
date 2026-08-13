@@ -24,24 +24,10 @@ import {
 import {
   AUDIT_EVENTOS_DESTRUTIVOS,
   AUDIT_EVENTS,
-} from "~/server/service/audit-service";
+  AUDIT_ROTULOS,
+} from "~/lib/audit-events";
 import { api } from "~/trpc/react";
 
-const ROTULOS: Record<string, string> = {
-  mfa_enabled: "MFA ativado",
-  mfa_disabled: "MFA desativado",
-  mfa_reset_requested: "Reset de MFA solicitado",
-  mfa_reset_executed: "Reset de MFA executado",
-  mfa_reset_canceled: "Reset de MFA cancelado",
-  email_change_requested: "Troca de e-mail solicitada",
-  email_changed: "E-mail trocado",
-  email_change_reverted: "Troca de e-mail revertida",
-  account_deleted: "Conta excluída",
-  invite_accepted: "Convite aceito",
-  team_left: "Saída de time",
-  impersonate_started: "Impersonate iniciado",
-  session_revoked: "Sessão encerrada",
-};
 
 export default function AuditoriaPage() {
   const [page, setPage] = useState(1);
@@ -76,7 +62,7 @@ export default function AuditoriaPage() {
             <SelectItem value="todos">Todos os eventos</SelectItem>
             {AUDIT_EVENTS.map((e) => (
               <SelectItem key={e} value={e}>
-                {ROTULOS[e] ?? e}
+                {AUDIT_ROTULOS[e] ?? e}
               </SelectItem>
             ))}
           </SelectContent>
@@ -123,7 +109,7 @@ export default function AuditoriaPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={destrutivo ? "destructive" : "secondary"}>
-                      {ROTULOS[log.event] ?? log.event}
+                      {AUDIT_ROTULOS[log.event as never] ?? log.event}
                     </Badge>
                   </TableCell>
                   <TableCell>

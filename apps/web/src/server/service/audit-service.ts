@@ -1,39 +1,14 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { db } from "~/server/db";
+import { AUDIT_RETENCAO_MESES, type AuditEvent } from "~/lib/audit-events";
 
-/**
- * Eventos críticos de conta. A lista é fechada de propósito: um evento com
- * nome livre não é filtrável na tela de auditoria do administrador.
- */
-export const AUDIT_EVENTS = [
-  "mfa_enabled",
-  "mfa_disabled",
-  "mfa_reset_requested",
-  "mfa_reset_executed",
-  "mfa_reset_canceled",
-  "email_change_requested",
-  "email_changed",
-  "email_change_reverted",
-  "account_deleted",
-  "invite_accepted",
-  "team_left",
-  "impersonate_started",
-  "session_revoked",
-] as const;
-
-export type AuditEvent = (typeof AUDIT_EVENTS)[number];
-
-/** Eventos destrutivos ganham badge vermelha na tela do administrador. */
-export const AUDIT_EVENTOS_DESTRUTIVOS: AuditEvent[] = [
-  "account_deleted",
-  "mfa_disabled",
-  "mfa_reset_executed",
-  "team_left",
-];
-
-/** Auditoria fica 12 meses; depois disso o purge apaga. */
-export const AUDIT_RETENCAO_MESES = 12;
+export {
+  AUDIT_EVENTS,
+  AUDIT_EVENTOS_DESTRUTIVOS,
+  AUDIT_RETENCAO_MESES,
+  type AuditEvent,
+} from "~/lib/audit-events";
 
 export type AuditContexto = {
   actorUserId?: number | null;
