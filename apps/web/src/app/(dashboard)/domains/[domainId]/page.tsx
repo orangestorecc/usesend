@@ -40,7 +40,7 @@ import React, { use } from "react";
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 import { toast } from "@usesend/ui/src/toaster";
-import DeleteDomain from "./delete-domain";
+import DeleteDomain from "../delete-domain";
 import SendTestMail from "./send-test-mail";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "~/server/api/root";

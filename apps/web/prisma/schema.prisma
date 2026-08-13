@@ -387,8 +387,8 @@ model Domain {
   teamId        Int
   status        DomainStatus @default(PENDING)
   region        String       @default("us-east-1")
-  clickTracking Boolean      @default(false)
-  openTracking  Boolean      @default(false)
+  clickTracking Boolean      @default(true)
+  openTracking  Boolean      @default(true)
   receivingEnabled Boolean   @default(false)
   tlsEnforced   Boolean      @default(false)
   publicKey     String

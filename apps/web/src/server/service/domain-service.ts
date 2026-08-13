@@ -499,6 +499,8 @@ export async function createDomain(
       dkimSelector,
       dkimStatus: DomainStatus.NOT_STARTED,
       spfDetails: DomainStatus.NOT_STARTED,
+      clickTracking: true,
+      openTracking: true,
     },
   });
 
