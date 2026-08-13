@@ -1,4 +1,5 @@
 import * as React from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -40,10 +41,12 @@ export default function ExampleCard() {
               value={"465"}
             ></TextWithCopyButton>
             <p className="ml-1 mt-1 text-zinc-500 text-sm ">
-              Para conexões criptografadas/TLS use{" "}
-              <strong className="font-mono">2465</strong>,{" "}
-              <strong className="font-mono">587</strong> or{" "}
-              <strong className="font-mono">2587</strong>
+              TLS direto (SSL) nas portas{" "}
+              <strong className="font-mono">465</strong> e{" "}
+              <strong className="font-mono">2465</strong>. Para STARTTLS use{" "}
+              <strong className="font-mono">587</strong>,{" "}
+              <strong className="font-mono">2587</strong> ou{" "}
+              <strong className="font-mono">25</strong>.
             </p>
           </div>
           <div>
@@ -55,10 +58,18 @@ export default function ExampleCard() {
           </div>
           <div>
             <strong>Senha:</strong>
-            <TextWithCopyButton
-              className="ml-1 rounded-lg mt-1 p-2 w-full bg-primary/10"
-              value={"YOUR_API_KEY"}
-            ></TextWithCopyButton>
+            <p className="ml-1 mt-1 rounded-lg border border-dashed p-2 text-sm text-zinc-500">
+              Use uma API key da sua conta. Host e usuário acima são fixos — a
+              API key é o único dado que identifica você.
+            </p>
+            <p className="ml-1 mt-1 text-sm">
+              <Link
+                href="/dev-settings/api-keys"
+                className="underline underline-offset-2"
+              >
+                Gerenciar API keys
+              </Link>
+            </p>
           </div>
         </div>
       </CardContent>
