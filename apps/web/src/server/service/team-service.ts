@@ -10,6 +10,7 @@ import { LimitReason } from "~/lib/constants/plans";
 import { LimitService } from "./limit-service";
 import { renderUsageLimitReachedEmail } from "../email-templates/UsageLimitReachedEmail";
 import { renderUsageWarningEmail } from "../email-templates/UsageWarningEmail";
+import { provisionStarterTemplates } from "./starter-templates-service";
 
 // Cache stores exactly Prisma Team shape (no counts)
 
@@ -94,6 +95,14 @@ export class TeamService {
     });
     // Warm cache for the new team
     await TeamService.refreshTeamCache(created.id);
+
+    // Modelos iniciais de e-mail marketing; erro aqui não pode travar o cadastro
+    try {
+      await provisionStarterTemplates(created.id);
+    } catch (error) {
+      logger.error({ teamId: created.id, error }, "Falha ao provisionar modelos iniciais");
+    }
+
     return created;
   }
 
