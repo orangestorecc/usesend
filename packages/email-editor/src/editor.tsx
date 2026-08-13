@@ -15,6 +15,7 @@ import { BlockPalette } from "./chrome/BlockPalette";
 import { CodeView } from "./chrome/CodeView";
 import { AiComposer } from "./chrome/AiComposer";
 import { BlockContextMenu } from "./menus/BlockContextMenu";
+import { isDocEmpty } from "./lib/doc-empty";
 import { PropertiesPanel } from "./panels/PropertiesPanel";
 import {
   EditorChromeProvider,
@@ -128,8 +129,10 @@ export const Editor: React.FC<EditorProps> = ({
     [editor, mode, onAiRequest, uploadImage],
   );
 
-  // `useEditor` re-renderiza a cada transação, então isEmpty já vem atual.
-  const vazio = editor?.isEmpty ?? true;
+  // `useEditor` re-renderiza a cada transação, então o JSON já vem atual.
+  // `isDocEmpty` (e não `editor.isEmpty`) porque um bloco sem texto — spacer,
+  // imagem — precisa contar como conteúdo e derrubar o estado vazio.
+  const vazio = editor ? isDocEmpty(editor.getJSON()) : true;
 
   const canvas = (
     <div

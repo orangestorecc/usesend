@@ -76,21 +76,25 @@ export class LimitService {
   static async checkTeamMemberLimit(teamId: number): Promise<{
     isLimitReached: boolean;
     limit: number;
+    /** Contagem atual, para a tela dizer "1 de 1 membros" antes do bloqueio. */
+    atual: number;
     reason?: LimitReason;
   }> {
+    const currentCount = await db.teamUser.count({ where: { teamId } });
+
     // Limits only apply in cloud mode
     if (!env.NEXT_PUBLIC_IS_CLOUD) {
-      return { isLimitReached: false, limit: -1 };
+      return { isLimitReached: false, limit: -1, atual: currentCount };
     }
 
     const team = await TeamService.getTeamCached(teamId);
-    const currentCount = await db.teamUser.count({ where: { teamId } });
 
     const limit = PLAN_LIMITS[getActivePlan(team)].teamMembers;
     if (isLimitExceeded(currentCount, limit)) {
       return {
         isLimitReached: true,
         limit,
+        atual: currentCount,
         reason: LimitReason.TEAM_MEMBER,
       };
     }
@@ -98,6 +102,7 @@ export class LimitService {
     return {
       isLimitReached: false,
       limit,
+      atual: currentCount,
     };
   }
 

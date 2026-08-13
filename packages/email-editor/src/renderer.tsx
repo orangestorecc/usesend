@@ -168,6 +168,11 @@ type EmailRendererOption = {
   shouldReplaceVariableValues?: boolean;
   variableValues?: Record<string, string | null>;
   linkValues?: Record<string, string | null>;
+  /**
+   * Texto de prévia da caixa de entrada. Ausente => nada é emitido e o HTML
+   * sai idêntico ao de antes deste campo.
+   */
+  preview?: string;
 };
 
 export class EmailRenderer {
@@ -186,6 +191,7 @@ export class EmailRenderer {
       options.shouldReplaceVariableValues || false;
     this.variableValues = options.variableValues || {};
     this.linkValues = options.linkValues || {};
+    if (options.preview !== undefined) this.config.preview = options.preview;
   }
 
   private variableFormatter: VariableFormatter = ({ variable, fallback }) => {
@@ -199,6 +205,7 @@ export class EmailRenderer {
       options.shouldReplaceVariableValues || false;
     this.variableValues = options.variableValues || {};
     this.linkValues = options.linkValues || {};
+    if (options.preview !== undefined) this.config.preview = options.preview;
     const markup = this.markup();
     return render(markup);
   }
@@ -270,6 +277,7 @@ export class EmailRenderer {
             margin: 0,
           }}
         >
+          {this.config.preview ? <Preview>{this.config.preview}</Preview> : null}
           <Container
             style={{
               maxWidth: contentWidth,

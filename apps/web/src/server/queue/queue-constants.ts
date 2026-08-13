@@ -12,6 +12,8 @@ export const API_LOG_CLEANUP_QUEUE = "api-log-cleanup";
 export const INBOUND_POLL_QUEUE = "inbound-poll";
 export const SUBSCRIPTION_BILLING_QUEUE = "subscription-billing";
 export const PAYMENT_LOG_CLEANUP_QUEUE = "payment-log-cleanup";
+/** Purge de contas pseudonimizadas, auditoria e codigos vencidos. */
+export const ACCOUNT_LIFECYCLE_QUEUE = "account-lifecycle";
 export const AUTOMATION_RUN_QUEUE = "automation-run";
 export const AUTOMATION_SCHEDULER_QUEUE = "automation-scheduler";
 

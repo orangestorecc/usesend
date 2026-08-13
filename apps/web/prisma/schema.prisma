@@ -68,6 +68,17 @@ model Session {
   userId       Int
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Estado de MFA e de sessão elevada moram na row porque o projeto usa
+  // database sessions (PrismaAdapter sem `strategy`), não JWT.
+  mfaVerifiedAt DateTime?
+  /** Última prova de identidade; eleva a sessão por 10 minutos. */
+  elevatedAt    DateTime?
+  userAgent     String?
+  ip            String?
+  createdAt     DateTime  @default(now())
+
+  mfaChallenge MfaChallenge?
 }
 
 model VerificationToken {
@@ -92,6 +103,144 @@ model User {
   teamUsers        TeamUser[]
   webhookEndpoints Webhook[]
   feedbacks        Feedback[]
+
+  /** Correlação que sobrevive à pseudonimização da conta. */
+  subjectId    String    @unique @default(cuid())
+  mfaEnabled   Boolean   @default(false)
+  mfaEnabledAt DateTime?
+  /** E-mail novo aguardando confirmação na troca de e-mail. */
+  pendingEmail String?
+  /** Conta pseudonimizada; hard delete acontece 30 dias depois. */
+  deletedAt    DateTime?
+
+  securityCodes       SecurityCode[]
+  mfaRecoveryCodes    MfaRecoveryCode[]
+  emailChangeRequests EmailChangeRequest[]
+
+  @@index([deletedAt])
+}
+
+/**
+ * Código de 5 caracteres para provas de identidade fora do login. Guardado
+ * como HMAC com pepper: dump do banco não permite usar nenhum código.
+ */
+model SecurityCode {
+  id        String    @id @default(cuid())
+  userId    Int
+  purpose   String // MFA_LOGIN | MFA_ENABLE | EMAIL_CHANGE_CURRENT | EMAIL_CHANGE_NEW | EMAIL_CHANGE_REVERT | ACCOUNT_DELETE
+  codeHmac  String
+  /** Versão do pepper, para rotacionar sem invalidar tudo de uma vez. */
+  pepperVersion Int    @default(1)
+  /** Alvo do envio, quando difere do e-mail atual (troca de e-mail). */
+  sentTo    String?
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
+
+/**
+ * Desafio de MFA amarrado a uma sessão específica: verificar num dispositivo
+ * nunca libera outro.
+ */
+model MfaChallenge {
+  id           String    @id @default(cuid())
+  sessionToken String    @unique
+  codeHmac     String
+  pepperVersion Int      @default(1)
+  attempts     Int       @default(0)
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  session Session @relation(fields: [sessionToken], references: [sessionToken], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+/** 10 códigos de recuperação, HMAC, uso único. */
+model MfaRecoveryCode {
+  id           String    @id @default(cuid())
+  userId       Int
+  codeHmac     String
+  pepperVersion Int      @default(1)
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/** Reset de MFA pelo suporte: two-person rule + 72h de cooldown. */
+model MfaResetRequest {
+  id            String    @id @default(cuid())
+  userId        Int
+  requestedBy   String
+  approvedBy    String?
+  /** Token que o próprio usuário usa para cancelar dentro das 72h. */
+  cancelToken   String    @unique
+  canceledAt    DateTime?
+  executesAt    DateTime
+  executedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/**
+ * Troca de e-mail em duas confirmações. O snapshot das contas OAuth existe
+ * para a reversão remover o que foi vinculado depois da troca — remediação
+ * por estado, nunca derivada do log.
+ */
+model EmailChangeRequest {
+  id                   String    @id @default(cuid())
+  userId               Int
+  oldEmail             String
+  newEmail             String
+  currentConfirmedAt   DateTime?
+  newConfirmedAt       DateTime?
+  committedAt          DateTime?
+  revertToken          String    @unique
+  revertDeadline       DateTime?
+  revertedAt           DateTime?
+  oauthAccountsSnapshot Json?
+  createdAt            DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([revertDeadline])
+}
+
+/**
+ * Trilha de auditoria dos eventos críticos de conta. Gravada dentro da mesma
+ * transação da operação: se o log falhar, a operação aborta.
+ */
+model UserAuditLog {
+  id            String   @id @default(cuid())
+  event         String
+  /** Quem fez. Nulo em eventos do sistema. */
+  actorUserId   Int?
+  actorEmail    String?
+  /** Sobre quem. `targetSubject` sobrevive à pseudonimização. */
+  targetUserId  Int?
+  targetSubject String?
+  /** Snapshot do e-mail, zerado quando a conta é pseudonimizada. */
+  targetEmail   String?
+  ip            String?
+  userAgent     String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([targetSubject])
+  @@index([event, createdAt])
+  @@index([createdAt])
 }
 
 enum Plan {
@@ -162,6 +311,7 @@ model Team {
   billingContact   BillingContact?
   automations      Automation[]
   customEvents     CustomEvent[]
+  forwardingRules  ForwardingRule[]
 }
 
 model TeamInvite {
@@ -175,6 +325,7 @@ model TeamInvite {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, email])
+  @@index([email])
 }
 
 model Subscription {
@@ -202,6 +353,8 @@ model TeamUser {
   teamId Int
   userId Int
   role   Role
+  /** "Membro desde" no perfil; retroativo assume a data da migration. */
+  createdAt DateTime @default(now())
   team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -239,6 +392,7 @@ model Domain {
   updatedAt     DateTime     @updatedAt
   team          Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   apiKeys       ApiKey[]
+  forwardingRules ForwardingRule[]
 }
 
 enum ApiPermission {
@@ -428,7 +582,6 @@ model Campaign {
 
   @@index([createdAt(sort: Desc)])
   @@index([status, scheduledAt])
-
   /// Quando o lojista dispensou a oferta de template no editor vazio.
   /// A oferta nao volta depois de dispensada (por campanha).
   templateOfferDismissedAt DateTime?
@@ -663,7 +816,69 @@ model InboundEmail {
   read       Boolean  @default(false)
   receivedAt DateTime @default(now())
   createdAt  DateTime @default(now())
+  forwards   InboundForward[]
 
+  @@index([teamId, createdAt])
+}
+
+enum ForwardingRuleStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  PAUSED
+  DISABLED_BOUNCED
+}
+
+enum ForwardStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+// Regra de encaminhamento: domínio de origem (null = qualquer domínio '*')
+// → e-mail externo de destino. Só encaminha após confirmação do destino.
+model ForwardingRule {
+  id                  String               @id @default(cuid())
+  teamId              Int
+  team                Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  domainId            Int?
+  domain              Domain?              @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  destination         String
+  status              ForwardingRuleStatus @default(PENDING_VERIFICATION)
+  verificationToken   String?              @unique
+  verificationSentAt  DateTime?
+  verifiedAt          DateTime?
+  forwardedCount      Int                  @default(0)
+  failedCount         Int                  @default(0)
+  consecutiveFailures Int                  @default(0)
+  lastForwardedAt     DateTime?
+  lastFailureAt       DateTime?
+  createdByUserId     Int?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  forwards            InboundForward[]
+
+  @@unique([teamId, domainId, destination])
+  @@index([teamId, status])
+  @@index([domainId, status])
+}
+
+// Log por tentativa de encaminhamento (análogo ao WebhookCall).
+model InboundForward {
+  id             String         @id @default(cuid())
+  ruleId         String
+  rule           ForwardingRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  teamId         Int
+  inboundEmailId String
+  inboundEmail   InboundEmail   @relation(fields: [inboundEmailId], references: [id], onDelete: Cascade)
+  status         ForwardStatus  @default(PENDING)
+  attempt        Int            @default(0)
+  sesMessageId   String?
+  lastError      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([ruleId, inboundEmailId])
   @@index([teamId, createdAt])
 }
 

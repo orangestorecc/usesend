@@ -14,6 +14,8 @@ import { Provider } from "next-auth/providers/index";
 import { sendSignUpEmail } from "~/server/mailer";
 import { env } from "~/env";
 import { db } from "~/server/db";
+import { logger } from "~/server/logger/log";
+import { criarDesafioDeMfa, mfaHabilitado } from "~/server/service/mfa-service";
 
 const GITHUB_OAUTH_ISSUER = "https://github.com/login/oauth";
 
@@ -199,6 +201,38 @@ export const authOptions: NextAuthOptions = {
 
     return {
       ...prismaAdapter,
+      /**
+       * A sessão nasce sem MFA verificado e com um desafio amarrado ao
+       * próprio token. Fail-closed: se o envio do código falhar, a sessão
+       * continua existindo mas não passa pelo gate.
+       */
+      async createSession(session) {
+        if (!prismaAdapter.createSession) {
+          throw new Error("Prisma adapter does not support session creation");
+        }
+        const criada = await prismaAdapter.createSession(session);
+
+        if (mfaHabilitado()) {
+          const user = await db.user.findUnique({
+            where: { id: Number(session.userId) },
+            select: { mfaEnabled: true, email: true },
+          });
+
+          if (user?.mfaEnabled && user.email) {
+            try {
+              await criarDesafioDeMfa(
+                session.sessionToken,
+                Number(session.userId),
+                user.email,
+              );
+            } catch (err) {
+              logger.error({ err }, "Falha ao criar desafio de MFA");
+            }
+          }
+        }
+
+        return criada;
+      },
       async createUser(user: AdapterUser) {
         if (env.NEXT_PUBLIC_IS_CLOUD) {
           if (!prismaAdapter.createUser) {

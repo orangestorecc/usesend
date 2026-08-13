@@ -83,6 +83,14 @@ export const env = createEnv({
     INBOUND_S3_BUCKET: z.string().optional(),
     INBOUND_S3_REGION: z.string().default("us-east-1"),
     ANTHROPIC_API_KEY: z.string().optional(),
+    /**
+     * Pepper dos codigos de seguranca (MFA por e-mail, troca de e-mail,
+     * exclusao de conta). Sem ele um dump do banco permitiria ataque offline
+     * aos hashes; por isso o servico falha alto quando esta ausente.
+     */
+    SECURITY_CODE_PEPPER: z.string().optional(),
+    /** Liga o MFA por e-mail em logins sociais. */
+    MFA_ENABLED: z.string().optional(),
     PAYMENTS_SANDBOX: z.string().optional(),
     PAYMENTS_WEBHOOK_TOKEN: z.string().optional(),
     PAYMENT_LOG_RETENTION_DAYS: z.string().optional(),
@@ -170,6 +178,8 @@ export const env = createEnv({
     INBOUND_S3_BUCKET: process.env.INBOUND_S3_BUCKET,
     INBOUND_S3_REGION: process.env.INBOUND_S3_REGION,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    SECURITY_CODE_PEPPER: process.env.SECURITY_CODE_PEPPER,
+    MFA_ENABLED: process.env.MFA_ENABLED,
     PAYMENTS_SANDBOX: process.env.PAYMENTS_SANDBOX,
     PAYMENTS_WEBHOOK_TOKEN: process.env.PAYMENTS_WEBHOOK_TOKEN,
     PAYMENT_LOG_RETENTION_DAYS: process.env.PAYMENT_LOG_RETENTION_DAYS,

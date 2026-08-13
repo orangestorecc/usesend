@@ -151,7 +151,9 @@ export const campaignRouter = createTRPCRouter({
       if (data.content) {
         const jsonContent = data.content ? JSON.parse(data.content) : null;
 
-        const renderer = new EmailRenderer(jsonContent);
+        const renderer = new EmailRenderer(jsonContent, {
+          preview: data.previewText ?? campaignOld.previewText ?? undefined,
+        });
         htmlToSave = await renderer.render();
       } else if (typeof htmlInput === "string") {
         htmlToSave = htmlInput;

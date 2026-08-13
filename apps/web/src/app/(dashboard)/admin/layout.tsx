@@ -55,6 +55,9 @@ export default function AdminLayout({
         <SettingsNavButton href="/admin/receita">
           Consulta CNPJ
         </SettingsNavButton>
+        <SettingsNavButton href="/admin/auditoria">
+          Auditoria
+        </SettingsNavButton>
       </div>
       <div className="mt-8">{children}</div>
     </div>

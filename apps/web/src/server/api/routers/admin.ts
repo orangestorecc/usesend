@@ -3,6 +3,10 @@ import { z } from "zod";
 import { env } from "~/env";
 
 import { createTRPCRouter, adminProcedure } from "~/server/api/trpc";
+import {
+  aprovarResetDeMfa,
+  solicitarResetDeMfa,
+} from "~/server/service/mfa-reset-service";
 import { SesSettingsService } from "~/server/service/ses-settings-service";
 import { getAccount } from "~/server/aws/ses";
 import { db } from "~/server/db";
@@ -497,5 +501,83 @@ export const adminRouter = createTRPCRouter({
         paidOnly,
         periodStart: timeframe === "today" ? today : monthStart,
       };
+    }),
+
+  /**
+   * Trilha de auditoria dos eventos criticos de conta. Paginada e filtravel:
+   * sem filtro por evento e periodo, a tabela vira um monte de linhas que
+   * ninguem consegue investigar.
+   */
+  listAuditLogs: adminProcedure
+    .input(
+      z.object({
+        page: z.number().min(1).default(1),
+        event: z.string().optional(),
+        email: z.string().optional(),
+        de: z.date().optional(),
+        ate: z.date().optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const porPagina = 50;
+      const where = {
+        ...(input.event ? { event: input.event } : {}),
+        ...(input.email
+          ? {
+              OR: [
+                { targetEmail: { contains: input.email, mode: "insensitive" as const } },
+                { actorEmail: { contains: input.email, mode: "insensitive" as const } },
+              ],
+            }
+          : {}),
+        ...(input.de || input.ate
+          ? {
+              createdAt: {
+                ...(input.de ? { gte: input.de } : {}),
+                ...(input.ate ? { lte: input.ate } : {}),
+              },
+            }
+          : {}),
+      };
+
+      const [logs, total] = await Promise.all([
+        db.userAuditLog.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          skip: (input.page - 1) * porPagina,
+          take: porPagina,
+        }),
+        db.userAuditLog.count({ where }),
+      ]);
+
+      return { logs, total, porPagina, page: input.page };
+    }),
+
+  /** Reset de MFA pelo suporte: pedir, listar e aprovar (two-person rule). */
+  solicitarResetDeMfa: adminProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await solicitarResetDeMfa(
+        input.userId,
+        ctx.session.user.email ?? "suporte",
+      );
+      return true;
+    }),
+
+  listarResetsDeMfa: adminProcedure.query(async () => {
+    return db.mfaResetRequest.findMany({
+      where: { canceledAt: null, executedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+  }),
+
+  aprovarResetDeMfa: adminProcedure
+    .input(z.object({ requestId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await aprovarResetDeMfa(
+        input.requestId,
+        ctx.session.user.email ?? "suporte",
+      );
+      return true;
     }),
 });

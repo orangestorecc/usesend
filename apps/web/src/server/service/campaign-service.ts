@@ -75,7 +75,9 @@ async function prepareCampaignHtml(
   if (campaign.content) {
     try {
       const jsonContent = JSON.parse(campaign.content);
-      const renderer = new EmailRenderer(jsonContent);
+      const renderer = new EmailRenderer(jsonContent, {
+        preview: campaign.previewText ?? undefined,
+      });
       const html = await renderer.render();
 
       if (campaign.html !== html) {
@@ -113,7 +115,9 @@ async function renderCampaignHtmlForContact({
   if (campaign.content) {
     try {
       const jsonContent = JSON.parse(campaign.content);
-      const renderer = new EmailRenderer(jsonContent);
+      const renderer = new EmailRenderer(jsonContent, {
+        preview: campaign.previewText ?? undefined,
+      });
       const linkValues: Record<string, string> = {};
 
       for (const token of CAMPAIGN_UNSUB_PLACEHOLDER_TOKENS) {

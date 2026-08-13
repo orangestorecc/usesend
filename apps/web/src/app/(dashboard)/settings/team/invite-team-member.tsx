@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@usesend/ui/src/button";
-import { PlusIcon } from "lucide-react";
+import { LockIcon, PlusIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +36,6 @@ import {
 import { useTeam } from "~/providers/team-context";
 import { isCloud, isSelfHosted } from "~/utils/common";
 import { useUpgradeModalStore } from "~/store/upgradeModalStore";
-import { LimitReason } from "~/lib/constants/plans";
 
 const inviteTeamMemberSchema = z.object({
   email: z
@@ -52,9 +52,7 @@ export default function InviteTeamMember() {
   const { currentIsAdmin } = useTeam();
   const { data: domains } = api.domain.domains.useQuery();
 
-  const limitsQuery = api.limits.get.useQuery({
-    type: LimitReason.TEAM_MEMBER,
-  });
+  const limitsQuery = api.limits.teamMembers.useQuery();
   const { openModal } = useUpgradeModalStore((s) => s.action);
 
   const [open, setOpen] = useState(false);
@@ -70,6 +68,31 @@ export default function InviteTeamMember() {
   const utils = api.useUtils();
 
   const createInvite = api.team.createTeamInvite.useMutation();
+  const noLimite = Boolean(limitsQuery.data?.isLimitReached);
+
+  // Retorno do checkout: `?intent=invite` é de uso único — consumido antes de
+  // qualquer coisa, e só reabre o diálogo depois de reconfirmar o plano no
+  // servidor. Reexecutar cego mandaria convite com pagamento ainda pendente.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  useEffect(() => {
+    if (searchParams.get("intent") !== "invite") return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("intent");
+    router.replace(url.pathname + url.search);
+
+    void limitsQuery.refetch().then(({ data }) => {
+      if (data && !data.isLimitReached) {
+        setOpen(true);
+      } else {
+        toast.info(
+          "Pagamento em processamento. Assim que ele for confirmado, o convite fica liberado.",
+        );
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   function onSubmit(values: FormData) {
     if (limitsQuery.data?.isLimitReached) {
@@ -141,15 +164,37 @@ export default function InviteTeamMember() {
     return null;
   }
 
+  // Hint permanente: descobrir o limite só na hora de convidar é o que faz a
+  // pessoa achar que o produto quebrou.
+  const hint =
+    limitsQuery.data && limitsQuery.data.limit > 0
+      ? `${limitsQuery.data.atual} de ${limitsQuery.data.limit} ${
+          limitsQuery.data.limit === 1 ? "membro" : "membros"
+        } no seu plano`
+      : null;
+
   return (
+    <div className="flex items-center gap-3">
+      {hint ? (
+        <span className="text-xs text-muted-foreground">{hint}</span>
+      ) : null}
     <Dialog
       open={open}
       onOpenChange={(_open) => (_open !== open ? onOpenChange(_open) : null)}
     >
       <DialogTrigger asChild>
         <Button size="sm">
-          <PlusIcon className="mr-2 h-4 w-4" />
-          Convidar membro
+          {noLimite ? (
+            <>
+              <LockIcon className="mr-2 h-4 w-4" />
+              Fazer upgrade para convidar
+            </>
+          ) : (
+            <>
+              <PlusIcon className="mr-2 h-4 w-4" />
+              Convidar membro
+            </>
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className=" max-w-lg">
@@ -253,5 +298,6 @@ export default function InviteTeamMember() {
         </Form>
       </DialogContent>
     </Dialog>
+    </div>
   );
 }

@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import type { AppRouter } from "~/server/api/root";
 import type { inferRouterOutputs } from "@trpc/server";
+import { INVITE_BLOQUEADO_POR_LIMITE } from "~/lib/invites";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 type Invite = NonNullable<
@@ -36,6 +37,9 @@ export default function JoinTeam({
   const joinTeamMutation = api.invitation.acceptTeamInvite.useMutation();
   const [selectedInvite, setSelectedInvite] = useState<Invite | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [bloqueadoPorLimite, setBloqueadoPorLimite] = useState<string | null>(
+    null,
+  );
 
   const utils = api.useUtils();
   const router = useRouter();
@@ -63,12 +67,44 @@ export default function JoinTeam({
           router.replace("/dashboard");
         },
         onError: (error) => {
+          // Limite do plano não é erro do convidado: em vez de um toast seco
+          // que dá a impressão de convite queimado, ele vê o estado de espera
+          // — o link continua valendo quando o admin regularizar.
+          if (error.message === INVITE_BLOQUEADO_POR_LIMITE) {
+            setBloqueadoPorLimite(selectedInvite.team.name);
+            setDialogOpen(false);
+            return;
+          }
           toast.error(`Não foi possível entrar no time: ${error.message}`);
           setDialogOpen(false);
         },
       }
     );
   };
+
+  if (bloqueadoPorLimite) {
+    return (
+      <div className="mx-auto max-w-md rounded-lg border p-6 text-center">
+        <div className="text-base font-medium">
+          Aguardando liberação do administrador
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          O time <span className="font-medium">{bloqueadoPorLimite}</span>{" "}
+          atingiu o limite de membros do plano. Avisamos quem administra o time;
+          assim que houver vaga, você recebe um e-mail e este mesmo link
+          funciona.
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-4"
+          onClick={() => setBloqueadoPorLimite(null)}
+        >
+          Tentar de novo
+        </Button>
+      </div>
+    );
+  }
 
   if (!invites?.length) {
     return !showCreateTeam ? (

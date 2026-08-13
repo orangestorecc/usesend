@@ -90,6 +90,11 @@ export async function register() {
       await initPaymentLogCleanupJob();
     }
 
+    const { initAccountLifecycleJob } = await import(
+      "~/server/jobs/account-lifecycle-job"
+    );
+    await initAccountLifecycleJob();
+
     initialized = true;
   }
 }

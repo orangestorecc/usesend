@@ -64,6 +64,14 @@ export const limitsRouter = createTRPCRouter({
     };
   }),
 
+  /**
+   * Consulta dedicada do limite de membros: o `get` genérico devolve uma
+   * união de formatos, e a contagem atual não sobrevive a ela.
+   */
+  teamMembers: teamProcedure.query(async ({ ctx }) => {
+    return LimitService.checkTeamMemberLimit(ctx.team.id);
+  }),
+
   get: teamProcedure
     .input(
       z.object({

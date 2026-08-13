@@ -14,6 +14,7 @@ import {
   BarChart3,
   LogOutIcon,
   MoreVerticalIcon,
+  UserIcon,
   UsersIcon,
   GaugeIcon,
   UserRoundX,
@@ -373,6 +374,12 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/profile">
+                  <UserIcon />
+                  Meu Perfil
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings/team">
                   <UsersIcon />

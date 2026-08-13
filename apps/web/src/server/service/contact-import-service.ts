@@ -7,6 +7,7 @@ import {
   type ArquivoAnalisado,
   type Mapeamento,
 } from "~/lib/contact-import/parse";
+import { deleteDocument } from "./storage-service";
 
 /** Quanto tempo o arquivo original fica guardado. Dados pessoais — LGPD. */
 export const RETENCAO_DIAS = 90;
@@ -95,4 +96,42 @@ export async function buscarImportacao(id: string, teamId: number) {
 export function arquivoExpirado(startedAt: Date): boolean {
   const limite = Date.now() - RETENCAO_DIAS * 24 * 60 * 60 * 1000;
   return startedAt.getTime() < limite;
+}
+
+/**
+ * Retenção de 90 dias (LGPD): o arquivo original tem dados pessoais de
+ * terceiros, então some do bucket no prazo. O registro do `ContactImport`
+ * fica — ele é o log da importação, e sem o arquivo já não identifica
+ * ninguém.
+ */
+export async function purgarArquivosDeImportacaoAntigos(
+  agora: Date = new Date(),
+): Promise<number> {
+  const corte = new Date(
+    agora.getTime() - RETENCAO_DIAS * 24 * 60 * 60 * 1000,
+  );
+
+  const antigos = await db.contactImport.findMany({
+    where: { startedAt: { lt: corte }, fileKey: { not: "" } },
+    select: { id: true, fileKey: true },
+  });
+
+  let removidos = 0;
+  for (const registro of antigos) {
+    try {
+      await deleteDocument(registro.fileKey);
+      await db.contactImport.update({
+        where: { id: registro.id },
+        data: { fileKey: "" },
+      });
+      removidos++;
+    } catch (err) {
+      logger.error(
+        { err, importId: registro.id },
+        "[ContactImport] Falha ao remover arquivo expirado",
+      );
+    }
+  }
+
+  return removidos;
 }

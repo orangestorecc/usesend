@@ -15,6 +15,8 @@ import { env } from "~/env";
 
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
+import { lerSessionTokenDoCookie } from "~/server/auth-session";
+import { avaliarGate } from "~/server/service/mfa-service";
 import { getChildLogger, logger, withLogger } from "../logger/log";
 import { criarSentryMiddleware } from "./sentry-middleware";
 import { randomUUID } from "crypto";
@@ -118,9 +120,22 @@ export const authedProcedure = publicProcedure.use(({ ctx, next }) => {
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = authedProcedure.use(({ ctx, next }) => {
+export const protectedProcedure = authedProcedure.use(async ({ ctx, next }) => {
   if (ctx.session.user.isWaitlisted) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+
+  // Gate fail-closed: sessão com MFA pendente ou conta excluída não passa.
+  // Só as rotas do próprio desafio (router `mfa`) e o logout ficam de fora.
+  const gate = await avaliarGate(lerSessionTokenDoCookie(ctx.headers));
+  if (!gate.liberado) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message:
+        gate.motivo === "conta_excluida"
+          ? "Esta conta foi excluída"
+          : "Confirmação por e-mail pendente",
+    });
   }
 
   return next();

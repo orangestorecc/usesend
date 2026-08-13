@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { avaliarGate } from "~/server/service/mfa-service";
 import { DashboardProvider } from "~/providers/dashboard-provider";
 import { NextAuthProvider } from "~/providers/next-auth";
 import { DashboardLayout } from "./dasboard-layout";
@@ -18,11 +20,30 @@ async function ImpersonationBanner() {
   );
 }
 
-export default function AuthenticatedDashboardLayout({
+/**
+ * Sessão com MFA pendente não renderiza nada do dashboard — o redirecionamento
+ * acontece antes de qualquer dado aparecer na tela.
+ */
+async function bloquearSeMfaPendente() {
+  const cookieStore = await cookies();
+  const token =
+    cookieStore.get("__Secure-next-auth.session-token")?.value ??
+    cookieStore.get("next-auth.session-token")?.value ??
+    null;
+
+  const gate = await avaliarGate(token);
+  if (!gate.liberado && gate.motivo === "mfa_pendente") {
+    redirect("/mfa-challenge");
+  }
+}
+
+export default async function AuthenticatedDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await bloquearSeMfaPendente();
+
   return (
     <NextAuthProvider>
       <DashboardProvider>

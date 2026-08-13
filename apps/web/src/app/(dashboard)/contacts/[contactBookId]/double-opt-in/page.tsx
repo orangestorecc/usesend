@@ -15,6 +15,10 @@ import {
   getDefaultDoubleOptInContent,
   hasDoubleOptInUrlPlaceholder,
 } from "~/lib/constants/double-opt-in";
+import DomainStatusAlert, {
+  estadoDosDominios,
+} from "~/components/domain-status-alert";
+import FromAddressField from "~/components/from-address-field";
 import { api } from "~/trpc/react";
 
 const DOUBLE_OPT_IN_URL_REQUIRED_MESSAGE =
@@ -94,6 +98,10 @@ function DoubleOptInEditor({
   );
   const [from, setFrom] = useState(contactBook.doubleOptInFrom ?? "");
   const [isSaving, setIsSaving] = useState(false);
+  const dominiosQuery = api.domain.domains.useQuery();
+  const dominiosVerificados = (dominiosQuery.data ?? [])
+    .filter((d) => d.status === "SUCCESS")
+    .map((d) => d.name);
   const hasShownMissingPlaceholderToast = useRef(false);
 
   const updateContactBook = api.contacts.updateContactBook.useMutation({
@@ -121,6 +129,24 @@ function DoubleOptInEditor({
   }
 
   const debouncedUpdateContent = useDebouncedCallback(updateContent, 1000);
+
+  /** O campo guiado emite a cada tecla; salvar direto seria uma mutation por
+      caractere. */
+  const salvarRemetente = useDebouncedCallback((valor: string) => {
+    updateContactBook.mutate(
+      {
+        contactBookId: contactBook.id,
+        doubleOptInFrom: valor || null,
+      },
+      {
+        onError: (error) => {
+          toast.error(error.message);
+          setIsSaving(false);
+          setFrom(contactBook.doubleOptInFrom ?? "");
+        },
+      },
+    );
+  }, 800);
 
   return (
     <div className="p-4 container mx-auto">
@@ -197,37 +223,29 @@ function DoubleOptInEditor({
             <label className="block text-sm w-[80px] text-muted-foreground">
               De
             </label>
-            <Input
-              type="text"
-              value={from}
-              onChange={(e) => {
-                setFrom(e.target.value);
-              }}
-              onBlur={() => {
-                const normalizedFrom = from.trim();
-                const currentFrom = contactBook.doubleOptInFrom ?? "";
+            <div className="flex-1">
+              <FromAddressField
+                label=""
+                value={from}
+                dominiosVerificados={dominiosVerificados}
+                onChange={(valor) => {
+                  setFrom(valor);
+                  const atual = contactBook.doubleOptInFrom ?? "";
+                  if (valor.trim() === atual) return;
 
-                if (normalizedFrom === currentFrom) {
-                  return;
-                }
-
-                setIsSaving(true);
-                updateContactBook.mutate(
-                  {
-                    contactBookId: contactBook.id,
-                    doubleOptInFrom: normalizedFrom || null,
-                  },
-                  {
-                    onError: (error) => {
-                      toast.error(error.message);
-                      setIsSaving(false);
-                      setFrom(contactBook.doubleOptInFrom ?? "");
-                    },
-                  },
-                );
-              }}
-              placeholder="Nome amigável <contato@seudominio.com.br>"
-              className="mt-1 py-1 text-sm block w-full outline-none border-b border-transparent focus:border-border bg-transparent"
+                  setIsSaving(true);
+                  salvarRemetente(valor.trim());
+                }}
+              />
+            </div>
+          </div>
+          <div className="mt-4">
+            <DomainStatusAlert
+              estado={estadoDosDominios(
+                dominiosQuery.data,
+                dominiosQuery.isLoading,
+              )}
+              dominios={dominiosQuery.data}
             />
           </div>
           <p className="text-xs text-muted-foreground mt-3">

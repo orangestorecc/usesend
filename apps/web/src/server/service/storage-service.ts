@@ -2,6 +2,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "~/env";
@@ -109,4 +110,21 @@ export const getDocumentDownloadUrl = async (
     }),
     { expiresIn: 300 }
   );
+};
+
+/**
+ * Remove um objeto. Usado pela retenção: bloquear o download não basta — o
+ * arquivo com dados pessoais precisa sair do bucket.
+ */
+export const deleteDocument = async (
+  key: string,
+  bucket: string = DEFAULT_BUCKET,
+) => {
+  const client = getClient();
+  if (!client) return false;
+
+  await client.send(
+    new DeleteObjectCommand({ Bucket: bucket, Key: key }),
+  );
+  return true;
 };
