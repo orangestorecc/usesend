@@ -12,7 +12,15 @@ import {
   TabsTrigger,
 } from "@usesend/ui/src/tabs";
 import { toast } from "@usesend/ui/src/toaster";
-import { ArrowLeft, CreditCard, QrCode, Barcode, Check, Copy } from "lucide-react";
+import {
+  ArrowLeft,
+  CreditCard,
+  QrCode,
+  Barcode,
+  Check,
+  Copy,
+  ShieldCheck,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
 import BillingContactBlock from "~/components/payments/billing-contact-block";
@@ -22,6 +30,16 @@ import {
   priceLabel,
 } from "~/lib/constants/plan-catalog";
 import { precoNoPasso } from "@usesend/lib/src/pricing";
+import {
+  detectarBandeira,
+  formatarNumeroCartao,
+  formatarValidade,
+  lerValidade,
+  soDigitos,
+  temErro,
+  validarCartao,
+  type ErrosCartao,
+} from "~/lib/cartao";
 
 type Promo = {
   code: string;
@@ -79,8 +97,39 @@ function CheckoutInner() {
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
   const [cardHolder, setCardHolder] = useState("");
-  const [saveCard, setSaveCard] = useState(true);
   const [installments, setInstallments] = useState(1);
+
+  // Erros por campo. Só aparecem depois que o campo perde o foco (ou no
+  // envio): acusar "número incompleto" no primeiro dígito digitado é ruído.
+  const [erros, setErros] = useState<ErrosCartao>({
+    numero: null,
+    validade: null,
+    cvc: null,
+    titular: null,
+  });
+  const [tocado, setTocado] = useState<Record<keyof ErrosCartao, boolean>>({
+    numero: false,
+    validade: false,
+    cvc: false,
+    titular: false,
+  });
+
+  const bandeira = detectarBandeira(cardNumber);
+
+  const revalidar = (campo: keyof ErrosCartao) => {
+    setTocado((t) => ({ ...t, [campo]: true }));
+    setErros(
+      validarCartao({
+        numero: cardNumber,
+        validade: cardExpiry,
+        cvc: cardCvc,
+        titular: cardHolder,
+      }),
+    );
+  };
+
+  const erroDe = (campo: keyof ErrosCartao) =>
+    tocado[campo] ? erros[campo] : null;
 
   // Resultado pendente (PIX / boleto)
   const [chargeId, setChargeId] = useState<string | null>(null);
@@ -162,19 +211,27 @@ function CheckoutInner() {
       | undefined;
 
     if (method === "card") {
-      const m = cardExpiry.match(/^(\d{2})\s*\/\s*(\d{2,4})$/);
-      if (!cardNumber || !m || !cardCvc || !cardHolder) {
-        toast.error("Preencha os dados do cartão.");
+      const encontrados = validarCartao({
+        numero: cardNumber,
+        validade: cardExpiry,
+        cvc: cardCvc,
+        titular: cardHolder,
+      });
+      setErros(encontrados);
+      setTocado({ numero: true, validade: true, cvc: true, titular: true });
+      if (temErro(encontrados)) {
+        // O erro fica embaixo de cada campo; o toast só diz para onde olhar.
+        toast.error("Revise os dados do cartão.");
         return;
       }
-      const mm = Number(m[1]);
-      const yy = m[2]!.length === 2 ? 2000 + Number(m[2]) : Number(m[2]);
+
+      const validade = lerValidade(cardExpiry)!;
       card = {
-        number: cardNumber.replace(/\s/g, ""),
-        holderName: cardHolder,
-        expirationMonth: mm,
-        expirationYear: yy,
-        securityCode: cardCvc,
+        number: soDigitos(cardNumber),
+        holderName: cardHolder.trim(),
+        expirationMonth: validade.mes,
+        expirationYear: validade.ano,
+        securityCode: soDigitos(cardCvc),
       };
     }
 
@@ -185,7 +242,9 @@ function CheckoutInner() {
         tier: passo,
         method,
         promoCode: promo?.code,
-        saveCard: method === "card" ? saveCard : undefined,
+        // A assinatura é recorrente: sem token salvo não há como cobrar o mês
+        // seguinte. Por isso não é mais opção do cliente.
+        saveCard: method === "card" ? true : undefined,
         installments: method === "card" ? installments : undefined,
         card,
       },
@@ -451,36 +510,92 @@ function CheckoutInner() {
 
                   <TabsContent value="card" className="space-y-3 pt-4">
                     <div>
-                      <Label>Dados do cartão</Label>
+                      <div className="flex items-baseline justify-between">
+                        <Label htmlFor="card-number">Dados do cartão</Label>
+                        {soDigitos(cardNumber).length >= 4 ? (
+                          <span className="text-xs text-muted-foreground">
+                            {bandeira.nome}
+                          </span>
+                        ) : null}
+                      </div>
                       <Input
+                        id="card-number"
                         className="mt-1"
                         placeholder="1234 1234 1234 1234"
                         value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
+                        onChange={(e) =>
+                          setCardNumber(formatarNumeroCartao(e.target.value))
+                        }
+                        onBlur={() => revalidar("numero")}
                         inputMode="numeric"
+                        autoComplete="cc-number"
+                        aria-invalid={!!erroDe("numero")}
                       />
+                      {erroDe("numero") ? (
+                        <p className="mt-1 text-xs text-destructive">
+                          {erroDe("numero")}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        placeholder="MM / AA"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                      />
-                      <Input
-                        placeholder="CVC"
-                        value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value)}
-                        inputMode="numeric"
-                      />
+                      <div>
+                        <Input
+                          placeholder="MM/AA"
+                          value={cardExpiry}
+                          onChange={(e) =>
+                            setCardExpiry(formatarValidade(e.target.value))
+                          }
+                          onBlur={() => revalidar("validade")}
+                          inputMode="numeric"
+                          autoComplete="cc-exp"
+                          aria-label="Validade"
+                          aria-invalid={!!erroDe("validade")}
+                        />
+                        {erroDe("validade") ? (
+                          <p className="mt-1 text-xs text-destructive">
+                            {erroDe("validade")}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div>
+                        <Input
+                          placeholder={bandeira.cvc === 4 ? "0000" : "000"}
+                          value={cardCvc}
+                          onChange={(e) =>
+                            setCardCvc(
+                              soDigitos(e.target.value).slice(0, bandeira.cvc),
+                            )
+                          }
+                          onBlur={() => revalidar("cvc")}
+                          inputMode="numeric"
+                          autoComplete="cc-csc"
+                          aria-label="Código de segurança"
+                          aria-invalid={!!erroDe("cvc")}
+                        />
+                        {erroDe("cvc") ? (
+                          <p className="mt-1 text-xs text-destructive">
+                            {erroDe("cvc")}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
                     <div>
-                      <Label>Nome do titular</Label>
+                      <Label htmlFor="card-holder">Nome do titular</Label>
                       <Input
+                        id="card-holder"
                         className="mt-1"
-                        placeholder="Nome completo"
+                        placeholder="Como está impresso no cartão"
                         value={cardHolder}
                         onChange={(e) => setCardHolder(e.target.value)}
+                        onBlur={() => revalidar("titular")}
+                        autoComplete="cc-name"
+                        aria-invalid={!!erroDe("titular")}
                       />
+                      {erroDe("titular") ? (
+                        <p className="mt-1 text-xs text-destructive">
+                          {erroDe("titular")}
+                        </p>
+                      ) : null}
                     </div>
                     {installmentOptions && installmentOptions.length > 1 ? (
                       <div>
@@ -511,15 +626,30 @@ function CheckoutInner() {
                         ) : null}
                       </div>
                     ) : null}
-                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        className="rounded border"
-                        checked={saveCard}
-                        onChange={(e) => setSaveCard(e.target.checked)}
-                      />
-                      Salvar cartão para cobranças futuras (recorrência)
-                    </label>
+                    {/* O cartão fica salvo sempre: a assinatura é recorrente
+                        e sem o token não há como cobrar o mês seguinte. Era
+                        um checkbox, o que deixava o cliente desligar a
+                        recorrência sem saber. */}
+                    <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3">
+                      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 text-xs leading-relaxed text-muted-foreground">
+                        <p>
+                          Seu cartão é{" "}
+                          <span className="font-medium text-foreground">
+                            tokenizado na Rede
+                          </span>{" "}
+                          e fica guardado para as cobranças mensais da
+                          assinatura. Não armazenamos o número do cartão nos
+                          nossos servidores.
+                        </p>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="/brand/rede.svg"
+                          alt="Rede"
+                          className="mt-2 h-4 w-auto"
+                        />
+                      </div>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="pix" className="pt-4">
