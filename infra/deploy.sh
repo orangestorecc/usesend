@@ -63,22 +63,19 @@ npx prisma generate 2>&1 | tail -1
 npx prisma migrate deploy 2>&1 | tail -3
 
 log "Build"
-# Guarda a versão atual: se o build falhar, ela volta.
-rm -rf "$WEB/.next.bak"
-[ -d "$WEB/.next" ] && cp -r "$WEB/.next" "$WEB/.next.bak"
-
-# Restaura também se o processo for interrompido (queda de SSH, timeout,
-# kill). Sem isso, um build morto no meio deixava .next incompleto e o app
-# servindo 404 — foi o que aconteceu em 11/08.
-restaurar_se_interrompido() {
-  if [ -d "$WEB/.next.bak" ]; then
-    echo "  interrompido: restaurando a versão anterior" >&2
-    rm -rf "$WEB/.next"
-    mv "$WEB/.next.bak" "$WEB/.next"
-    sudo supervisorctl restart madmail-web >/dev/null 2>&1 || true
-  fi
+# O build escrevia POR CIMA do .next que o servidor estava servindo. Nos ~15
+# minutos de compilação (1 vCPU), a produção entregava um diretório em
+# mutação: chunk sumindo, HTML de uma versão pedindo JS de outra — todo
+# deploy gerava erro no navegador do cliente. Agora compila em .next-nova e a
+# troca acontece no fim, em segundos, seguida do restart.
+#
+# Bônus: se o build falhar ou for interrompido, a versão no ar NUNCA foi
+# tocada — não existe mais "restaurar", só descartar o rascunho.
+rm -rf "$WEB/.next-nova"
+descartar_build_interrompido() {
+  rm -rf "$WEB/.next-nova"
 }
-trap restaurar_se_interrompido INT TERM HUP
+trap descartar_build_interrompido INT TERM HUP
 
 export NEXT_PUBLIC_IS_CLOUD=true
 export NODE_OPTIONS="--max-old-space-size=3072"
@@ -89,16 +86,22 @@ export NODE_OPTIONS="--max-old-space-size=3072"
 # funcionar — a issue fecha sozinha quando sobe o deploy com a correção.
 export NEXT_PUBLIC_GIT_SHA="$AFTER"
 
-if npx next build > "$LOGS/build.log" 2>&1; then
-  echo "  BUILD_ID: $(cat "$WEB/.next/BUILD_ID")"
+if NEXT_DIST_DIR=".next-nova" npx next build > "$LOGS/build.log" 2>&1; then
   trap - INT TERM HUP
-  rm -rf "$WEB/.next.bak"
+  echo "  BUILD_ID: $(cat "$WEB/.next-nova/BUILD_ID")"
+  # Troca atômica + restart imediato: a janela de inconsistência cai de
+  # minutos para os segundos do restart. A anterior fica guardada até o
+  # próximo deploy, para rollback manual rápido se for preciso.
+  rm -rf "$WEB/.next-anterior"
+  [ -d "$WEB/.next" ] && mv "$WEB/.next" "$WEB/.next-anterior"
+  mv "$WEB/.next-nova" "$WEB/.next"
+  sudo supervisorctl restart madmail-web >/dev/null 2>&1 || true
+  echo "  publicado e reiniciado"
 else
   trap - INT TERM HUP
-  echo "  BUILD FALHOU — restaurando a versão anterior:"
+  echo "  BUILD FALHOU — a versão no ar não foi tocada:"
   tail -15 "$LOGS/build.log" | sed 's/^/    /'
-  rm -rf "$WEB/.next"
-  [ -d "$WEB/.next.bak" ] && mv "$WEB/.next.bak" "$WEB/.next"
+  rm -rf "$WEB/.next-nova"
   exit 1
 fi
 
@@ -197,6 +200,34 @@ for i in $(seq 1 45); do
   fi
   sleep 1
 done
+# O /api/health responde "Healthy" mesmo quando o app serve um HTML que aponta
+# para chunks de um build anterior — foi o que aconteceu em 12/08/2026: página
+# em branco no navegador, health verde, curl 200. Aqui conferimos o que
+# importa de fato: o JavaScript que a página pede existe no servidor.
+verificar_chunk() {
+  curl -s --max-time 8 http://127.0.0.1:3000/login \
+    | grep -oE '/_next/static/chunks/main-app-[^"]+\.js' | head -1
+}
+
+CHUNK=$(verificar_chunk)
+if [ -z "$CHUNK" ]; then
+  echo "  AVISO: nao encontrei o chunk principal no HTML" >&2
+elif curl -sf --max-time 8 -o /dev/null "http://127.0.0.1:3000${CHUNK}"; then
+  echo "  build coerente (o HTML aponta para um chunk que existe)"
+else
+  echo "  ERRO: o HTML pede ${CHUNK}, que o servidor nao entrega." >&2
+  echo "  App servindo build antigo; reiniciando o web..." >&2
+  sudo supervisorctl restart madmail-web >/dev/null 2>&1
+  sleep 15
+  CHUNK=$(verificar_chunk)
+  if [ -n "$CHUNK" ] && curl -sf --max-time 8 -o /dev/null "http://127.0.0.1:3000${CHUNK}"; then
+    echo "  corrigido pelo restart" >&2
+  else
+    echo "  SEGUE INCOERENTE - a interface vai abrir em branco" >&2
+    exit 1
+  fi
+fi
+
 curl -sf --max-time 5 http://127.0.0.1:3001/ >/dev/null 2>&1 \
   && echo "  site respondendo" || echo "  site NAO respondeu"
 curl -sf --max-time 5 http://127.0.0.1:3002/ >/dev/null 2>&1 \

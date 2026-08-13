@@ -8,6 +8,10 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import("next").NextConfig} */
 const config = {
+  // O deploy compila em um diretório separado (.next-nova) e só troca no fim,
+  // para a produção nunca servir um build pela metade. Fora do deploy, o
+  // padrão .next continua valendo — inclusive no `next start`.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   output: process.env.DOCKER_OUTPUT ? "standalone" : undefined,
   serverExternalPackages: ["bullmq"],
   transpilePackages: ["@usesend/ui", "@usesend/email-editor"],
