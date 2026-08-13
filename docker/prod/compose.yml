@@ -66,7 +66,7 @@ services:
       - NEXT_PUBLIC_IS_CLOUD=${NEXT_PUBLIC_IS_CLOUD:-false}
       - API_RATE_LIMIT=${API_RATE_LIMIT:-1}
       - SMTP_HOST=${SMTP_HOST:-smtp.madmail.com.br}
-      - SMTP_USER=${SMTP_USER:-usesend}
+      - SMTP_USER=${SMTP_USER:-madmail}
     depends_on:
       postgres:
         condition: service_healthy
