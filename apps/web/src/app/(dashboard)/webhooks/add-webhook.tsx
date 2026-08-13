@@ -25,11 +25,15 @@ import { api } from "~/trpc/react";
 import { useForm } from "react-hook-form";
 import { toast } from "@usesend/ui/src/toaster";
 import { ChevronDown, Plus } from "lucide-react";
+import Link from "next/link";
 import {
   ContactEvents,
   DomainEvents,
   EmailEvents,
+  InboundEmailEvents,
+  SendingEvents,
   WebhookEvents,
+  isInboundWebhookEvent,
   type WebhookEventType,
 } from "@usesend/lib/src/webhook/webhook-events";
 import {
@@ -58,10 +62,16 @@ type WebhookFormValues = z.infer<typeof webhookSchema>;
 const eventGroups: {
   label: string;
   events: readonly WebhookEventType[];
+  requiresReceiving?: boolean;
 }[] = [
   { label: "Eventos de contato", events: ContactEvents },
   { label: "Eventos de domínio", events: DomainEvents },
   { label: "Eventos de e-mail", events: EmailEvents },
+  {
+    label: "Recebimento de e-mail",
+    events: InboundEmailEvents,
+    requiresReceiving: true,
+  },
 ];
 
 export function AddWebhook() {
@@ -73,6 +83,17 @@ export function AddWebhook() {
   const { openModal } = useUpgradeModalStore((s) => s.action);
 
   const utils = api.useUtils();
+
+  const receivingDomains =
+    domainsQuery.data?.filter((domain) => domain.receivingEnabled) ?? [];
+  const hasReceiving = receivingDomains.length > 0;
+  const inboundBlocked =
+    domainsQuery.isLoading || domainsQuery.isError || !hasReceiving;
+  const inboundBlockedMessage = domainsQuery.isLoading
+    ? "Carregando domínios…"
+    : domainsQuery.isError
+      ? "Não foi possível verificar seus domínios."
+      : "Nenhum domínio com recebimento ativo.";
 
   const form = useForm<WebhookFormValues>({
     resolver: zodResolver(webhookSchema),
@@ -102,6 +123,16 @@ export function AddWebhook() {
 
     if (!allEventsSelected && selectedEvents.length === 0) {
       toast.error("Selecione ao menos um evento ou todos os eventos");
+      return;
+    }
+
+    const wantsInbound = selectedEvents.some((event) =>
+      isInboundWebhookEvent(event),
+    );
+    if (wantsInbound && !hasReceiving) {
+      toast.error(
+        "Ative o recebimento em ao menos um domínio antes de assinar email.received",
+      );
       return;
     }
 
@@ -189,12 +220,15 @@ export function AddWebhook() {
                           ? selectedEvents[0]
                           : `${selectedCount} eventos selecionados`;
 
-                  const isGroupFullySelected = (
-                    groupEvents: readonly WebhookEventType[],
-                  ) => {
-                    if (allEventsSelected) return true;
+                  const isGroupFullySelected = (group: {
+                    events: readonly WebhookEventType[];
+                    requiresReceiving?: boolean;
+                  }) => {
+                    // "Todos os eventos" não inclui inbound — o grupo de
+                    // recebimento nunca aparece cheio via "todos".
+                    if (allEventsSelected) return !group.requiresReceiving;
                     if (selectedEvents.length === 0) return false;
-                    return groupEvents.every((event) =>
+                    return group.events.every((event) =>
                       selectedEvents.includes(event),
                     );
                   };
@@ -213,7 +247,9 @@ export function AddWebhook() {
                     groupEvents: readonly WebhookEventType[],
                   ) => {
                     if (allEventsSelected) {
-                      const next = totalEvents.filter(
+                      // Descer de "todos": a base são os eventos de envio —
+                      // inbound e webhook.test nunca entram implicitamente.
+                      const next = SendingEvents.filter(
                         (event) => !groupEvents.includes(event),
                       );
                       setAllEventsSelected(false);
@@ -237,7 +273,11 @@ export function AddWebhook() {
 
                   const handleToggleEvent = (event: WebhookEventType) => {
                     if (allEventsSelected) {
-                      const next = WebhookEvents.filter((e) => e !== event);
+                      const next = isInboundWebhookEvent(event)
+                        ? // Marcar inbound sob "todos": desce para a lista
+                          // explícita de envio + o evento inbound clicado.
+                          [...SendingEvents, event]
+                        : SendingEvents.filter((e) => e !== event);
                       setAllEventsSelected(false);
                       field.onChange(next);
                       return;
@@ -279,42 +319,91 @@ export function AddWebhook() {
                               >
                                 Todos os eventos
                               </DropdownMenuCheckboxItem>
-                              {eventGroups.map((group) => (
-                                <div key={group.label} className="">
-                                  <DropdownMenuCheckboxItem
-                                    checked={isGroupFullySelected(group.events)}
-                                    onCheckedChange={() =>
-                                      handleToggleGroup(group.events)
-                                    }
-                                    onSelect={(event) => event.preventDefault()}
-                                    className="px-2 text-xs font-semibold text-muted-foreground"
-                                  >
-                                    {group.label}
-                                  </DropdownMenuCheckboxItem>
-                                  {group.events.map((event) => (
+                              {eventGroups.map((group) => {
+                                const groupBlocked = Boolean(
+                                  group.requiresReceiving && inboundBlocked,
+                                );
+                                return (
+                                  <div key={group.label} className="">
                                     <DropdownMenuCheckboxItem
-                                      key={event}
-                                      checked={
-                                        allEventsSelected ||
-                                        selectedEvents.includes(event)
-                                      }
+                                      checked={isGroupFullySelected(group)}
+                                      disabled={groupBlocked}
                                       onCheckedChange={() =>
-                                        handleToggleEvent(event)
+                                        handleToggleGroup(group.events)
                                       }
                                       onSelect={(event) =>
                                         event.preventDefault()
                                       }
-                                      className="pl-3 pr-2 font-mono"
+                                      className="px-2 text-xs font-semibold text-muted-foreground"
                                     >
-                                      {event}
+                                      {group.label}
                                     </DropdownMenuCheckboxItem>
-                                  ))}
-                                </div>
-                              ))}
+                                    {group.events.map((event) => (
+                                      <DropdownMenuCheckboxItem
+                                        key={event}
+                                        checked={
+                                          selectedEvents.includes(event) ||
+                                          (allEventsSelected &&
+                                            !isInboundWebhookEvent(event))
+                                        }
+                                        disabled={groupBlocked}
+                                        onCheckedChange={() =>
+                                          handleToggleEvent(event)
+                                        }
+                                        onSelect={(event) =>
+                                          event.preventDefault()
+                                        }
+                                        className="pl-3 pr-2 font-mono"
+                                      >
+                                        {event}
+                                      </DropdownMenuCheckboxItem>
+                                    ))}
+                                    {groupBlocked ? (
+                                      <p className="px-3 py-1 text-xs text-muted-foreground">
+                                        {inboundBlockedMessage}{" "}
+                                        {domainsQuery.isError ? (
+                                          <button
+                                            type="button"
+                                            className="underline underline-offset-2"
+                                            onClick={() =>
+                                              domainsQuery.refetch()
+                                            }
+                                          >
+                                            Tentar novamente
+                                          </button>
+                                        ) : !domainsQuery.isLoading ? (
+                                          <span>
+                                            Ative o recebimento em um domínio
+                                            para assinar este evento.
+                                          </span>
+                                        ) : null}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </FormControl>
+                      <FormDescription>
+                        {"“Todos os eventos” não inclui "}
+                        <span className="font-mono">email.received</span>
+                        {" — selecione-o explicitamente."}
+                        {!domainsQuery.isLoading &&
+                        !domainsQuery.isError &&
+                        !hasReceiving ? (
+                          <>
+                            {" "}
+                            <Link
+                              href="/domains"
+                              className="underline underline-offset-2"
+                            >
+                              Ativar recebimento em Domínios
+                            </Link>
+                          </>
+                        ) : null}
+                      </FormDescription>
                       {formState.errors.eventTypes ? <FormMessage /> : null}
                     </FormItem>
                   );
@@ -395,6 +484,30 @@ export function AddWebhook() {
                         Deixe em todos os domínios para receber eventos de todos
                         os domínios.
                       </FormDescription>
+                      {(() => {
+                        const inboundSelected = (
+                          form.watch("eventTypes") ?? []
+                        ).some((event) => isInboundWebhookEvent(event));
+                        const filterHasReceiving =
+                          selectedDomainIds.length === 0 ||
+                          selectedDomainIds.some((id) =>
+                            receivingDomains.some(
+                              (domain) => domain.id === id,
+                            ),
+                          );
+                        return inboundSelected &&
+                          hasReceiving &&
+                          !filterHasReceiving ? (
+                          <p
+                            role="alert"
+                            className="text-xs text-amber-600 dark:text-amber-500"
+                          >
+                            Nenhum dos domínios selecionados tem recebimento
+                            ativo — o evento email.received não será disparado
+                            para este webhook.
+                          </p>
+                        ) : null;
+                      })()}
                     </FormItem>
                   );
                 }}

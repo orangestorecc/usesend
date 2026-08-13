@@ -296,6 +296,9 @@ model Team {
   /// campo ao confirmar pagamento — por isso o bloqueio por reputacao mora em
   /// sendingBlockedAt, e nao aqui.
   isBlocked        Boolean           @default(false)
+  /// Estado do wizard de onboarding: { dismissedWelcomeAt, snoozedUntil, lastRemindedAt }.
+  /// O progresso em si NAO mora aqui — e derivado por contagem no onboarding-service.
+  onboardingState  Json?
   /// Bloqueio de envio por reputacao (bounce/reclamacao). Independente de isBlocked.
   sendingBlockedAt     DateTime?
   sendingBlockedReason String?
@@ -508,6 +511,8 @@ model ContactBook {
   doubleOptInFrom    String?
   doubleOptInSubject String?
   doubleOptInContent String?
+  /// Ultimo disparo em massa de pedidos de opt-in nesta lista (rate limit).
+  lastBulkOptInAt    DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   emoji              String    @default("📙")
@@ -537,6 +542,8 @@ model Contact {
   subscribed        Boolean            @default(true)
   unsubscribeReason UnsubscribeReason?
   properties        Json
+  /// Ultimo pedido de confirmacao de double opt-in enviado (cooldown de 24h).
+  doubleOptInSentAt DateTime?
   contactBookId     String
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -901,9 +908,15 @@ model InboundEmail {
   fromEmail  String
   fromName   String?
   to         String[]
+  cc         String[] @default([])
+  bcc        String[] @default([])
+  replyTo    String[] @default([])
   subject    String?
   textBody   String?
   htmlBody   String?
+  headers     Json?   // [{name, value}] — headers originais na ordem recebida
+  attachments Json?   // [{filename, contentType, size}] — só metadados, binário fica no S3
+  spamVerdict String? // X-SES-Spam-Verdict do SES Receipt
   read       Boolean  @default(false)
   receivedAt DateTime @default(now())
   createdAt  DateTime @default(now())

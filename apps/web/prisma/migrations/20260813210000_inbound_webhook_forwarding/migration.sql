@@ -1,10 +1,15 @@
--- CreateEnum
-CREATE TYPE "ForwardingRuleStatus" AS ENUM ('PENDING_VERIFICATION', 'ACTIVE', 'PAUSED', 'DISABLED_BOUNCED');
+-- Inbound: campos para o payload do webhook email.received
+ALTER TABLE "InboundEmail" ADD COLUMN "cc" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "InboundEmail" ADD COLUMN "bcc" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "InboundEmail" ADD COLUMN "replyTo" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "InboundEmail" ADD COLUMN "headers" JSONB;
+ALTER TABLE "InboundEmail" ADD COLUMN "attachments" JSONB;
+ALTER TABLE "InboundEmail" ADD COLUMN "spamVerdict" TEXT;
 
--- CreateEnum
+-- Encaminhamento de e-mail (forwarding): regra origem → destino
+CREATE TYPE "ForwardingRuleStatus" AS ENUM ('PENDING_VERIFICATION', 'ACTIVE', 'PAUSED', 'DISABLED_BOUNCED');
 CREATE TYPE "ForwardStatus" AS ENUM ('PENDING', 'SENT', 'FAILED', 'SKIPPED');
 
--- CreateTable
 CREATE TABLE "ForwardingRule" (
     "id" TEXT NOT NULL,
     "teamId" INTEGER NOT NULL,
@@ -26,7 +31,14 @@ CREATE TABLE "ForwardingRule" (
     CONSTRAINT "ForwardingRule_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
+CREATE UNIQUE INDEX "ForwardingRule_verificationToken_key" ON "ForwardingRule"("verificationToken");
+CREATE UNIQUE INDEX "ForwardingRule_teamId_domainId_destination_key" ON "ForwardingRule"("teamId", "domainId", "destination");
+CREATE INDEX "ForwardingRule_teamId_status_idx" ON "ForwardingRule"("teamId", "status");
+CREATE INDEX "ForwardingRule_domainId_status_idx" ON "ForwardingRule"("domainId", "status");
+
+ALTER TABLE "ForwardingRule" ADD CONSTRAINT "ForwardingRule_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ForwardingRule" ADD CONSTRAINT "ForwardingRule_domainId_fkey" FOREIGN KEY ("domainId") REFERENCES "Domain"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
 CREATE TABLE "InboundForward" (
     "id" TEXT NOT NULL,
     "ruleId" TEXT NOT NULL,
@@ -42,32 +54,8 @@ CREATE TABLE "InboundForward" (
     CONSTRAINT "InboundForward_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "ForwardingRule_verificationToken_key" ON "ForwardingRule"("verificationToken");
-
--- CreateIndex
-CREATE INDEX "ForwardingRule_teamId_status_idx" ON "ForwardingRule"("teamId", "status");
-
--- CreateIndex
-CREATE INDEX "ForwardingRule_domainId_status_idx" ON "ForwardingRule"("domainId", "status");
-
--- CreateIndex
-CREATE UNIQUE INDEX "ForwardingRule_teamId_domainId_destination_key" ON "ForwardingRule"("teamId", "domainId", "destination");
-
--- CreateIndex
+CREATE UNIQUE INDEX "InboundForward_ruleId_inboundEmailId_key" ON "InboundForward"("ruleId", "inboundEmailId");
 CREATE INDEX "InboundForward_teamId_createdAt_idx" ON "InboundForward"("teamId", "createdAt");
 
--- CreateIndex
-CREATE UNIQUE INDEX "InboundForward_ruleId_inboundEmailId_key" ON "InboundForward"("ruleId", "inboundEmailId");
-
--- AddForeignKey
-ALTER TABLE "ForwardingRule" ADD CONSTRAINT "ForwardingRule_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ForwardingRule" ADD CONSTRAINT "ForwardingRule_domainId_fkey" FOREIGN KEY ("domainId") REFERENCES "Domain"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "InboundForward" ADD CONSTRAINT "InboundForward_ruleId_fkey" FOREIGN KEY ("ruleId") REFERENCES "ForwardingRule"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "InboundForward" ADD CONSTRAINT "InboundForward_inboundEmailId_fkey" FOREIGN KEY ("inboundEmailId") REFERENCES "InboundEmail"("id") ON DELETE CASCADE ON UPDATE CASCADE;

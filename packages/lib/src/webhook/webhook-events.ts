@@ -37,14 +37,36 @@ export const WebhookTestEvents = ["webhook.test"] as const;
 
 export type WebhookTestEventType = (typeof WebhookTestEvents)[number];
 
+// Eventos de recebimento (inbound). Classe separada dos EmailEvents porque a
+// semântica de assinatura difere: "todos os eventos" (eventTypes vazio) NÃO
+// inclui inbound — o opt-in precisa ser explícito.
+export const InboundEmailEvents = ["email.received"] as const;
+
+export type InboundEmailEventType = (typeof InboundEmailEvents)[number];
+
 export const WebhookEvents = [
   ...ContactEvents,
   ...DomainEvents,
   ...EmailEvents,
+  ...InboundEmailEvents,
   ...WebhookTestEvents,
 ] as const;
 
 export type WebhookEventType = (typeof WebhookEvents)[number];
+
+// Eventos de envio: base do "descer de todos os eventos" na UI. Exclui
+// inbound (opt-in explícito) e webhook.test (nunca persistido em eventTypes).
+export const SendingEvents = [
+  ...ContactEvents,
+  ...DomainEvents,
+  ...EmailEvents,
+] as const;
+
+export function isInboundWebhookEvent(
+  type: string,
+): type is InboundEmailEventType {
+  return (InboundEmailEvents as readonly string[]).includes(type);
+}
 
 export type EmailStatus =
   | "QUEUED"
@@ -159,6 +181,26 @@ export type WebhookTestPayload = {
   sentAt: string;
 };
 
+export type EmailReceivedPayload = {
+  email_id: string;
+  message_id: string | null;
+  domain_id: number | null;
+  from: { email: string; name: string | null };
+  to: string[];
+  cc: string[];
+  bcc: string[];
+  reply_to: string[];
+  subject: string | null;
+  /** Truncado a 64 KB — corpo completo disponível via API pelo email_id. */
+  text: string | null;
+  html: string | null;
+  truncated: boolean;
+  headers: { name: string; value: string }[];
+  attachments: { filename: string; content_type: string; size: number }[];
+  spam_verdict: string | null;
+  received_at: string;
+};
+
 export type EmailEventPayloadMap = {
   "email.queued": EmailBasePayload;
   "email.sent": EmailBasePayload;
@@ -192,9 +234,14 @@ export type WebhookTestEventPayloadMap = {
   "webhook.test": WebhookTestPayload;
 };
 
+export type InboundEmailEventPayloadMap = {
+  "email.received": EmailReceivedPayload;
+};
+
 export type WebhookEventPayloadMap = EmailEventPayloadMap &
   DomainEventPayloadMap &
   ContactEventPayloadMap &
+  InboundEmailEventPayloadMap &
   WebhookTestEventPayloadMap;
 
 export type WebhookPayloadData<TType extends WebhookEventType> =

@@ -13,6 +13,90 @@ import { validateDomainFromEmail } from "./domain-service";
 
 const DOUBLE_OPT_IN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Cooldown por contato: nao reenviar pedido de confirmacao antes disso. */
+export const DOUBLE_OPT_IN_CONTACT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+/** Rate limit do disparo em massa por lista. */
+export const DOUBLE_OPT_IN_BULK_INTERVAL_MS = 15 * 60 * 1000;
+/** Teto de contatos por disparo em massa. */
+export const DOUBLE_OPT_IN_BULK_MAX = 1000;
+
+export type DoubleOptInBlockReason =
+  | "DOUBLE_OPT_IN_DISABLED"
+  | "NO_VERIFIED_DOMAIN"
+  | "SENDER_DOMAIN_NOT_VERIFIED";
+
+/**
+ * O remetente do pedido de opt-in precisa sair de um dominio verificado do time.
+ * Retorna o `from` resolvido ou o motivo do bloqueio — sem lancar, para que a UI
+ * consiga explicar o problema antes do usuario clicar.
+ */
+export async function resolveDoubleOptInSender({
+  teamId,
+  doubleOptInEnabled,
+  doubleOptInFrom,
+}: {
+  teamId: number;
+  doubleOptInEnabled: boolean;
+  doubleOptInFrom: string | null;
+}): Promise<
+  { from: string; reason: null } | { from: null; reason: DoubleOptInBlockReason }
+> {
+  if (!doubleOptInEnabled) {
+    return { from: null, reason: "DOUBLE_OPT_IN_DISABLED" };
+  }
+
+  const configuredFrom = doubleOptInFrom?.trim();
+
+  if (!configuredFrom) {
+    const domain = await db.domain.findFirst({
+      where: { teamId, status: DomainStatus.SUCCESS },
+      select: { name: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (!domain) {
+      return { from: null, reason: "NO_VERIFIED_DOMAIN" };
+    }
+
+    return { from: `hello@${domain.name}`, reason: null };
+  }
+
+  const senderDomain = extractDomainFromEmail(configuredFrom);
+
+  if (!senderDomain) {
+    return { from: null, reason: "SENDER_DOMAIN_NOT_VERIFIED" };
+  }
+
+  const domain = await db.domain.findFirst({
+    where: { teamId, name: senderDomain, status: DomainStatus.SUCCESS },
+    select: { id: true },
+  });
+
+  if (!domain) {
+    return { from: null, reason: "SENDER_DOMAIN_NOT_VERIFIED" };
+  }
+
+  return { from: configuredFrom, reason: null };
+}
+
+function extractDomainFromEmail(email: string) {
+  const match = email.match(/<([^>]+)>/);
+  const address = match?.[1] ?? email;
+  const domain = address.split("@")[1]?.trim().replace(/>$/, "");
+  return domain && domain.length > 0 ? domain : undefined;
+}
+
+export class DoubleOptInBlockedError extends Error {
+  constructor(public readonly reason: DoubleOptInBlockReason) {
+    super(
+      reason === "DOUBLE_OPT_IN_DISABLED"
+        ? "O double opt-in está desligado nesta lista"
+        : "Valide um domínio de envio antes de pedir a confirmação dos contatos",
+    );
+    this.name = "DoubleOptInBlockedError";
+  }
+}
+
 function createDoubleOptInHash(contactId: string, expiresAt: number) {
   return createHash("sha256")
     .update(`${contactId}-${expiresAt}-${env.NEXTAUTH_SECRET}`)
@@ -84,33 +168,17 @@ export async function sendDoubleOptInConfirmationEmail({
     return;
   }
 
-  const configuredFrom = contact.contactBook.doubleOptInFrom?.trim();
-  let from: string;
+  const sender = await resolveDoubleOptInSender({
+    teamId,
+    doubleOptInEnabled: contact.contactBook.doubleOptInEnabled,
+    doubleOptInFrom: contact.contactBook.doubleOptInFrom,
+  });
 
-  if (!configuredFrom) {
-    const domain = await db.domain.findFirst({
-      where: {
-        teamId,
-        status: DomainStatus.SUCCESS,
-      },
-      select: {
-        name: true,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    });
-
-    if (!domain) {
-      throw new Error(
-        "Double opt-in requires at least one verified domain to send confirmation emails",
-      );
-    }
-
-    from = `hello@${domain.name}`;
-  } else {
-    from = configuredFrom;
+  if (sender.reason !== null) {
+    throw new DoubleOptInBlockedError(sender.reason);
   }
+
+  const from = sender.from;
 
   const confirmationUrl = createDoubleOptInConfirmationUrl(contact.id);
 
@@ -161,6 +229,11 @@ export async function sendDoubleOptInConfirmationEmail({
     subject,
     html: replaceTemplateTokens(html, { doubleOptInUrl: confirmationUrl }),
     teamId,
+  });
+
+  await db.contact.update({
+    where: { id: contact.id },
+    data: { doubleOptInSentAt: new Date() },
   });
 }
 

@@ -5,6 +5,7 @@ import {
   WebhookEventData,
   WebhookPayloadData,
   WEBHOOK_EVENT_VERSION,
+  isInboundWebhookEvent,
   type WebhookEvent,
   type WebhookEventPayloadMap,
   type WebhookEventType,
@@ -110,27 +111,32 @@ export class WebhookService {
             ],
           };
 
+    // Eventos inbound exigem assinatura explícita: "todos os eventos"
+    // (eventTypes vazio) não inclui email.received — webhooks criados antes
+    // do evento existir não podem passar a receber corpo de e-mails de
+    // terceiros sem opt-in.
+    const eventTypeFilter = isInboundWebhookEvent(type)
+      ? { eventTypes: { has: type } }
+      : {
+          OR: [
+            {
+              eventTypes: {
+                has: type,
+              },
+            },
+            {
+              eventTypes: {
+                isEmpty: true,
+              },
+            },
+          ],
+        };
+
     const activeWebhooks = await db.webhook.findMany({
       where: {
         teamId,
         status: WebhookStatus.ACTIVE,
-        AND: [
-          {
-            OR: [
-              {
-                eventTypes: {
-                  has: type,
-                },
-              },
-              {
-                eventTypes: {
-                  isEmpty: true,
-                },
-              },
-            ],
-          },
-          ...(domainFilter ? [domainFilter] : []),
-        ],
+        AND: [eventTypeFilter, ...(domainFilter ? [domainFilter] : [])],
       },
     });
 
@@ -278,6 +284,12 @@ export class WebhookService {
       );
     }
 
+    await WebhookService.assertReceivingCapable(
+      params.teamId,
+      params.eventTypes,
+      normalizedDomainIds,
+    );
+
     const secret = params.secret ?? WebhookService.generateSecret();
 
     return db.webhook.create({
@@ -332,6 +344,21 @@ export class WebhookService {
       );
     }
 
+    // Valida o estado resultante (pós-merge), com grandfathering: quem já
+    // tinha email.received salvo pode continuar editando URL/descrição mesmo
+    // sem domínio receptor — só a ADIÇÃO do evento exige receptor ativo.
+    const effectiveEventTypes = params.eventTypes ?? webhook.eventTypes;
+    const alreadyHadInbound = webhook.eventTypes.some((event) =>
+      isInboundWebhookEvent(event),
+    );
+    if (!alreadyHadInbound) {
+      await WebhookService.assertReceivingCapable(
+        params.teamId,
+        effectiveEventTypes,
+        normalizedDomainIds ?? webhook.domainIds,
+      );
+    }
+
     return db.webhook.update({
       where: { id: webhook.id },
       data: {
@@ -345,6 +372,34 @@ export class WebhookService {
         secret: secret ?? webhook.secret,
       },
     });
+  }
+
+  private static async assertReceivingCapable(
+    teamId: number,
+    eventTypes: string[],
+    domainIds: number[],
+  ) {
+    if (!eventTypes.some((event) => isInboundWebhookEvent(event))) {
+      return;
+    }
+
+    const receivingCount = await db.domain.count({
+      where: {
+        teamId,
+        receivingEnabled: true,
+        ...(domainIds.length > 0 ? { id: { in: domainIds } } : {}),
+      },
+    });
+
+    if (receivingCount === 0) {
+      throw new UnsendApiError({
+        code: "BAD_REQUEST",
+        message:
+          domainIds.length > 0
+            ? "Os domínios selecionados não têm recebimento ativado. O evento email.received nunca seria disparado com este filtro."
+            : "O evento email.received exige pelo menos um domínio com recebimento ativado. Ative o recebimento em um domínio antes de assinar este evento.",
+      });
+    }
   }
 
   private static normalizeDomainIds(domainIds?: number[]) {
