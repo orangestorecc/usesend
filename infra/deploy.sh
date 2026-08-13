@@ -92,7 +92,26 @@ export NODE_OPTIONS="--max-old-space-size=3072"
 # funcionar — a issue fecha sozinha quando sobe o deploy com a correção.
 export NEXT_PUBLIC_GIT_SHA="$AFTER"
 
-if NEXT_DIST_DIR=".next-nova" npx next build > "$LOGS/build.log" 2>&1; then
+# Segredos que só o BUILD usa (hoje o SENTRY_AUTH_TOKEN, que sobe o sourcemap)
+# ficam num arquivo separado do .env da aplicação. O .env é lido pelo processo
+# do Next enquanto ele serve requisição, então tudo que estiver lá fica no
+# environment em produção o tempo todo — sem necessidade, no caso de um token
+# que só é usado durante a compilação.
+#
+# O subshell é o ponto: as variáveis carregadas aqui valem para o `next build`
+# e morrem com ele, em vez de vazarem para o resto do script.
+BUILD_ENV=/opt/madmail/build.env
+build_web() {
+  if [ -f "$BUILD_ENV" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$BUILD_ENV"
+    set +a
+  fi
+  NEXT_DIST_DIR=".next-nova" npx next build > "$LOGS/build.log" 2>&1
+}
+
+if (build_web); then
   trap - INT TERM HUP
   echo "  BUILD_ID: $(cat "$WEB/.next-nova/BUILD_ID")"
   # Troca atômica + restart imediato: a janela de inconsistência cai de
