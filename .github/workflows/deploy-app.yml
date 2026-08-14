@@ -25,7 +25,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Precisa ser maior que a janela de acompanhamento abaixo, senão o job é
+    # morto antes de o vigia poder concluir qualquer coisa.
+    timeout-minutes: 60
 
     steps:
       # Só para ter a mensagem do commit no e-mail de "está em produção".
@@ -69,8 +71,12 @@ jobs:
                 echo \$? > /opt/madmail/deploy.status" >/dev/null 2>&1 &
                 sleep 2; echo "deploy iniciado no servidor"'
 
-          # Acompanha até terminar (limite de 20 min).
-          for i in $(seq 1 120); do
+          # Acompanha até terminar (limite de 45 min). O deploy inteiro passou
+          # dos 20 minutos originais quando a documentação cresceu, e o vigia
+          # desistia enquanto o servidor ainda estava trabalhando: o build
+          # terminava bem, mas o Actions marcava vermelho e mandava e-mail de
+          # falha. A janela precisa cobrir o deploy mais lento, não o médio.
+          for i in $(seq 1 270); do
             STATUS=$($SSH 'cat /opt/madmail/deploy.status 2>/dev/null' || true)
             if [ -n "$STATUS" ]; then
               $SSH 'cat /opt/madmail/deploy.out'
@@ -83,7 +89,10 @@ jobs:
             fi
             sleep 10
           done
-          echo "::error::deploy não terminou em 20 minutos"
+          # Não é o mesmo que "falhou": o deploy roda desacoplado e segue vivo
+          # no servidor. Dizer isso aqui evita o reflexo de redeployar por cima
+          # de um deploy que ainda está em andamento.
+          echo "::error::deploy não terminou em 45 minutos (pode ainda estar rodando no servidor; confira /opt/madmail/deploy.out antes de disparar outro)"
           $SSH 'tail -40 /opt/madmail/deploy.out 2>/dev/null' || true
           exit 1
 

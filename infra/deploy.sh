@@ -142,8 +142,13 @@ fi
 log "Documentação"
 # `mint export` gera um zip; descompactamos para servir como estático, do
 # mesmo jeito que o site institucional.
+#
+# O heap maior não é folga preventiva: com o padrão do Node (4 GB) o export
+# morre em `FATAL ERROR: Reached heap limit` no meio de um JSON.parse, e a
+# documentação parava de ser publicada em silêncio (o passo é não-fatal de
+# propósito, então o deploy seguia). A máquina tem memória de sobra.
 cd "$APP/apps/docs"
-if npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
+if NODE_OPTIONS="--max-old-space-size=8192" npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
   rm -rf "$APP/apps/docs/site"
   mkdir -p "$APP/apps/docs/site"
   unzip -q -o export.zip -d "$APP/apps/docs/site"
