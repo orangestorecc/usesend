@@ -20,6 +20,13 @@ import { useTeam } from "~/providers/team-context";
 import { api } from "~/trpc/react";
 import { InvoiceDetailsDialog } from "./invoice-details-dialog";
 import { DowngradeCard } from "./downgrade-card";
+import PhoneInput from "~/components/phone-input";
+import {
+  emailValido,
+  separarTelefone,
+  telefoneParaArmazenar,
+  telefoneValido,
+} from "~/lib/validadores-br";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", {
@@ -65,7 +72,11 @@ export default function BillingPage() {
   // Contato de faturamento
   const [faturaAberta, setFaturaAberta] = useState<string | null>(null);
   const [emails, setEmails] = useState<string[]>([""]);
+  const [paisWhatsapp, setPaisWhatsapp] = useState("BR");
   const [whatsapp, setWhatsapp] = useState("");
+  // Só mostra os erros depois da primeira tentativa de salvar: apontar erro em
+  // campo que a pessoa ainda está digitando é ruído.
+  const [mostrarErros, setMostrarErros] = useState(false);
   // Fiscal
   const [personType, setPersonType] = useState("PJ");
   const [document, setDocument] = useState("");
@@ -81,7 +92,9 @@ export default function BillingPage() {
     const p = profileQuery.data;
     if (!p) return;
     setEmails(p.billingEmails.length ? p.billingEmails : [""]);
-    setWhatsapp(p.whatsapp ?? "");
+    const tel = separarTelefone(p.whatsapp ?? "");
+    setPaisWhatsapp(tel.codigoPais);
+    setWhatsapp(tel.numero);
     setPersonType(p.personType);
     setDocument(p.document ?? "");
     setName(p.name ?? "");
@@ -102,13 +115,36 @@ export default function BillingPage() {
     );
   }
 
+  const emailsInvalidos = emails.map((e) => {
+    const v = e.trim();
+    return v.length > 0 && !emailValido(v);
+  });
+  const whatsappPreenchido = whatsapp.trim().length > 0;
+  const whatsappInvalido =
+    whatsappPreenchido && !telefoneValido(whatsapp, paisWhatsapp);
+
   const saveContact = () => {
     const clean = emails.map((e) => e.trim()).filter(Boolean);
+    setMostrarErros(true);
+    if (emailsInvalidos.some(Boolean) || whatsappInvalido) {
+      toast.error("Confira os campos destacados antes de salvar.");
+      return;
+    }
+    if (!clean.length) {
+      toast.error("Informe ao menos um e-mail de faturamento.");
+      return;
+    }
     updateContact.mutate(
-      { billingEmails: clean, whatsapp: whatsapp || null },
+      {
+        billingEmails: clean,
+        whatsapp: whatsappPreenchido
+          ? telefoneParaArmazenar(whatsapp, paisWhatsapp)
+          : null,
+      },
       {
         onSuccess: () => {
           utils.billingProfile.get.invalidate();
+          setMostrarErros(false);
           toast.success("Contato de faturamento salvo.");
         },
         onError: (e) => toast.error(e.message),
@@ -155,29 +191,45 @@ export default function BillingPage() {
           <div>
             <Label>E-mails de faturamento</Label>
             <div className="mt-1 space-y-2">
-              {emails.map((email, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Input
-                    type="email"
-                    value={email}
-                    placeholder="financeiro@empresa.com"
-                    onChange={(e) => {
-                      const next = [...emails];
-                      next[i] = e.target.value;
-                      setEmails(next);
-                    }}
-                  />
-                  {emails.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => setEmails(emails.filter((_, idx) => idx !== i))}
-                      className="rounded p-2 text-muted-foreground hover:bg-muted"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  ) : null}
-                </div>
-              ))}
+              {emails.map((email, i) => {
+                const invalido = mostrarErros && emailsInvalidos[i];
+                return (
+                  <div key={i}>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        value={email}
+                        placeholder="financeiro@empresa.com"
+                        aria-invalid={invalido || undefined}
+                        className={invalido ? "border-destructive" : undefined}
+                        onChange={(e) => {
+                          const next = [...emails];
+                          next[i] = e.target.value;
+                          setEmails(next);
+                        }}
+                      />
+                      {emails.length > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEmails(emails.filter((_, idx) => idx !== i))
+                          }
+                          className="rounded p-2 text-muted-foreground hover:bg-muted"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </div>
+                    {invalido ? (
+                      <p className="mt-1 text-xs text-destructive">
+                        E-mail inválido. Use o formato nome@empresa.com.
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
               <Button
                 type="button"
                 variant="outline"
@@ -191,12 +243,14 @@ export default function BillingPage() {
           </div>
           <div>
             <Label>WhatsApp</Label>
-            <Input
-              className="mt-1"
-              value={whatsapp}
-              placeholder="(51) 99999-9999"
-              onChange={(e) => setWhatsapp(e.target.value)}
-            />
+            <div className="mt-1">
+              <PhoneInput
+                codigoPais={paisWhatsapp}
+                onCodigoPaisChange={setPaisWhatsapp}
+                numero={whatsapp}
+                onNumeroChange={setWhatsapp}
+              />
+            </div>
           </div>
         </div>
       </SectionCard>

@@ -61,8 +61,13 @@ export const billingProfileRouter = createTRPCRouter({
   updateContact: teamProcedure
     .input(
       z.object({
-        billingEmails: z.array(z.string().email()).max(10),
-        whatsapp: z.string().max(30).optional().nullable(),
+        billingEmails: z.array(z.string().email()).min(1).max(10),
+        // Guardado como E.164 sem o `+`: DDI + número, só dígitos.
+        whatsapp: z
+          .string()
+          .regex(/^\d{10,15}$/, "WhatsApp inválido.")
+          .optional()
+          .nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
