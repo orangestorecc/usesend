@@ -1,0 +1,213 @@
+---
+title: "Ligar o Madmail ao seu assistente de IA"
+description: "Conecte o ChatGPT, o Claude ou o Cursor à sua conta e faça e-mail marketing conversando."
+---
+
+Depois de ligar, você pede no chat e o assistente faz na sua conta: "como foi a
+campanha de sexta?", "monta uma promoção de frete grátis para quem comprou nos
+últimos 90 dias". Ele lê as suas listas, escreve o e-mail e mostra a prévia.
+
+Por baixo, isso é um servidor MCP (Model Context Protocol) — mas você não
+precisa saber disso para usar.
+
+## Antes de começar
+
+<Warning>
+  A ligação é feita **no computador**, dentro do aplicativo de IA — não dá pelo
+  celular. No ChatGPT e no Claude, adicionar um aplicativo externo exige **plano
+  pago**.
+</Warning>
+
+O endereço de ligação é sempre este:
+
+```
+https://mcp.madmail.com.br/mcp
+```
+
+Não é um site: abrir no navegador não leva a lugar nenhum. Ele serve para colar
+dentro do aplicativo de IA.
+
+## Entrar com a sua conta
+
+Recomendado no dia a dia. Você entra com a sua conta Madmail e não precisa
+guardar nenhuma senha extra.
+
+<Tabs>
+  <Tab title="ChatGPT">
+    Configurações → **Aplicativos e conectores** → ligue a chave **Modo
+    desenvolvedor** → **Criar**. Cole o endereço acima e, em Autenticação,
+    escolha **OAuth** (é o jeito de entrar com a sua conta do Madmail).
+  </Tab>
+
+  <Tab title="Claude">
+    Configurações → **Conectores** → **Adicionar conector personalizado**. Cole
+    o endereço acima.
+  </Tab>
+
+  <Tab title="Cursor">
+    Adicione em `~/.cursor/mcp.json` e clique em **Login** no servidor
+    `madmail`:
+
+    ```json
+    {
+      "mcpServers": {
+        "madmail": {
+          "url": "https://mcp.madmail.com.br/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http madmail https://mcp.madmail.com.br/mcp
+    ```
+
+    Depois rode `/mcp` dentro do Claude Code e escolha autenticar.
+  </Tab>
+
+  <Tab title="Codex">
+    Adicione em `~/.codex/config.toml` e rode `codex mcp login madmail`:
+
+    ```toml
+    [mcp_servers.madmail]
+    url = "https://mcp.madmail.com.br/mcp"
+    ```
+  </Tab>
+
+  <Tab title="VS Code (Copilot)">
+    Crie `.vscode/mcp.json` no projeto e clique em **Start**:
+
+    ```json
+    {
+      "servers": {
+        "madmail": {
+          "type": "http",
+          "url": "https://mcp.madmail.com.br/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### A tela de permissão
+
+O Madmail abre uma tela mostrando quem está pedindo acesso e **para onde esse
+acesso vai**.
+
+<Warning>
+  Confira o endereço de destino na tela. Se ele não for o do aplicativo que você
+  está usando naquele momento, clique em **Não permitir** — alguém pode estar se
+  passando por ele.
+</Warning>
+
+Nessa tela também tem a caixinha **"Também deixar que ele envie e-mail de
+verdade"**. Ela vem desmarcada: assim o assistente monta e agenda tudo, mas quem
+aperta enviar é você. Marque só se quiser que ele dispare sozinho.
+
+## Para quem programa: usar sem fazer login
+
+Onde não dá para abrir uma janela de login — um servidor seu, um robô que roda
+sozinho, uma esteira de build — use uma chave fixa. Crie em **Integrações →
+Assistente de IA → Nova chave**, escolhendo ali o que ela pode fazer. Ela começa
+com `msk_` e aparece **uma única vez**.
+
+<Tabs>
+  <Tab title="Cursor">
+    ```json
+    {
+      "mcpServers": {
+        "madmail": {
+          "url": "https://mcp.madmail.com.br/mcp",
+          "headers": { "Authorization": "Bearer msk_sua_chave_aqui" }
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http madmail https://mcp.madmail.com.br/mcp \
+      --header "Authorization: Bearer msk_sua_chave_aqui"
+    ```
+  </Tab>
+
+  <Tab title="curl">
+    ```bash
+    curl https://mcp.madmail.com.br/mcp \
+      -H "Authorization: Bearer msk_sua_chave_aqui" \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json, text/event-stream" \
+      -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  A chave é uma senha: quem tiver ela mexe na sua conta sem precisar do seu
+  login. Guarde em variável de ambiente, nunca no Git. Se vazar, desligue no
+  painel e crie outra.
+</Warning>
+
+## O que o assistente consegue fazer
+
+Ele só enxerga o que você liberou. Agrupado por consequência:
+
+### Ver — não muda nada
+
+Listas e contatos, campanhas e seus resultados (enviados, entregues, aberturas,
+cliques, devoluções), modelos de e-mail, segmentos, domínios de envio, saúde de
+entregabilidade e consumo da conta.
+
+### Montar — dá para desfazer
+
+Cria e edita listas, importa contatos em lote, salva modelos de e-mail, monta
+segmentos e cria campanhas **em rascunho**. Nada sai nessa etapa.
+
+### Enviar — não dá para desfazer
+
+Dispara ou agenda campanha, envia e-mail avulso, retoma campanha pausada. Só
+funciona se a conexão tiver permissão de envio.
+
+<Info>
+  Toda campanha criada pelo assistente sai com link de descadastro. Se o
+  conteúdo não tiver um, o Madmail acrescenta o rodapé sozinho.
+</Info>
+
+### Parar
+
+Se algo sair errado no meio de um disparo, peça: **"pausa a campanha"**. O
+assistente interrompe os envios que ainda não saíram. Também dá para cancelar um
+e-mail avulso que estava agendado.
+
+## Nada sai sem confirmar
+
+As ações que falam com gente real — disparar campanha, agendar, enviar e-mail
+avulso, retomar campanha — pedem confirmação. Na primeira vez, o assistente
+recebe só um resumo (campanha, assunto, remetente, quantas pessoas) e mostra a
+você. Só depois do seu "pode enviar" a ação acontece.
+
+<Warning>
+  Essa confirmação é um freio para o assistente, não um cadeado. O controle de
+  verdade é a permissão de envio: uma conexão sem ela **não consegue** disparar,
+  aconteça o que acontecer na conversa.
+</Warning>
+
+## Frases para experimentar
+
+- "Quais domínios eu posso usar para enviar?"
+- "Como foi a campanha de sexta? Quantos abriram e clicaram?"
+- "Monta um segmento com quem é de São Paulo e está inscrito, e me diz quantas
+  pessoas são."
+- "Cria uma campanha de Black Friday pra minha lista VIP e me mostra antes de
+  enviar."
+- "Minha conta está saudável? Tem muita devolução?"
+
+## Desligar
+
+Em **Integrações → Assistente de IA**, tudo que tem acesso à sua conta aparece na
+lista — o que você ligou pelo ChatGPT ou Claude e as chaves fixas. Clique na
+lixeira para desligar. O acesso cai em até um minuto.

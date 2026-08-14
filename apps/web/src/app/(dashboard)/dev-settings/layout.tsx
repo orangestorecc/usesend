@@ -16,7 +16,9 @@ export default function ApiKeysPage({
       <div className="flex gap-4 mt-4">
         <SettingsNavButton href="/dev-settings">API Keys</SettingsNavButton>
         <SettingsNavButton href="/dev-settings/smtp">SMTP</SettingsNavButton>
-        <SettingsNavButton href="/dev-settings/mcp">MCP</SettingsNavButton>
+        <SettingsNavButton href="/dev-settings/mcp">
+          Assistente de IA
+        </SettingsNavButton>
         <SettingsNavButton href="/dev-settings/platforms">
           Plataformas
         </SettingsNavButton>

@@ -62,16 +62,21 @@ você pode revogar o acesso quando quiser em
   </Card>
   <Card title="Campanhas" icon="paper-plane">
     `create_campaign`, `schedule_campaign`, `send_campaign`,
-    `list_campaigns`, `get_campaign_report`
+    `pause_campaign`, `resume_campaign`, `list_campaigns`,
+    `get_campaign_report`
   </Card>
   <Card title="Modelos e prévia" icon="file-lines">
     `list_templates`, `get_template`, `save_template`, `render_preview`
   </Card>
   <Card title="E-mail avulso" icon="envelope">
-    `send_email`
+    `send_email`, `get_email`, `cancel_email`
+  </Card>
+  <Card title="Domínios de envio" icon="globe">
+    `list_domains`, `get_domain`
   </Card>
   <Card title="Métricas e uso" icon="chart-line">
-    `get_analytics`, `get_usage`, `billing_summary`
+    `get_analytics`, `get_usage`, `get_reputation_status`,
+    `get_bounce_breakdown`
   </Card>
 </CardGroup>
 

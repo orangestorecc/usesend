@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { db } from "~/server/db";
-import { addMcpKey, DEFAULT_SCOPES } from "~/server/service/mcp-key-service";
+import {
+  addMcpKey,
+  DEFAULT_SCOPES,
+  OAUTH_KEY_TTL_DIAS,
+} from "~/server/service/mcp-key-service";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -64,7 +68,14 @@ export async function POST(req: Request) {
   }
 
   // Consome o código imediatamente (uso único), independente do resultado.
-  await db.oAuthAuthCode.delete({ where: { code } }).catch(() => undefined);
+  // deleteMany + contagem é o claim atômico: em duas trocas simultâneas do
+  // mesmo código, só uma apaga a linha e só ela segue adiante.
+  const consumido = await db.oAuthAuthCode
+    .deleteMany({ where: { code } })
+    .catch(() => ({ count: 0 }));
+  if (consumido.count !== 1) {
+    return oauthError("invalid_grant", "Código inválido ou já utilizado.");
+  }
 
   if (authCode.expiresAt < new Date()) {
     return oauthError("invalid_grant", "Código expirado.");
@@ -83,18 +94,31 @@ export async function POST(req: Request) {
     where: { clientId },
   });
 
-  // Emite a McpKey vinculada ao time — este é o access token.
+  // O consentimento manda: só concede envio se a pessoa marcou a caixa na tela
+  // de autorização (que grava "mcp:send" no scope do código).
+  const scopeConcedido = authCode.scope ?? "mcp";
+  const podeEnviar = scopeConcedido.split(/\s+/).includes("mcp:send");
+
+  // Emite a McpKey vinculada ao time — este é o access token. Diferente de uma
+  // chave criada à mão, esta expira: um consentimento de um clique não deve
+  // gerar credencial eterna.
+  const ttlSegundos = OAUTH_KEY_TTL_DIAS * 24 * 60 * 60;
+  const expiresAt = new Date(Date.now() + ttlSegundos * 1000);
+
   const accessToken = await addMcpKey({
     name: `MCP · ${client?.clientName ?? clientId}`,
     teamId: authCode.teamId,
-    scopes: DEFAULT_SCOPES,
+    scopes: { ...DEFAULT_SCOPES, send: podeEnviar },
+    expiresAt,
+    oauthClientId: clientId,
   });
 
   return NextResponse.json(
     {
       access_token: accessToken,
       token_type: "Bearer",
-      scope: "mcp",
+      expires_in: ttlSegundos,
+      scope: scopeConcedido,
     },
     { headers: { ...CORS, "Cache-Control": "no-store" } },
   );

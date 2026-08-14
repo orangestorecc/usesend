@@ -12,12 +12,13 @@ export default function McpPage() {
 
       <div>
         <div className="flex items-center justify-between">
-          <H1>Chaves do MCP</H1>
+          <H1>Conexões e chaves</H1>
           <AddMcpKey />
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          Cada chave dá acesso ao seu time com os escopos que você definir.
-          Use-as para gerenciar/revogar integrações.
+          Tudo que hoje tem acesso à sua conta por IA aparece aqui — o que você
+          ligou pelo ChatGPT ou Claude e as chaves fixas que você criou. Dá para
+          desligar qualquer um a qualquer momento.
         </p>
         <McpList />
       </div>

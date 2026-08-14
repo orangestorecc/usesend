@@ -869,6 +869,11 @@ model McpKey {
   partialToken String
   scopes       Json
   lastUsed     DateTime?
+  /// Chaves emitidas por OAuth expiram; chaves criadas à mão no painel não
+  /// (null = sem prazo), porque servidor e CI precisam de credencial estável.
+  expiresAt    DateTime?
+  /// Qual cliente OAuth obteve esta chave, quando veio do fluxo de conexão.
+  oauthClientId String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   team         Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)

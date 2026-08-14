@@ -8,6 +8,8 @@ export type BillingSummary = {
   contacts: number; // contatos atuais
   billableContacts: number; // max(contacts, minContacts)
   monthlyCostBRL: number | null;
+  /** Preenchido quando não há plano configurado, para o agente não inventar valor. */
+  observacao?: string;
 };
 
 export function summarizeBilling(
@@ -24,5 +26,11 @@ export function summarizeBilling(
     contacts: contactCount,
     billableContacts: billable,
     monthlyCostBRL: cost,
+    ...(plan
+      ? {}
+      : {
+          observacao:
+            "Esta integração não tem plano por contato configurado, então não há custo a calcular aqui. Não estime um valor: peça para o cliente conferir a cobrança no painel do Madmail.",
+        }),
   };
 }

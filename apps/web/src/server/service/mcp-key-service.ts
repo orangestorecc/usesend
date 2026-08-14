@@ -25,6 +25,23 @@ export type McpScopes = {
   plan?: { pricePerContactBRL: number; minContacts: number };
 };
 
+/**
+ * Preenchimento de escopo ausente em chave antiga. É FECHADO de propósito: uma
+ * capacidade nova não pode ser concedida retroativamente a chaves emitidas sob
+ * uma tela de consentimento que nem falava dela. Só `reputation` abre, porque
+ * já era concedido antes de o enforcement existir e tirá-lo seria regressão.
+ */
+const SCOPES_LEGADOS: McpScopes = {
+  contacts: "none",
+  lists: "none",
+  templates: "none",
+  segments: "none",
+  campaigns: "none",
+  analytics: "none",
+  reputation: "read",
+  send: false,
+};
+
 export const DEFAULT_SCOPES: McpScopes = {
   contacts: "write",
   lists: "write",
@@ -36,14 +53,21 @@ export const DEFAULT_SCOPES: McpScopes = {
   send: true,
 };
 
+/** Validade das chaves emitidas pelo fluxo OAuth. */
+export const OAUTH_KEY_TTL_DIAS = 90;
+
 export async function addMcpKey({
   name,
   teamId,
   scopes,
+  expiresAt,
+  oauthClientId,
 }: {
   name: string;
   teamId: number;
   scopes: McpScopes;
+  expiresAt?: Date;
+  oauthClientId?: string;
 }) {
   const clientId = smallNanoid(10);
   const token = randomBytes(16).toString("hex");
@@ -58,6 +82,8 @@ export async function addMcpKey({
       tokenHash: hashedToken,
       partialToken: `${mcpKey.slice(0, 7)}...${mcpKey.slice(-3)}`,
       scopes: scopes as object,
+      expiresAt: expiresAt ?? null,
+      oauthClientId: oauthClientId ?? null,
     },
   });
 
@@ -71,6 +97,10 @@ export async function getTeamAndMcpKey(mcpToken: string) {
 
   const row = await db.mcpKey.findUnique({ where: { clientId } });
   if (!row) return null;
+  if (row.expiresAt && row.expiresAt < new Date()) {
+    logger.info({ mcpKeyId: row.id }, "Chave MCP expirada recusada");
+    return null;
+  }
 
   try {
     const isValid = await verifySecureHash(token, row.tokenHash);
@@ -84,7 +114,15 @@ export async function getTeamAndMcpKey(mcpToken: string) {
       .update({ where: { id: row.id }, data: { lastUsed: new Date() } })
       .catch((err) => logger.error({ err }, "Failed to update mcpKey lastUsed"));
 
-    return { team, mcpKey: row, scopes: row.scopes as unknown as McpScopes };
+    // Merge com o padrão: chaves criadas antes de um escopo existir não têm o
+    // campo no JSON, e um `undefined` viraria negação silenciosa depois que o
+    // enforcement passou a ser deny-by-default.
+    const scopes = {
+      ...SCOPES_LEGADOS,
+      ...(row.scopes as unknown as Partial<McpScopes>),
+    } as McpScopes;
+
+    return { team, mcpKey: row, scopes };
   } catch (error) {
     logger.error({ err: error }, "Error verifying MCP key");
     return null;
@@ -101,6 +139,7 @@ export async function listMcpKeys(teamId: number) {
       scopes: true,
       lastUsed: true,
       createdAt: true,
+      expiresAt: true,
     },
     orderBy: { createdAt: "desc" },
   });

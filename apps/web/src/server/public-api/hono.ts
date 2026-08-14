@@ -25,7 +25,11 @@ export type AppEnv = {
 };
 
 // Escopo exigido por (método, caminho) para tokens MCP. Retorna true se permitido.
-function mcpScopeAllows(method: string, path: string, scopes: McpScopes): boolean {
+export function mcpScopeAllows(
+  method: string,
+  path: string,
+  scopes: McpScopes,
+): boolean {
   const isWrite = !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
   const levelOk = (val: string, needWrite: boolean) =>
     needWrite ? val === "write" : val === "read" || val === "write";
@@ -39,14 +43,28 @@ function mcpScopeAllows(method: string, path: string, scopes: McpScopes): boolea
     return levelOk(scopes.campaigns, isWrite);
   }
   if (path.includes("/v1/emails")) {
+    // Cancelar é contenção de dano: quem pausa uma campanha também precisa
+    // conseguir cancelar um agendamento, sem depender do escopo de disparo.
+    if (path.includes("/cancel")) return levelOk(scopes.campaigns, true);
     if (isWrite) return scopes.send === true; // enviar transacional
-    return true; // leitura de e-mails
+    // Leitura devolve destinatário, assunto e corpo — é PII, não metadado.
+    return levelOk(scopes.campaigns, false);
   }
   if (path.includes("/v1/contactBooks")) {
     const cap = path.includes("/contacts") ? scopes.contacts : scopes.lists;
     return levelOk(cap, isWrite);
   }
   if (path.includes("/v1/domains")) return !isWrite; // cliente MCP: domínios só leitura
+  if (path.includes("/v1/reputation")) return scopes.reputation === "read";
+  // Disparar um evento aciona automações, que mandam e-mail de verdade.
+  if (path.includes("/v1/events")) return scopes.send === true;
+
+  // Negar por padrão: rota /v1 nova nasce fechada para token MCP até ganhar
+  // uma regra aqui. O contrário já custou caro (reputação ficou aberta).
+  if (path.includes("/v1/")) {
+    logger.warn({ method, path }, "Rota /v1 sem regra de escopo MCP — negada");
+    return false;
+  }
   return true;
 }
 

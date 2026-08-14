@@ -17,6 +17,8 @@ const scopesSchema = z.object({
   segments: scopeLevel,
   campaigns: scopeLevel,
   analytics: z.enum(["none", "read"]),
+  // Entregabilidade é só leitura por decisão de projeto (ver McpScopes).
+  reputation: z.enum(["none", "read"]).default("none"),
   send: z.boolean(),
 });
 

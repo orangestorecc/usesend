@@ -1,62 +1,108 @@
-# useSend MCP (N49) — Fase 0
+# Madmail MCP
 
-Servidor MCP que deixa o cliente comandar o useSend por conversa (ChatGPT/Claude).
-Multi-cliente: cada cliente usa um token `msk_<cliente>` que mapeia pra API key do time no useSend.
+Servidor MCP que deixa o cliente comandar o Madmail por conversa (ChatGPT,
+Claude, Cursor, Codex…). Transporte: Streamable HTTP, stateless.
 
-## Pré-requisitos (já configurados no ambiente local)
-- useSend dev rodando em `http://localhost:3000` (`cd C:\Dev\usesend && pnpm dev`) + containers Docker up.
-- API key de teste do team N49 já criada; token de MCP `msk_test` mapeado em `.env`.
-- Domínio `dress.com` marcado como verificado no banco local (pra permitir criar/enviar campanha).
+Produção: `https://mcp.madmail.com.br/mcp` — deploy em `DEPLOY-PROD.md`.
+Guia para o lojista: `apps/docs/guides/assistente-ia.mdx`.
 
-## Rodar o servidor MCP
+## Autenticação
+
+O servidor é **pass-through**: ele não guarda credencial de ninguém. O Bearer que
+o cliente manda é usado direto contra a API v1 do app, que resolve time e escopos
+a partir da tabela `McpKey` no banco.
+
+Dois caminhos, ambos terminando numa `msk_`:
+
+- **OAuth 2.1 + PKCE** (recomendado) — o cliente de IA se registra sozinho em
+  `/api/oauth/register`, o usuário autoriza em `/oauth/authorize` e o
+  `/api/oauth/token` emite a chave. É nessa tela que ele decide se a conexão
+  pode enviar e-mail; sem marcar, a chave sai com `send: false`.
+- **Chave fixa** criada em Configurações de dev → MCP, para servidor e CI.
+
+O 401 devolve `WWW-Authenticate` apontando para
+`/.well-known/oauth-protected-resource` (RFC 9728), servido tanto na raiz quanto
+no sufixo `/mcp` — clientes descobrem o Authorization Server por qualquer um dos
+dois caminhos.
+
+## Variáveis de ambiente
+
+| Variável | Padrão | Para quê |
+|---|---|---|
+| `PORT` | `8787` | Porta do servidor |
+| `USESEND_BASE_URL` | `http://localhost:3000/api` | API v1 do app |
+| `MCP_PUBLIC_URL` | `https://mcp.madmail.com.br/mcp` | Identidade do recurso no OAuth |
+| `AUTH_SERVER_URL` | `https://app.madmail.com.br` | Authorization Server anunciado |
+| `MCP_AUTH_CACHE_TTL_MS` | `60000` | Cache de resolução de escopos por token |
+
+O cache é o motivo de uma chave revogada continuar valendo por até um minuto.
+
+## Rodar local
+
 ```bash
-cd C:\Dev\usesend\mcp
-npm install      # primeira vez
-npm start        # sobe em http://localhost:8787/mcp
+cd mcp
+pnpm install
+pnpm start        # http://localhost:8787/mcp
 ```
-Health check: `curl http://localhost:8787/health` → `{"ok":true,"clientes":1}`
 
-## Conectar no Claude Code e testar por conversa
-Com o servidor no ar, num terminal:
+Health check: `curl http://localhost:8787/health` → `{"ok":true}`
+
+Conectar o Claude Code no servidor local:
+
 ```bash
-claude mcp add --transport http usesend-n49 http://localhost:8787/mcp --header "Authorization: Bearer msk_test"
+claude mcp add --transport http madmail-local http://localhost:8787/mcp \
+  --header "Authorization: Bearer msk_..."
 ```
-Reinicie a sessão do Claude e converse, ex.:
-- "Liste minhas listas de e-mail"
-- "Crie uma lista chamada Clientes VIP"
-- "Importe os contatos ana@x.com e bruno@y.com na lista Clientes VIP"
-- "Monte uma campanha de coleção de inverno pra essa lista, remetente news@dress.com"
-- "Dispara a campanha" → o MCP pede confirmação antes de enviar
 
-## Ferramentas (Fase 0)
-🟢 leitura · 🟡 escrita reversível · 🔴 envia p/ gente real (exige `confirm:true`)
+## Ferramentas
 
-| Tool | Tipo |
-|---|---|
-| `list_lists`, `list_contacts`, `list_campaigns`, `get_campaign_report`, `get_analytics` | 🟢 |
-| `list_templates`, `get_template`, `render_preview` (Fase 1) | 🟢 |
-| `list_segments`, `preview_segment` (Fase 2) | 🟢 |
-| `get_usage`, `billing_summary` (Fase 3) | 🟢 |
-| `create_list`, `import_contacts`, `save_template` (Fase 1), `create_campaign` (rascunho) | 🟡 |
-| `create_segment`, `materialize_segment`, `delete_segment` (Fase 2) | 🟡 |
-| `send_campaign`, `schedule_campaign`, `send_email` | 🔴 |
+🟢 leitura · 🟡 escrita reversível · 🔴 fala com gente real (exige `confirm:true`)
 
-Segmentação (Fase 2): regras sobre `email/firstName/lastName/subscribed/properties.<chave>`, ops `eq/neq/contains/in`, `match: all|any`.
-Fluxo p/ disparar a um segmento: `create_segment` → `preview_segment` (confere quantos) → `materialize_segment` (vira uma lista) → `create_campaign` nessa lista.
+| Tool | Tipo | Escopo |
+|---|---|---|
+| `list_domains`, `get_domain` | 🟢 | sempre |
+| `list_lists`, `list_contacts`, `get_contact` | 🟢 | `lists` / `contacts` |
+| `list_campaigns`, `get_campaign_report`, `get_email` | 🟢 | `campaigns` |
+| `get_analytics` | 🟢 | `analytics` |
+| `get_reputation_status`, `get_bounce_breakdown` | 🟢 | `reputation` |
+| `list_templates`, `get_template`, `render_preview` | 🟢 | `templates` |
+| `list_segments`, `preview_segment` | 🟢 | `segments` |
+| `get_usage` | 🟢 | sempre |
+| `create_list`, `import_contacts` | 🟡 | `lists` / `contacts` |
+| `unsubscribe_contact`, `update_contact`, `delete_contact` | 🟡 | `contacts` |
+| `save_template` | 🟡 | `templates` |
+| `create_campaign` (rascunho), `pause_campaign` | 🟡 | `campaigns` |
+| `create_segment`, `materialize_segment`, `delete_segment` | 🟡 | `segments` |
+| `send_campaign`, `schedule_campaign`, `send_email`, `resume_campaign`, `cancel_email` | 🔴 | `send` |
 
-- `create_campaign` aceita `templateId` (herda content+subject) e injeta rodapé de descadastro (no html E no content JSON) se faltar.
-- `render_preview` renderiza o JSON do editor (TipTap) → HTML sem salvar. Fluxo IA: gerar JSON → render_preview → save_template → create_campaign.
-- Tools 🔴 sem `confirm:true` retornam um **resumo** (destinatários, assunto, remetente) e não enviam.
+A tool só é **registrada** se o escopo permitir — o modelo nem enxerga o que não
+pode usar, em vez de tentar e tomar 403.
 
-## Log de uso e cobrança (Fase 3) — POR CONTATO
-- `usage.log.jsonl` — telemetria: cada chamada (`{ts, cliente, tool, status, args_resumidos}`), sem PII/segredos.
-- Cobrança **por contato**: planos em `.env` `MCP_PLANS` (`msk_x=nome:precoPorContatoBRL:minContatos`, ex.: `msk_test=padrao:0.10:1000`).
-- Tools `get_usage` / `billing_summary` retornam: contatos atuais, contatos faturáveis (respeita mínimo) e custo mensal em BRL.
+Notas:
 
-## Limitações conhecidas da Fase 0
-- **Entrega real via SES não está garantida**: o emulador local (`local-ses-sns`) não implementa
-  todo o `CreateEmailIdentity`; o domínio foi verificado direto no banco pra destravar a criação de
-  campanha. Disparo de verdade precisa fechar a integração com o emulador (ou usar SES real).
-- Listas são criadas com **double opt-in** ligado (padrão do useSend) → contatos importados entram
-  como não-confirmados, por isso `destinatarios` pode aparecer 0. Ajustável na Fase 1.
-- Templates e segmentação: **Fase 1 e 2** (ver `../mcp/DESIGN.md`).
+- `list_domains` existe porque sem ela o agente chuta o `from` e a campanha é
+  recusada na validação de domínio. Chame antes de montar qualquer envio.
+- `create_campaign` aceita `templateId` (herda content + subject) e injeta o
+  rodapé de descadastro (no HTML e no JSON do editor) se faltar.
+- `render_preview` renderiza o JSON do editor (TipTap) para HTML sem salvar.
+  Fluxo: gerar JSON → `render_preview` → `save_template` → `create_campaign`.
+- Tools 🔴 sem `confirm:true` retornam um resumo (destinatários, assunto,
+  remetente) e não fazem nada. Isso é freio para o modelo, não consentimento
+  humano — o controle real é o escopo `send`.
+- `import_contacts` numa lista com double opt-in dispara e-mail de confirmação
+  real, e isso **não** passa pelo escopo `send` — é o gate de `contacts`. A tela
+  de consentimento avisa; a descrição da tool também.
+- `get_usage` só calcula custo quando a integração tem plano por contato
+  configurado; sem plano, devolve o número de contatos e uma observação
+  explícita para o agente não inventar valor.
+
+Segmentação: regras sobre `email/firstName/lastName/subscribed/properties.<chave>`,
+ops `eq/neq/contains/in`, `match: all|any`. Para disparar a um segmento:
+`create_segment` → `preview_segment` → `materialize_segment` → `create_campaign`.
+
+## Telemetria
+
+`usage.log.jsonl` grava cada chamada (`{ts, cliente, tool, status, args}`), com
+os argumentos resumidos para não persistir HTML nem lista de contatos. É
+best-effort e local ao processo — não serve como fonte de cobrança nem como
+histórico para o cliente.

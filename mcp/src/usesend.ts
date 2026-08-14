@@ -17,9 +17,23 @@ export type McpScopes = {
   segments: ScopeLevel;
   campaigns: ScopeLevel;
   analytics: "none" | "read";
+  reputation?: "none" | "read";
   send: boolean;
   plan?: { pricePerContactBRL: number; minContacts: number };
 };
+
+// Erro de resposta da API do useSend, com o status HTTP preservado.
+// Sem isso o chamador não distingue "token inválido" (401/403) de falha
+// transitória (429/5xx/timeout), e trata infra instável como token ruim.
+export class UseSendHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "UseSendHttpError";
+  }
+}
 
 export class UseSendClient {
   constructor(
@@ -44,10 +58,11 @@ export class UseSendClient {
       data = text;
     }
     if (!res.ok) {
-      throw new Error(
+      throw new UseSendHttpError(
         `useSend ${method} ${path} -> ${res.status}: ${
           typeof data === "string" ? data : JSON.stringify(data)
         }`,
+        res.status,
       );
     }
     return data;
@@ -66,6 +81,26 @@ export class UseSendClient {
   }
   listContacts(bookId: string) {
     return this.req("GET", `/v1/contactBooks/${bookId}/contacts`);
+  }
+  getContact(bookId: string, contactId: string) {
+    return this.req("GET", `/v1/contactBooks/${bookId}/contacts/${contactId}`);
+  }
+  updateContact(
+    bookId: string,
+    contactId: string,
+    data: Record<string, unknown>,
+  ) {
+    return this.req(
+      "PATCH",
+      `/v1/contactBooks/${bookId}/contacts/${contactId}`,
+      data,
+    );
+  }
+  deleteContact(bookId: string, contactId: string) {
+    return this.req(
+      "DELETE",
+      `/v1/contactBooks/${bookId}/contacts/${contactId}`,
+    );
   }
   bulkAddContacts(bookId: string, contacts: Contact[]) {
     return this.req(
@@ -88,10 +123,30 @@ export class UseSendClient {
   scheduleCampaign(id: string, scheduledAt?: string) {
     return this.req("POST", `/v1/campaigns/${id}/schedule`, { scheduledAt });
   }
+  pauseCampaign(id: string) {
+    return this.req("POST", `/v1/campaigns/${id}/pause`);
+  }
+  resumeCampaign(id: string) {
+    return this.req("POST", `/v1/campaigns/${id}/resume`);
+  }
+
+  // ---- Domínios ----
+  listDomains() {
+    return this.req("GET", "/v1/domains");
+  }
+  getDomain(id: number) {
+    return this.req("GET", `/v1/domains/${id}`);
+  }
 
   // ---- Transacional ----
   sendEmail(input: Record<string, unknown>) {
     return this.req("POST", "/v1/emails", input);
+  }
+  getEmail(id: string) {
+    return this.req("GET", `/v1/emails/${id}`);
+  }
+  cancelEmail(id: string) {
+    return this.req("POST", `/v1/emails/${id}/cancel`);
   }
 
   // ---- Templates ----
@@ -159,5 +214,13 @@ export class UseSendClient {
   }
   reputationMetrics() {
     return this.req("GET", "/v1/analytics/reputation-metrics");
+  }
+
+  // ---- Entregabilidade (só leitura) ----
+  reputationStatus() {
+    return this.req("GET", "/v1/reputation/status");
+  }
+  bounceBreakdown() {
+    return this.req("GET", "/v1/reputation/bounce-breakdown");
   }
 }

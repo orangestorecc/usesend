@@ -56,24 +56,32 @@ export function registerTools(
   reg(
     true,
     "get_usage",
-    "Mostra o consumo do cliente: nº de contatos atuais, plano e custo mensal estimado (cobrança por contato).",
+    "Consumo da conta: total de contatos e, quando a integração tem um plano por contato configurado, o custo mensal estimado. NÃO é a fatura oficial — para valores de cobrança, mande o cliente conferir no painel.",
     {},
     wrap(log, "get_usage", async () =>
       summarizeBilling(scopes.plan, await client.countContacts()),
     ),
   );
 
+  // ============ 🟢 LEITURA ============
+  // Sempre disponível: sem saber de quais domínios o time pode enviar, o agente
+  // chuta o `from` de create_campaign/send_email e o envio é recusado.
   reg(
     true,
-    "billing_summary",
-    "Resumo de cobrança: preço por contato, contatos atuais, contatos faturáveis (respeita mínimo) e custo mensal em BRL.",
+    "list_domains",
+    "Lista os domínios de envio do time e o status de verificação de cada um. CHAME ANTES de montar o campo 'from' de uma campanha ou e-mail: só domínios verificados podem enviar.",
     {},
-    wrap(log, "billing_summary", async () =>
-      summarizeBilling(scopes.plan, await client.countContacts()),
-    ),
+    wrap(log, "list_domains", () => client.listDomains()),
   );
 
-  // ============ 🟢 LEITURA ============
+  reg(
+    true,
+    "get_domain",
+    "Detalhes de um domínio, incluindo os registros DNS (SPF/DKIM) e o que ainda falta para verificar.",
+    { domainId: z.number().int().describe("ID numérico do domínio") },
+    wrap(log, "get_domain", ({ domainId }) => client.getDomain(domainId)),
+  );
+
   reg(
     canRead(scopes.lists),
     "list_lists",
@@ -121,6 +129,22 @@ export function registerTools(
         ? client.reputationMetrics()
         : client.emailTimeSeries(days),
     ),
+  );
+
+  reg(
+    scopes.reputation === "read",
+    "get_reputation_status",
+    "Saúde de entregabilidade da conta: estado atual, taxa de devolução (bounce) e de reclamação. Use para responder 'minha conta está saudável?' e antes de disparos grandes.",
+    {},
+    wrap(log, "get_reputation_status", () => client.reputationStatus()),
+  );
+
+  reg(
+    scopes.reputation === "read",
+    "get_bounce_breakdown",
+    "Quais domínios e motivos estão puxando a devolução para baixo — os principais ofensores.",
+    {},
+    wrap(log, "get_bounce_breakdown", () => client.bounceBreakdown()),
   );
 
   reg(
@@ -195,9 +219,55 @@ export function registerTools(
   );
 
   reg(
+    canRead(scopes.contacts),
+    "get_contact",
+    "Dados de um contato específico: inscrito ou não, propriedades, histórico básico.",
+    { listId: z.string(), contactId: z.string() },
+    wrap(log, "get_contact", ({ listId, contactId }) =>
+      client.getContact(listId, contactId),
+    ),
+  );
+
+  reg(
+    canWrite(scopes.contacts),
+    "unsubscribe_contact",
+    "DESCADASTRA um contato: ele para de receber campanhas, mas continua na lista. Use quando o cliente pedir para sair pelo WhatsApp, telefone ou e-mail.",
+    { listId: z.string(), contactId: z.string() },
+    wrap(log, "unsubscribe_contact", ({ listId, contactId }) =>
+      client.updateContact(listId, contactId, { subscribed: false }),
+    ),
+  );
+
+  reg(
+    canWrite(scopes.contacts),
+    "update_contact",
+    "Corrige os dados de um contato (nome, propriedades). Para descadastrar, prefira unsubscribe_contact.",
+    {
+      listId: z.string(),
+      contactId: z.string(),
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      properties: z.record(z.string()).optional(),
+    },
+    wrap(log, "update_contact", ({ listId, contactId, ...data }) =>
+      client.updateContact(listId, contactId, data),
+    ),
+  );
+
+  reg(
+    canWrite(scopes.contacts),
+    "delete_contact",
+    "APAGA um contato de vez (pedido de exclusão de dados / LGPD). Não dá para desfazer — confirme com o cliente antes. Se ele só quer parar de receber, use unsubscribe_contact.",
+    { listId: z.string(), contactId: z.string() },
+    wrap(log, "delete_contact", ({ listId, contactId }) =>
+      client.deleteContact(listId, contactId),
+    ),
+  );
+
+  reg(
     canWrite(scopes.contacts),
     "import_contacts",
-    "Adiciona/atualiza contatos em uma lista (em lote, até 1000).",
+    "Adiciona/atualiza contatos em uma lista (em lote, até 1000). ATENÇÃO: se a lista usa confirmação (double opt-in), cada contato novo recebe um e-mail de confirmação de verdade — avise o cliente antes de importar em massa.",
     {
       listId: z.string(),
       contacts: z
@@ -223,7 +293,11 @@ export function registerTools(
     "Cria uma campanha em RASCUNHO (não envia). Fonte do conteúdo: templateId (template salvo), OU content (JSON do editor), OU html. Se faltar link de descadastro, um rodapé é adicionado automaticamente. Envio é feito depois por send_campaign/schedule_campaign.",
     {
       name: z.string(),
-      from: z.string().describe("Ex.: 'Loja X <news@dominio.com>'"),
+      from: z
+        .string()
+        .describe(
+          "Ex.: 'Loja X <news@dominio.com>'. O domínio PRECISA estar verificado — chame list_domains antes se não tiver certeza.",
+        ),
       subject: z.string().optional().describe("Se omitido e usar templateId, herda o assunto do template."),
       listId: z.string().describe("ID da lista (contactBookId)"),
       templateId: z.string().optional().describe("Usa um template salvo como conteúdo."),
@@ -331,6 +405,60 @@ export function registerTools(
     "Apaga um segmento (não apaga contatos).",
     { segmentId: z.string() },
     wrap(log, "delete_segment", ({ segmentId }) => client.deleteSegment(segmentId)),
+  );
+
+  // Freio de mão: quem pode disparar precisa poder parar.
+  reg(
+    canWrite(scopes.campaigns),
+    "pause_campaign",
+    "PAUSA uma campanha que está sendo enviada. Use quando o cliente perceber erro no meio do disparo — os e-mails que ainda não saíram param.",
+    { campaignId: z.string() },
+    wrap(log, "pause_campaign", ({ campaignId }) =>
+      client.pauseCampaign(campaignId),
+    ),
+  );
+
+  reg(
+    scopes.send === true,
+    "resume_campaign",
+    "RETOMA uma campanha pausada, continuando o envio de onde parou. Requer confirm:true.",
+    { campaignId: z.string(), confirm: z.boolean().default(false) },
+    async ({ campaignId, confirm }: { campaignId: string; confirm: boolean }) => {
+      try {
+        const c: any = await client.getCampaign(campaignId);
+        if (!confirm) {
+          log("resume_campaign", { campaignId, confirm }, "ok");
+          return ok({
+            acao: "CONFIRMACAO_NECESSARIA",
+            resumo: { campanha: c?.name, assunto: c?.subject, status: c?.status },
+            instrucao: "Chame de novo com confirm:true para retomar o envio.",
+          });
+        }
+        const r = await client.resumeCampaign(campaignId);
+        log("resume_campaign", { campaignId, confirm }, "ok");
+        return ok({ retomado: true, resultado: r });
+      } catch (e) {
+        log("resume_campaign", { campaignId, confirm }, "error");
+        return err(e instanceof Error ? e.message : String(e));
+      }
+    },
+  );
+
+  // Diagnóstico de envio avulso: "o e-mail do fulano chegou?"
+  reg(
+    canRead(scopes.campaigns),
+    "get_email",
+    "Situação de um e-mail avulso: entregue, aberto, clicado, devolvido (bounce) — com o motivo quando falhou.",
+    { emailId: z.string() },
+    wrap(log, "get_email", ({ emailId }) => client.getEmail(emailId)),
+  );
+
+  reg(
+    scopes.send === true,
+    "cancel_email",
+    "Cancela um e-mail que foi AGENDADO e ainda não saiu.",
+    { emailId: z.string() },
+    wrap(log, "cancel_email", ({ emailId }) => client.cancelEmail(emailId)),
   );
 
   // ============ 🔴 ENVIA P/ GENTE REAL (exige confirm:true + escopo de envio) ============

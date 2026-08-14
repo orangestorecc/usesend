@@ -32,14 +32,15 @@ import {
   SelectValue,
 } from "@usesend/ui/src/select";
 
-// URL pública do servidor MCP (produção)
-const MCP_CONNECTOR_URL = "https://mcp.madmail.com.br/mcp";
+// Mesma fonte da tela de conexão — em outro ambiente as duas precisam bater.
+const MCP_CONNECTOR_URL =
+  process.env.NEXT_PUBLIC_MCP_URL || "https://mcp.madmail.com.br/mcp";
 
 const rwCaps = [
   { key: "contacts", label: "Contatos" },
   { key: "lists", label: "Listas" },
-  { key: "templates", label: "Templates" },
-  { key: "segments", label: "Segmentos" },
+  { key: "templates", label: "Modelos de e-mail" },
+  { key: "segments", label: "Grupos de clientes" },
   { key: "campaigns", label: "Campanhas" },
 ] as const;
 
@@ -51,6 +52,7 @@ const schema = z.object({
   segments: z.enum(["none", "read", "write"]),
   campaigns: z.enum(["none", "read", "write"]),
   analytics: z.enum(["none", "read"]),
+  reputation: z.enum(["none", "read"]),
   send: z.enum(["on", "off"]),
 });
 
@@ -60,6 +62,7 @@ export default function AddMcpKey() {
   const [open, setOpen] = useState(false);
   const [mcpKey, setMcpKey] = useState("");
   const [isCopied, setIsCopied] = useState(false);
+  const [guardou, setGuardou] = useState(false);
   const createMutation = api.mcp.createMcpKey.useMutation();
   const utils = api.useUtils();
 
@@ -73,7 +76,10 @@ export default function AddMcpKey() {
       segments: "write",
       campaigns: "write",
       analytics: "read",
-      send: "on",
+      reputation: "read",
+      // Envio desligado por padrão: é a única ação irreversível e que custa
+      // dinheiro. Quem precisa, liga de propósito.
+      send: "off",
     },
   });
 
@@ -88,6 +94,7 @@ export default function AddMcpKey() {
           segments: values.segments,
           campaigns: values.campaigns,
           analytics: values.analytics,
+          reputation: values.reputation,
           send: values.send === "on",
         },
       },
@@ -97,6 +104,10 @@ export default function AddMcpKey() {
           setMcpKey(data);
           form.reset();
         },
+        onError: (e) =>
+          toast.error(
+            e.message ?? "Não conseguimos criar a chave. Tente de novo.",
+          ),
       }
     );
   }
@@ -109,27 +120,36 @@ export default function AddMcpKey() {
 
   function close() {
     setMcpKey("");
+    setGuardou(false);
+    setIsCopied(false);
     setOpen(false);
   }
 
   return (
     <Dialog
       open={open}
-      onOpenChange={(_open) => (_open !== open ? setOpen(_open) : null)}
+      onOpenChange={(_open) => {
+        // Enquanto a chave estiver na tela, fechar por Esc/clique fora é como
+        // perder a chave: ela não aparece de novo.
+        if (!_open && mcpKey && !guardou) return;
+        if (!_open) return close();
+        setOpen(_open);
+      }}
     >
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-1" />
-          Nova integração MCP
+          Nova chave
         </Button>
       </DialogTrigger>
       {mcpKey ? (
         <DialogContent key={mcpKey}>
           <DialogHeader>
-            <DialogTitle>Copie a chave do MCP</DialogTitle>
+            <DialogTitle>Guarde esta chave agora</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Guarde agora — ela só aparece uma vez.
+            Ela aparece uma única vez. Se fechar sem copiar, vai precisar criar
+            outra.
           </p>
           <div className="py-2 bg-secondary rounded-lg px-4 flex items-center justify-between mt-2">
             <p className="text-sm break-all">{mcpKey}</p>
@@ -146,26 +166,41 @@ export default function AddMcpKey() {
             </Button>
           </div>
           <div className="mt-4 text-sm">
-            <p className="font-medium">Como conectar no ChatGPT/Claude:</p>
+            <p className="font-medium">Onde usar (seção para quem programa):</p>
             <ul className="list-disc pl-5 mt-1 space-y-1 text-muted-foreground">
               <li>
-                URL do connector: <code>{MCP_CONNECTOR_URL}</code>
+                Endereço do Madmail: <code>{MCP_CONNECTOR_URL}</code>
               </li>
               <li>
-                Header: <code>Authorization: Bearer {"<sua chave>"}</code>
+                Mande junto a linha{" "}
+                <code>Authorization: Bearer {"<sua chave>"}</code>
               </li>
             </ul>
           </div>
+          <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={guardou}
+              onChange={(e) => setGuardou(e.target.checked)}
+              className="h-4 w-4"
+            />
+            Copiei e guardei em lugar seguro
+          </label>
+          {guardou ? null : (
+            <p className="text-xs text-muted-foreground">
+              Marque a caixinha para fechar — a chave não aparece de novo.
+            </p>
+          )}
           <DialogFooter>
-            <Button type="button" onClick={close}>
-              Fechar
+            <Button type="button" onClick={close} disabled={!guardou}>
+              Concluir
             </Button>
           </DialogFooter>
         </DialogContent>
       ) : (
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova integração MCP</DialogTitle>
+            <DialogTitle>Nova chave</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSave)} className="space-y-5">
@@ -201,10 +236,10 @@ export default function AddMcpKey() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="none">Nenhum</SelectItem>
-                            <SelectItem value="read">Leitura</SelectItem>
+                            <SelectItem value="none">Não pode ver</SelectItem>
+                            <SelectItem value="read">Só pode ver</SelectItem>
                             <SelectItem value="write">
-                              Leitura + escrita
+                              Pode ver e mudar
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -229,8 +264,32 @@ export default function AddMcpKey() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="none">Nenhum</SelectItem>
-                          <SelectItem value="read">Leitura</SelectItem>
+                          <SelectItem value="none">Não pode ver</SelectItem>
+                          <SelectItem value="read">Só pode ver</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="reputation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Saúde dos envios</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Não pode ver</SelectItem>
+                          <SelectItem value="read">Só pode ver</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormItem>
@@ -242,7 +301,7 @@ export default function AddMcpKey() {
                   name="send"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Envio (disparar)</FormLabel>
+                      <FormLabel>Enviar e-mail de verdade</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
@@ -253,8 +312,12 @@ export default function AddMcpKey() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="on">Permitido</SelectItem>
-                          <SelectItem value="off">Bloqueado</SelectItem>
+                          <SelectItem value="off">
+                            Não — só monta e agenda
+                          </SelectItem>
+                          <SelectItem value="on">
+                            Sim — pode disparar sozinho
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </FormItem>

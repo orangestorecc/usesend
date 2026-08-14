@@ -3,12 +3,14 @@ import express from "express";
 import { appendFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { UseSendClient } from "./usesend.js";
+import { UseSendClient, UseSendHttpError } from "./usesend.js";
+import type { McpScopes } from "./usesend.js";
 import { registerTools } from "./tools.js";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const BASE_URL = process.env.USESEND_BASE_URL ?? "http://localhost:3000/api";
 const USAGE_LOG = "usage.log.jsonl";
+const AUTH_CACHE_TTL_MS = Number(process.env.MCP_AUTH_CACHE_TTL_MS ?? 60_000);
 
 // OAuth: URL pública deste MCP (Resource Server) e do Authorization Server (app Madmail).
 const MCP_PUBLIC_URL =
@@ -36,19 +38,94 @@ function unauthorized(res: express.Response, message: string) {
   });
 }
 
+// 503 para falha transitória do useSend — não é problema do token do cliente,
+// então não pode virar 401 (o cliente descartaria a credencial como inválida).
+function servicoIndisponivel(res: express.Response, message: string) {
+  res.setHeader("Retry-After", "5");
+  return res.status(503).json({
+    jsonrpc: "2.0",
+    error: { code: -32003, message },
+    id: null,
+  });
+}
+
+class ErroTransitorioDeAuth extends Error {}
+
+// O handshake do MCP dispara várias requisições em rajada, e cada uma revalidava
+// o token no useSend. Cache + dedup de chamadas em voo mantêm isso em 1 chamada.
+const authCache = new Map<string, { scopes: McpScopes; expiraEm: number }>();
+const authEmVoo = new Map<string, Promise<McpScopes>>();
+
+async function resolverEscopos(
+  token: string,
+  client: UseSendClient,
+): Promise<McpScopes> {
+  const emCache = authCache.get(token);
+  if (emCache && emCache.expiraEm > Date.now()) return emCache.scopes;
+
+  const emVoo = authEmVoo.get(token);
+  if (emVoo) return emVoo;
+
+  const pendente = (async () => {
+    try {
+      const me = await client.getMcpMe();
+      authCache.set(token, {
+        scopes: me.scopes,
+        expiraEm: Date.now() + AUTH_CACHE_TTL_MS,
+      });
+      return me.scopes;
+    } catch (err) {
+      const status = err instanceof UseSendHttpError ? err.status : 0;
+      // Só 401/403 significam token realmente inválido.
+      if (status === 401 || status === 403) {
+        authCache.delete(token);
+        throw err;
+      }
+      // Timeout, 429 ou 5xx: se já validamos esse token antes, seguimos com os
+      // escopos vencidos em vez de derrubar a sessão por instabilidade.
+      const vencido = authCache.get(token);
+      if (vencido) return vencido.scopes;
+      throw new ErroTransitorioDeAuth(
+        "Não foi possível validar o token agora (useSend indisponível). Tente de novo em instantes.",
+      );
+    } finally {
+      authEmVoo.delete(token);
+    }
+  })();
+
+  authEmVoo.set(token, pendente);
+  return pendente;
+}
+
+// Evita que o cache cresça sem limite com tokens que não voltam mais.
+const limpezaDoCache = setInterval(() => {
+  const agora = Date.now();
+  for (const [token, entrada] of authCache) {
+    // Margem: entradas vencidas ainda servem de fallback por um ciclo.
+    if (entrada.expiraEm + AUTH_CACHE_TTL_MS * 10 < agora) authCache.delete(token);
+  }
+}, AUTH_CACHE_TTL_MS);
+limpezaDoCache.unref();
+
 const app = express();
 app.use(express.json({ limit: "5mb" }));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 // Metadados do Protected Resource (RFC 9728) — descoberta do Authorization Server.
-app.get("/.well-known/oauth-protected-resource", (_req, res) => {
-  res.json({
-    resource: MCP_PUBLIC_URL,
-    authorization_servers: [AUTH_SERVER_URL],
-    bearer_methods_supported: ["header"],
-  });
-});
+// Servido nos dois caminhos de propósito: como o recurso tem path (/mcp), a RFC
+// manda o cliente procurar em /.well-known/oauth-protected-resource/mcp. Quem
+// segue o WWW-Authenticate acha na raiz; quem deriva sozinho acha no sufixo.
+app.get(
+  ["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp"],
+  (_req, res) => {
+    res.json({
+      resource: MCP_PUBLIC_URL,
+      authorization_servers: [AUTH_SERVER_URL],
+      bearer_methods_supported: ["header"],
+    });
+  },
+);
 
 app.post("/mcp", async (req, res) => {
   const token = bearer(req);
@@ -62,11 +139,13 @@ app.post("/mcp", async (req, res) => {
   // O MCP é pass-through: usa o token do cliente direto contra o useSend,
   // que resolve time + escopos (tabela McpKey no banco).
   const client = new UseSendClient(BASE_URL, token);
-  let scopes;
+  let scopes: McpScopes;
   try {
-    const me = await client.getMcpMe();
-    scopes = me.scopes;
-  } catch {
+    scopes = await resolverEscopos(token, client);
+  } catch (err) {
+    if (err instanceof ErroTransitorioDeAuth) {
+      return servicoIndisponivel(res, err.message);
+    }
     return unauthorized(res, "Token de MCP inválido ou expirado.");
   }
 
