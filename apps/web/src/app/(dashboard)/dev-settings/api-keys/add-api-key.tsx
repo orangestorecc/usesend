@@ -13,7 +13,15 @@ import {
 
 import { api } from "~/trpc/react";
 import { useState } from "react";
-import { CheckIcon, ClipboardCopy, Eye, EyeOff, Plus } from "lucide-react";
+import {
+  CheckIcon,
+  ClipboardCopy,
+  Download,
+  Eye,
+  EyeOff,
+  Plus,
+  TriangleAlert,
+} from "lucide-react";
 import { toast } from "@usesend/ui/src/toaster";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -45,6 +53,7 @@ const apiKeySchema = z.object({
 export default function AddApiKey() {
   const [open, setOpen] = useState(false);
   const [apiKey, setApiKey] = useState("");
+  const [apiKeyName, setApiKeyName] = useState("");
   const createApiKeyMutation = api.apiKey.createToken.useMutation();
   const [isCopied, setIsCopied] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -73,6 +82,7 @@ export default function AddApiKey() {
         onSuccess: (data) => {
           utils.apiKey.invalidate();
           setApiKey(data);
+          setApiKeyName(values.name);
           apiKeyForm.reset();
         },
       }
@@ -90,9 +100,72 @@ export default function AddApiKey() {
   function copyAndClose() {
     handleCopy();
     setApiKey("");
+    setApiKeyName("");
     setOpen(false);
     setShowApiKey(false);
     toast.success("Chave de API copiada para a área de transferência");
+  }
+
+  function slugify(value: string) {
+    return (
+      value
+        .normalize("NFD")
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase() || "chave-de-api"
+    );
+  }
+
+  function download(extension: "md" | "json", content: string, type: string) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${slugify(apiKeyName)}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Arquivo .${extension} baixado`);
+  }
+
+  function downloadMarkdown() {
+    const createdAt = new Date().toLocaleString("pt-BR");
+    download(
+      "md",
+      [
+        `# Chave de API — ${apiKeyName}`,
+        "",
+        `- **Nome:** ${apiKeyName}`,
+        `- **Criada em:** ${createdAt}`,
+        "",
+        "## Chave",
+        "",
+        "```",
+        apiKey,
+        "```",
+        "",
+        "> Guarde este arquivo em local seguro. Esta chave não pode ser exibida novamente.",
+        "",
+      ].join("\n"),
+      "text/markdown;charset=utf-8"
+    );
+  }
+
+  function downloadJson() {
+    download(
+      "json",
+      JSON.stringify(
+        {
+          name: apiKeyName,
+          apiKey,
+          createdAt: new Date().toISOString(),
+        },
+        null,
+        2
+      ),
+      "application/json;charset=utf-8"
+    );
   }
 
   return (
@@ -111,6 +184,19 @@ export default function AddApiKey() {
           <DialogHeader>
             <DialogTitle>Copiar chave de API</DialogTitle>
           </DialogHeader>
+          <div className="flex gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 mt-2">
+            <TriangleAlert className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                Esta é a única vez que a chave será exibida
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Guarde-a agora em um local seguro. Ao fechar esta janela não será
+                possível visualizá-la novamente — se você perder a chave, será
+                preciso criar uma nova.
+              </p>
+            </div>
+          </div>
           <div className="py-1 bg-secondary rounded-lg px-4 flex items-center justify-between mt-2">
             <div>
               {showApiKey ? (
@@ -152,7 +238,31 @@ export default function AddApiKey() {
               </Button>
             </div>
           </div>
-          <div></div>
+          <div className="mt-3 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Prefere guardar em arquivo? Baixe uma cópia:
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={downloadMarkdown}
+              >
+                <Download className="h-4 w-4" />
+                Baixar .md
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={downloadJson}
+              >
+                <Download className="h-4 w-4" />
+                Baixar .json
+              </Button>
+            </div>
+          </div>
           <DialogFooter>
             <Button
               type="submit"
@@ -232,7 +342,7 @@ export default function AddApiKey() {
                 />
                 <div className="flex justify-end">
                   <Button
-                    className=" w-[100px] hover:bg-gray-100 focus:bg-gray-100"
+                    className="w-[100px]"
                     type="submit"
                     disabled={createApiKeyMutation.isPending}
                   >
