@@ -22,6 +22,8 @@ export const AUDIT_EVENTS = [
   "team_left",
   "impersonate_started",
   "session_revoked",
+  "platform_admin_granted",
+  "platform_admin_revoked",
   // Controle de bounce (docs-spec/BOUNCE-CONTROL-SPEC.md §3)
   "reputation_policy_updated",
   "reputation_team_viewed",
@@ -40,6 +42,8 @@ export const AUDIT_EVENTOS_DESTRUTIVOS: AuditEvent[] = [
   "mfa_reset_executed",
   "team_left",
   "reputation_team_blocked",
+  "platform_admin_granted",
+  "platform_admin_revoked",
 ];
 
 /** Auditoria fica 12 meses; depois disso o purge apaga. */
@@ -59,6 +63,8 @@ export const AUDIT_ROTULOS: Record<AuditEvent, string> = {
   team_left: "Saída de time",
   impersonate_started: "Impersonate iniciado",
   session_revoked: "Sessão encerrada",
+  platform_admin_granted: "Admin da plataforma concedido",
+  platform_admin_revoked: "Admin da plataforma removido",
   reputation_policy_updated: "Régua de reputação alterada",
   reputation_team_viewed: "Ficha de reputação consultada",
   reputation_team_blocked: "Envios bloqueados por reputação",

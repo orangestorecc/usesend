@@ -17,6 +17,7 @@ import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
 import { lerSessionTokenDoCookie } from "~/server/auth-session";
 import { avaliarGate } from "~/server/service/mfa-service";
+import { ehAdminDaPlataformaPorId } from "~/server/service/platform-admin";
 import { getChildLogger, logger, withLogger } from "../logger/log";
 import { criarSentryMiddleware } from "./sentry-middleware";
 import { randomUUID } from "crypto";
@@ -288,7 +289,12 @@ export const templateProcedure = teamProcedure
  * To manage application settings, for hosted version, authenticated users will be considered as admin
  */
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  if (env.NEXT_PUBLIC_IS_CLOUD && ctx.session.user.email !== env.ADMIN_EMAIL) {
+  // Lê o estado atual do banco em vez de confiar no flag da sessão: remover
+  // alguém de admin precisa valer na hora, sem esperar a sessão dele expirar.
+  if (
+    env.NEXT_PUBLIC_IS_CLOUD &&
+    !(await ehAdminDaPlataformaPorId(ctx.session.user.id))
+  ) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
   return next();

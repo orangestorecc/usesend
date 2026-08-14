@@ -14,6 +14,7 @@ import { Provider } from "next-auth/providers/index";
 import { sendSignUpEmail } from "~/server/mailer";
 import { env } from "~/env";
 import { db } from "~/server/db";
+import { ehAdminDaPlataforma } from "~/server/service/platform-admin";
 import { logger } from "~/server/logger/log";
 import { criarDesafioDeMfa, mfaHabilitado } from "~/server/service/mfa-service";
 
@@ -191,7 +192,7 @@ export const authOptions: NextAuthOptions = {
         ...session.user,
         id: user.id,
         isBetaUser: user.isBetaUser,
-        isAdmin: user.email === env.ADMIN_EMAIL,
+        isAdmin: ehAdminDaPlataforma(user),
         isWaitlisted: user.isWaitlisted,
       },
     }),

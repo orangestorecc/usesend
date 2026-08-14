@@ -68,6 +68,9 @@ export default function AdminLayout({
         <SettingsNavButton href="/admin/auditoria">
           Auditoria
         </SettingsNavButton>
+        <SettingsNavButton href="/admin/admins">
+          Admins
+        </SettingsNavButton>
       </div>
       <div className="mt-8">{children}</div>
     </div>

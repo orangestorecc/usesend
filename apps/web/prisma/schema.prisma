@@ -97,6 +97,13 @@ model User {
   image            String?
   isBetaUser       Boolean    @default(false)
   isWaitlisted     Boolean    @default(false)
+  /**
+   * Admin da plataforma (painel /admin: todos os times, faturamento, SES).
+   * Não confundir com TeamUser.role = ADMIN, que é admin do workspace.
+   * O dono do ADMIN_EMAIL é admin mesmo com este campo false — é a
+   * salvaguarda que impede a instalação de ficar sem nenhum admin.
+   */
+  isAdmin          Boolean    @default(false)
   createdAt        DateTime   @default(now())
   accounts         Account[]
   sessions         Session[]

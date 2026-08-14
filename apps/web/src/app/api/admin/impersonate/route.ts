@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
 import { env } from "~/env";
+import { ehAdminDaPlataformaPorId } from "~/server/service/platform-admin";
 
 // Docker builds skip environment validation, so this module can be evaluated
 // without NEXTAUTH_URL while Next.js collects route data. Runtime validation
@@ -21,7 +22,7 @@ const IMPERSONATOR_COOKIE = "madmail-impersonator";
  */
 export async function GET(req: Request) {
   const session = await getServerAuthSession();
-  if (!session?.user || session.user.email !== env.ADMIN_EMAIL) {
+  if (!session?.user || !(await ehAdminDaPlataformaPorId(session.user.id))) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
   }
 

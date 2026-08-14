@@ -1,4 +1,5 @@
 import { Prisma, type Plan } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { env } from "~/env";
 
@@ -22,6 +23,8 @@ import {
   loadCustomerFinancials,
 } from "~/server/billing/customer-insights";
 import { FREE_PLAN_KEY, aplicarPlano } from "~/server/billing/plan-service";
+import { registrarAuditoria } from "~/server/service/audit-service";
+import { podeRemoverAdmin } from "~/server/service/platform-admin";
 import { downgradeParaGratis } from "~/server/billing/lifecycle-service";
 
 const waitlistUserSelection = {
@@ -649,6 +652,129 @@ export const adminRouter = createTRPCRouter({
         input.requestId,
         ctx.session.user.email ?? "suporte",
       );
+      return true;
+    }),
+
+  listarAdminsDaPlataforma: adminProcedure.query(async () => {
+    const usuarios = await db.user.findMany({
+      where: { isAdmin: true, deletedAt: null },
+      select: { id: true, name: true, email: true, createdAt: true },
+      orderBy: { id: "asc" },
+    });
+
+    // O dono do ADMIN_EMAIL aparece na lista mesmo sem a coluna marcada: ele é
+    // admin de fato, e omiti-lo daria a impressão errada de quem tem acesso.
+    const salvaguarda = env.ADMIN_EMAIL
+      ? await db.user.findFirst({
+          where: { email: env.ADMIN_EMAIL, deletedAt: null },
+          select: { id: true, name: true, email: true, createdAt: true },
+        })
+      : null;
+
+    const porSalvaguarda =
+      salvaguarda && !usuarios.some((u) => u.id === salvaguarda.id)
+        ? [{ ...salvaguarda, viaEnv: true }]
+        : [];
+
+    return [
+      ...porSalvaguarda,
+      ...usuarios.map((u) => ({
+        ...u,
+        viaEnv: env.ADMIN_EMAIL
+          ? u.email?.toLowerCase() === env.ADMIN_EMAIL.toLowerCase()
+          : false,
+      })),
+    ];
+  }),
+
+  promoverAdminDaPlataforma: adminProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ ctx, input }) => {
+      const alvo = await db.user.findFirst({
+        where: { email: { equals: input.email, mode: "insensitive" } },
+        select: { id: true, email: true, isAdmin: true, deletedAt: true },
+      });
+
+      if (!alvo || alvo.deletedAt) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message:
+            "Nenhuma conta com este e-mail. A pessoa precisa entrar no Madmail ao menos uma vez antes de virar admin.",
+        });
+      }
+
+      if (alvo.isAdmin) {
+        return true;
+      }
+
+      await db.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: alvo.id },
+          data: { isAdmin: true },
+        });
+        await registrarAuditoria(
+          "platform_admin_granted",
+          {
+            actorUserId: ctx.session.user.id,
+            actorEmail: ctx.session.user.email,
+            targetUserId: alvo.id,
+            targetEmail: alvo.email,
+          },
+          tx,
+        );
+      });
+
+      logger.info(
+        { alvo: alvo.email, por: ctx.session.user.email },
+        "[Admin]: admin da plataforma concedido",
+      );
+
+      return true;
+    }),
+
+  removerAdminDaPlataforma: adminProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const { pode, motivo } = await podeRemoverAdmin(
+        input.userId,
+        ctx.session.user.id,
+      );
+
+      if (!pode) {
+        throw new TRPCError({ code: "FORBIDDEN", message: motivo });
+      }
+
+      const alvo = await db.user.findUnique({
+        where: { id: input.userId },
+        select: { id: true, email: true },
+      });
+
+      if (!alvo) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Conta não encontrada" });
+      }
+
+      await db.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: alvo.id },
+          data: { isAdmin: false },
+        });
+        await registrarAuditoria(
+          "platform_admin_revoked",
+          {
+            actorUserId: ctx.session.user.id,
+            actorEmail: ctx.session.user.email,
+            targetUserId: alvo.id,
+            targetEmail: alvo.email,
+          },
+          tx,
+        );
+      });
+
+      logger.info(
+        { alvo: alvo.email, por: ctx.session.user.email },
+        "[Admin]: admin da plataforma removido",
+      );
+
       return true;
     }),
 });
