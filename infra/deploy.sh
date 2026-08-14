@@ -143,12 +143,17 @@ log "Documentação"
 # `mint export` gera um zip; descompactamos para servir como estático, do
 # mesmo jeito que o site institucional.
 #
-# O heap maior não é folga preventiva: com o padrão do Node (4 GB) o export
-# morre em `FATAL ERROR: Reached heap limit` no meio de um JSON.parse, e a
-# documentação parava de ser publicada em silêncio (o passo é não-fatal de
-# propósito, então o deploy seguia). A máquina tem memória de sobra.
+# NÃO aumente o heap por aqui. O container tem 16 GiB no total e o `mint`
+# roda vários processos de build em paralelo, todos herdando o NODE_OPTIONS:
+# com `--max-old-space-size=8192` o cgroup foi medido batendo nos 16 GiB e o
+# OOM killer levou junto o que estava rodando — em 14/08/2026 matou o build
+# do Next no meio de um deploy. O export já vinha falhando sozinho por limite
+# de heap; a saída é reduzir o consumo, não dar mais teto a cada processo.
+#
+# `mint` sai com código 0 mesmo quando um filho morre por OOM, então quem
+# decide se deu certo é a checagem do export.zip logo abaixo.
 cd "$APP/apps/docs"
-if NODE_OPTIONS="--max-old-space-size=8192" npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
+if npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
   rm -rf "$APP/apps/docs/site"
   mkdir -p "$APP/apps/docs/site"
   unzip -q -o export.zip -d "$APP/apps/docs/site"
