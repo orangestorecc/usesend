@@ -2,7 +2,6 @@ import { env } from "~/env";
 import { UseSend } from "usesend-js";
 import { isSelfHosted } from "~/utils/common";
 import { db } from "./db";
-import { getDomains } from "./service/domain-service";
 import { sendEmail } from "./service/email-service";
 import { logger } from "./logger/log";
 import { renderOtpEmail, renderTeamInviteEmail } from "./email-templates";
@@ -82,6 +81,43 @@ export async function sendSubscriptionConfirmationEmail(email: string) {
   await sendMail(email, subject, text, html, undefined, env.FOUNDER_EMAIL);
 }
 
+/**
+ * Descobre de qual time/domínio verificado sai um e-mail de sistema.
+ * Ordem: domínio do fromOverride → domínio do FROM_EMAIL → qualquer domínio
+ * verificado da instância (self-hosted sem FROM_EMAIL configurado).
+ */
+async function resolveSystemSender(
+  fromOverride?: string
+): Promise<{ teamId: number; from: string } | null> {
+  const candidates = [fromOverride, env.FROM_EMAIL].filter(
+    (value): value is string => Boolean(value)
+  );
+
+  for (const address of candidates) {
+    const domainName = address.split("@")[1];
+    if (!domainName) continue;
+
+    const domain = await db.domain.findFirst({
+      where: { name: domainName, status: "SUCCESS" },
+    });
+
+    if (domain) {
+      return { teamId: domain.teamId, from: address };
+    }
+  }
+
+  const fallback = await db.domain.findFirst({
+    where: { status: "SUCCESS" },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (!fallback) {
+    return null;
+  }
+
+  return { teamId: fallback.teamId, from: `hello@${fallback.name}` };
+}
+
 export async function sendMail(
   email: string,
   subject: string,
@@ -113,47 +149,42 @@ export async function sendMail(
     }
 
     logger.error(
-      { code: resp.error?.code, message: resp.error?.message },
+      {
+        code: resp.error?.code,
+        message: resp.error?.message,
+        to: email,
+        subject,
+      },
       "Error sending email using usesend"
     );
-    return;
+    throw new Error(
+      resp.error?.message ?? "Falha ao enviar e-mail pela API do Madmail"
+    );
   }
 
   logger.info("Sending email using internal SES");
   /*
-    Envio interno: usa o primeiro time e um de seus domínios verificados como
-    remetente dos e-mails de sistema (OTP, convites, etc).
-    Assume que a instância tem ao menos um time com domínio verificado.
-    TODO: fix this
+    Envio interno: o remetente de sistema (OTP, convites, avisos) sai sempre do
+    domínio verificado dono do FROM_EMAIL — e o e-mail é registrado no time que
+    possui esse domínio. Antes usávamos o "primeiro time" da base, o que fazia
+    o envio morrer em silêncio quando esse time não tinha domínio verificado.
    */
-  const team = await db.team.findFirst({});
-  if (!team) {
-    logger.error("No team found");
-    return;
+  const sender = await resolveSystemSender(fromOverride);
+
+  if (!sender) {
+    logger.error(
+      { to: email, subject, fromOverride, fromEnv: env.FROM_EMAIL },
+      "Nenhum domínio verificado disponível para enviar e-mail de sistema"
+    );
+    throw new Error(
+      "Nenhum domínio verificado disponível para enviar e-mails do sistema"
+    );
   }
 
-  const domains = await getDomains(team.id);
-
-  if (domains.length === 0 || !domains[0]) {
-    logger.error("No domains found");
-    return;
-  }
-
-  const availableDomains = domains.map((d) => d.name);
-  const domain = domains[0];
-
-  const candidateFroms = [fromOverride, env.FROM_EMAIL, `hello@${domain.name}`].filter(
-    (value): value is string => Boolean(value)
-  );
-
-  const selectedFrom =
-    candidateFroms.find((address) => {
-      const domainPart = address.split("@")[1];
-      return domainPart ? availableDomains.includes(domainPart) : false;
-    }) ?? `hello@${domain.name}`;
+  const { teamId, from: selectedFrom } = sender;
 
   await sendEmail({
-    teamId: team.id,
+    teamId,
     to: email,
     from: selectedFrom,
     subject,

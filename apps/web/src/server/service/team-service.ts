@@ -206,7 +206,19 @@ export class TeamService {
     const teamUrl = `${env.NEXTAUTH_URL}/join-team?inviteId=${teamInvite.id}`;
 
     if (sendEmail) {
-      await sendTeamInviteEmail(email, teamUrl, teamName);
+      try {
+        await sendTeamInviteEmail(email, teamUrl, teamName);
+      } catch (err) {
+        // Sem e-mail entregue o convite viraria um "Pendente" fantasma: o
+        // convidado nunca recebe o link e o admin acha que foi enviado.
+        await db.teamInvite.delete({ where: { id: teamInvite.id } });
+        logger.error({ err, email, teamId }, "Falha ao enviar convite de time");
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Não foi possível enviar o e-mail do convite. Verifique o domínio de envio do sistema e tente de novo.",
+        });
+      }
     }
 
     return teamInvite;
