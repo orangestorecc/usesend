@@ -39,7 +39,51 @@ export type PlanoDoCiclo = {
   tier: number;
   overageEmailsEnabled: boolean;
   dedicatedIpActiveAt: Date | null;
+  dedicatedIpCanceledAt?: Date | null;
 };
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Mensalidade do IP dedicado, proporcional aos dias em operação no mês.
+ *
+ * Cobrar os R$ 150 cheios sempre que `activeAt` estivesse preenchido errava
+ * dos dois lados: quem ativava no dia 28 pagava o mês inteiro, e quem cancelava
+ * no dia 28 não pagava nada pelos 28 dias em que o IP entregou e-mail. O
+ * intervalo faturado é [activeAt, canceledAt) ∩ mês corrente — mês inteiro
+ * ativo dá exatamente R$ 150, e um cancelamento de um mês passado zera sozinho,
+ * sem job de limpeza.
+ *
+ * O dia parcial conta como dia cheio, mesma convenção do bloco de 1.000
+ * e-mails: é o arredondamento que a tela já promete.
+ */
+export function mensalidadeIpDedicadoCents(
+  ativoDesde: Date | null,
+  canceladoEm: Date | null | undefined,
+  agora: Date,
+): { cents: number; dias: number; diasNoMes: number } {
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  const inicioProximoMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 1);
+  const diasNoMes = Math.round(
+    (inicioProximoMes.getTime() - inicioMes.getTime()) / DIA_MS,
+  );
+
+  if (!ativoDesde) return { cents: 0, dias: 0, diasNoMes };
+
+  const inicio = ativoDesde > inicioMes ? ativoDesde : inicioMes;
+  const fim =
+    canceladoEm && canceladoEm < inicioProximoMes
+      ? canceladoEm
+      : inicioProximoMes;
+  if (fim <= inicio) return { cents: 0, dias: 0, diasNoMes };
+
+  const dias = Math.min(
+    diasNoMes,
+    Math.ceil((fim.getTime() - inicio.getTime()) / DIA_MS),
+  );
+  const cheio = centavos(ADDONS.ipDedicado.precoMensalBRL);
+  return { cents: Math.round((cheio * dias) / diasNoMes), dias, diasNoMes };
+}
 
 /**
  * Quanto de excedente o time acumulou no mês corrente.
@@ -79,10 +123,17 @@ export async function calcularExtrasDoCiclo(
 
   // O add-on só entra na fatura depois de provisionado e aquecido: cobrar a
   // partir do pedido seria cobrar por um IP que ainda não entrega nada.
-  if (plano.dedicatedIpActiveAt) {
-    totalCents += centavos(ADDONS.ipDedicado.precoMensalBRL);
+  const ip = mensalidadeIpDedicadoCents(
+    plano.dedicatedIpActiveAt,
+    plano.dedicatedIpCanceledAt,
+    new Date(),
+  );
+  if (ip.cents > 0) {
+    totalCents += ip.cents;
+    const parcial = ip.dias < ip.diasNoMes;
     linhas.push(
-      `IP dedicado · R$ ${ADDONS.ipDedicado.precoMensalBRL.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} / mês`,
+      `IP dedicado · R$ ${ADDONS.ipDedicado.precoMensalBRL.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} / mês` +
+        (parcial ? ` · ${ip.dias} de ${ip.diasNoMes} dias em operação` : ""),
     );
   }
 
@@ -103,6 +154,7 @@ export async function extrasDoTime(teamId: number): Promise<ExtrasDoCiclo> {
         planKey: true,
         overageEmailsEnabled: true,
         dedicatedIpActiveAt: true,
+        dedicatedIpCanceledAt: true,
       },
     }),
     db.subscription.findFirst({
@@ -126,5 +178,6 @@ export async function extrasDoTime(teamId: number): Promise<ExtrasDoCiclo> {
     tier: sub?.tier ?? 0,
     overageEmailsEnabled: team.overageEmailsEnabled,
     dedicatedIpActiveAt: team.dedicatedIpActiveAt,
+    dedicatedIpCanceledAt: team.dedicatedIpCanceledAt,
   });
 }

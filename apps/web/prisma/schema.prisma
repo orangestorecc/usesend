@@ -318,11 +318,18 @@ model Team {
   overageEmailsEnabled      Boolean   @default(false)
   /// Pay-as-you-go de automacoes: execucoes alem das inclusas no plano.
   overageAutomationsEnabled Boolean   @default(false)
-  /// Add-on de IP dedicado. `RequestedAt` e o pedido do cliente; `ActiveAt` so
-  /// e preenchido quando o IP foi provisionado e aquecido — e a partir dai que
-  /// a mensalidade do add-on entra na fatura.
+  /// Add-on de IP dedicado. Ciclo de vida: `RequestedAt` (pedido do cliente) ->
+  /// `WarmupStartedAt` (IP provisionado, em aquecimento) -> `ActiveAt` (em
+  /// operacao) -> `CanceledAt`. A mensalidade so entra na fatura no intervalo
+  /// [ActiveAt, CanceledAt), proporcional aos dias do mes — ver overage-service.
   dedicatedIpRequestedAt    DateTime?
+  dedicatedIpWarmupStartedAt DateTime?
   dedicatedIpActiveAt       DateTime?
+  /// Cancelamento de um IP JA ativo. Nao apaga `ActiveAt` de proposito: o mes
+  /// corrente ainda precisa faturar os dias em que o IP entregou e-mail.
+  dedicatedIpCanceledAt     DateTime?
+  /// Endereco do IP provisionado, para o cliente ver o que esta pagando.
+  dedicatedIpAddress        String?
   /// Aviso de exclusao por inatividade ja enviado (conta gratuita).
   inactivityWarnedAt   DateTime?
   /// Data em que a conta gratuita inativa sera excluida, se nada acontecer.

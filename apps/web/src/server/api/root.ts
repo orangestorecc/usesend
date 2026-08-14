@@ -28,6 +28,7 @@ import { promoCodeRouter } from "./routers/promo-code";
 import { planCatalogRouter } from "./routers/plan-catalog";
 import { inboundRouter } from "./routers/inbound";
 import { inboundAdminRouter } from "./routers/inbound-admin";
+import { dedicatedIpAdminRouter } from "./routers/dedicated-ip-admin";
 import { forwardingRouter } from "./routers/forwarding";
 import { paymentsRouter } from "./routers/payments";
 import { aiRouter } from "./routers/ai";
@@ -56,6 +57,7 @@ export const appRouter = createTRPCRouter({
   dashboard: dashboardRouter,
   suppression: suppressionRouter,
   limits: limitsRouter,
+  dedicatedIpAdmin: dedicatedIpAdminRouter,
   waitlist: waitlistRouter,
   feedback: feedbackRouter,
   webhook: webhookRouter,

@@ -6,9 +6,12 @@ import { LimitReason, PLAN_LIMITS } from "~/lib/constants/plans";
 import {
   ADDONS,
   EXTRAS,
+  PLANO_MINIMO_IP_DEDICADO,
   cotaMensalDoPlano,
+  planoTemIpDedicado,
   precoExcedenteBRL,
 } from "@usesend/lib/src/pricing";
+import { notificarPedidoIpDedicado } from "~/server/service/dedicated-ip-service";
 import { calcularExtrasDoCiclo } from "~/server/billing/overage-service";
 import { FREE_PLAN_KEY } from "~/server/billing/plan-service";
 import { db } from "~/server/db";
@@ -45,6 +48,7 @@ export const limitsRouter = createTRPCRouter({
       tier,
       overageEmailsEnabled: team.overageEmailsEnabled,
       dedicatedIpActiveAt: team.dedicatedIpActiveAt,
+      dedicatedIpCanceledAt: team.dedicatedIpCanceledAt,
     });
 
     const [contacts, segments, broadcasts, domains] = await Promise.all([
@@ -101,10 +105,17 @@ export const limitsRouter = createTRPCRouter({
       },
       addons: {
         ipDedicado: {
-          disponivel: limits.dedicatedIp,
+          // Sai do catálogo (`scale`/`enterprise`), não do enum FREE/BASIC: o
+          // enum não distingue Pro de Scale e liberaria o add-on para o Pro,
+          // que no /pricing diz "IPs dedicados: não".
+          disponivel: planoTemIpDedicado(team.planKey) && team.isActive,
+          planoMinimo: PLANO_MINIMO_IP_DEDICADO,
           precoMensalBRL: ADDONS.ipDedicado.precoMensalBRL,
           solicitadoEm: team.dedicatedIpRequestedAt,
+          aquecendoDesde: team.dedicatedIpWarmupStartedAt,
           ativoDesde: team.dedicatedIpActiveAt,
+          canceladoEm: team.dedicatedIpCanceledAt,
+          endereco: team.dedicatedIpAddress,
         },
       },
     };
@@ -135,13 +146,17 @@ export const limitsRouter = createTRPCRouter({
             "O pay-as-you-go vale a partir de um plano pago. Faça o upgrade para continuar enviando além da cota.",
         });
       }
-      if (input.ipDedicado && !PLAN_LIMITS[team.plan].dedicatedIp) {
+      if (
+        input.ipDedicado &&
+        !(planoTemIpDedicado(team.planKey) && team.isActive)
+      ) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "O IP dedicado está disponível a partir do plano Scale.",
+          message: `O IP dedicado está disponível a partir do plano ${PLANO_MINIMO_IP_DEDICADO}.`,
         });
       }
 
+      const agora = new Date();
       await db.team.update({
         where: { id: team.id },
         data: {
@@ -151,16 +166,43 @@ export const limitsRouter = createTRPCRouter({
           ...(input.automacoes === undefined
             ? {}
             : { overageAutomationsEnabled: input.automacoes }),
-          // Pedir e cancelar o pedido; a ativacao de fato (dedicatedIpActiveAt)
-          // e do time de infra, depois de provisionar e aquecer o IP.
           ...(input.ipDedicado === undefined
             ? {}
-            : {
-                dedicatedIpRequestedAt: input.ipDedicado ? new Date() : null,
-                ...(input.ipDedicado ? {} : { dedicatedIpActiveAt: null }),
-              }),
+            : input.ipDedicado
+              ? {
+                  // Reativar um IP já provisionado é só limpar o cancelamento:
+                  // o IP não foi devolvido, não precisa aquecer de novo.
+                  dedicatedIpRequestedAt: team.dedicatedIpRequestedAt ?? agora,
+                  dedicatedIpCanceledAt: null,
+                }
+              : team.dedicatedIpActiveAt
+                ? {
+                    // Já estava em operação: marca a saída em vez de apagar o
+                    // `ActiveAt`, senão os dias já entregues neste mês sairiam
+                    // de graça da fatura.
+                    dedicatedIpCanceledAt: agora,
+                  }
+                : {
+                    // Ainda era só pedido/aquecimento: nada a faturar, some.
+                    dedicatedIpRequestedAt: null,
+                    dedicatedIpWarmupStartedAt: null,
+                  }),
         },
       });
+
+      // Fecha o buraco operacional: o pedido não pode mais ficar silencioso no
+      // banco esperando alguém desconfiar.
+      if (input.ipDedicado !== undefined) {
+        await notificarPedidoIpDedicado(
+          input.ipDedicado ? "solicitado" : "cancelado",
+          {
+            id: team.id,
+            name: team.name,
+            planKey: team.planKey,
+            solicitante: ctx.session.user.email,
+          },
+        );
+      }
       return { success: true };
     }),
 

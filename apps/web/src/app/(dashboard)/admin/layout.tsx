@@ -56,6 +56,11 @@ export default function AdminLayout({
           Consulta CNPJ
         </SettingsNavButton>
         {isCloud() ? (
+          <SettingsNavButton href="/admin/ip-dedicado">
+            IP dedicado
+          </SettingsNavButton>
+        ) : null}
+        {isCloud() ? (
           <SettingsNavButton href="/admin/reputation">
             Entregabilidade
           </SettingsNavButton>

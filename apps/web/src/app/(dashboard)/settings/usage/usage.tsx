@@ -315,18 +315,37 @@ export default function UsagePage() {
               Provisionamos, aquecemos e monitoramos um IP dedicado para
               entregabilidade consistente.
             </p>
+            {/* Etapas em ordem de precedência: cancelado > operação >
+                aquecimento > pedido. Cada uma diz onde o IP está e se já
+                custa alguma coisa — "leva alguns dias" sozinho não responde
+                nem uma coisa nem outra. */}
             <p className="mt-2 text-xs">
-              {ip.ativoDesde ? (
+              {ip.canceladoEm ? (
+                <span className="text-muted-foreground">
+                  Cancelado em{" "}
+                  {format(new Date(ip.canceladoEm), "dd MMM yyyy")} — a fatura
+                  deste mês cobra só os dias em que o IP esteve em operação.
+                </span>
+              ) : ip.ativoDesde ? (
                 <span className="text-emerald-600">
-                  Ativo desde {format(new Date(ip.ativoDesde), "dd MMM yyyy")} ·
-                  cobrado na fatura mensal.
+                  Em operação desde{" "}
+                  {format(new Date(ip.ativoDesde), "dd MMM yyyy")}
+                  {ip.endereco ? ` · IP ${ip.endereco}` : ""} — cobrado na
+                  fatura mensal, proporcional aos dias em operação.
+                </span>
+              ) : ip.aquecendoDesde ? (
+                <span className="text-amber-600">
+                  Etapa 2 de 3 · em aquecimento desde{" "}
+                  {format(new Date(ip.aquecendoDesde), "dd MMM yyyy")}
+                  {ip.endereco ? ` · IP ${ip.endereco}` : ""}. Subimos o volume
+                  aos poucos para o IP ganhar reputação. Ainda sem cobrança.
                 </span>
               ) : ip.solicitadoEm ? (
                 <span className="text-amber-600">
-                  Solicitado em{" "}
-                  {format(new Date(ip.solicitadoEm), "dd MMM yyyy")} — o
-                  aquecimento leva alguns dias. A cobrança só começa quando o IP
-                  entrar em operação.
+                  Etapa 1 de 3 · solicitado em{" "}
+                  {format(new Date(ip.solicitadoEm), "dd MMM yyyy")}. Estamos
+                  provisionando o IP; o aquecimento começa em seguida e leva
+                  alguns dias. Ainda sem cobrança.
                 </span>
               ) : ip.disponivel ? (
                 <span className="text-muted-foreground">
@@ -334,20 +353,32 @@ export default function UsagePage() {
                 </span>
               ) : (
                 <span className="text-muted-foreground">
-                  Disponível a partir do plano Scale.
+                  Disponível a partir do plano {ip.planoMinimo}.
                 </span>
               )}
             </p>
           </div>
 
-          {ip.ativoDesde ? null : ip.solicitadoEm ? (
+          {ip.canceladoEm ? (
+            ip.disponivel ? (
+              <Button
+                size="sm"
+                disabled={setExtras.isPending}
+                onClick={() => setExtras.mutate({ ipDedicado: true })}
+              >
+                Reativar
+              </Button>
+            ) : null
+          ) : ip.ativoDesde || ip.aquecendoDesde || ip.solicitadoEm ? (
+            // Um add-on de R$ 150/mês precisa de saída na própria tela: antes,
+            // depois de ativo, não havia botão nenhum aqui.
             <Button
               variant="outline"
               size="sm"
               disabled={setExtras.isPending}
               onClick={() => setExtras.mutate({ ipDedicado: false })}
             >
-              Cancelar pedido
+              {ip.ativoDesde ? "Cancelar add-on" : "Cancelar pedido"}
             </Button>
           ) : ip.disponivel ? (
             <Button

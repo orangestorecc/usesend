@@ -194,3 +194,22 @@ export const EXTRAS = {
 export const ADDONS = {
   ipDedicado: { precoMensalBRL: 150 },
 };
+
+/**
+ * Planos que vendem o add-on de IP dedicado.
+ *
+ * Sai daqui, e nao do enum `Plan` do banco, porque o enum so distingue
+ * FREE/BASIC: quem checa `PLAN_LIMITS[plan].dedicatedIp` libera o add-on para
+ * qualquer plano pago, inclusive o Pro — que nesta mesma tabela diz
+ * "IPs dedicados: nao". Vender o que a vitrine nega e cobrar pelo que nao foi
+ * prometido.
+ */
+export const PLANOS_COM_IP_DEDICADO = ["scale", "enterprise"] as const;
+
+/** Nome comercial do plano mais barato que tem o add-on, para a copy da UI. */
+export const PLANO_MINIMO_IP_DEDICADO = "Scale";
+
+export function planoTemIpDedicado(planKey: string | null | undefined): boolean {
+  if (!planKey) return false;
+  return (PLANOS_COM_IP_DEDICADO as readonly string[]).includes(planKey);
+}

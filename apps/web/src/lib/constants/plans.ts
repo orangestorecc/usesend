@@ -36,7 +36,7 @@ export const LIMIT_REASON_MESSAGES: Record<LimitReason, string> = {
 };
 
 // -1 = ilimitado. Campos "projetados" (contacts/segments/broadcasts/aiCredits/
-// automations/dedicatedIp) alimentam a página de Uso estilo Resend; alguns
+// automations) alimentam a página de Uso estilo Resend; alguns
 // ainda não são aplicados/rastreados (IA, automações) — projeção para a UI.
 export type PlanLimits = {
   emailsPerMonth: number;
@@ -51,8 +51,12 @@ export type PlanLimits = {
   aiCredits: number;
   automations: number;
   rateLimit: number; // req/s (default; Team.apiRateLimit pode sobrescrever)
-  dedicatedIp: boolean; // add-on disponível no plano
 };
+
+// O add-on de IP dedicado NÃO mora aqui. Este mapa é indexado pelo enum
+// `Plan` (FREE/BASIC), que não separa Pro de Scale — uma flag por aqui daria
+// o add-on ao Pro, que no /pricing diz "IPs dedicados: não". A elegibilidade
+// é `planoTemIpDedicado(planKey)`, em @usesend/lib/src/pricing.
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   FREE: {
@@ -68,7 +72,6 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     aiCredits: 5,
     automations: 10000,
     rateLimit: 2,
-    dedicatedIp: false,
   },
   BASIC: {
     emailsPerMonth: -1,
@@ -83,7 +86,6 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     aiCredits: 100,
     automations: 10000,
     rateLimit: 10,
-    dedicatedIp: true,
   },
 };
 
