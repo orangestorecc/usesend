@@ -53,6 +53,8 @@ export type EditorProps = {
   placeholder?: string;
   /** Ações extras sob o canvas vazio (ex.: escolher template, subir HTML). */
   emptyStateSlot?: React.ReactNode;
+  /** Ações do app no trilho esquerdo, abaixo de Editar/Ver HTML. */
+  railSlot?: React.ReactNode;
   /** Modo controlado do trilho. Ausente => o componente controla sozinho. */
   mode?: EditorMode;
   onModeChange?: (mode: EditorMode) => void;
@@ -73,6 +75,7 @@ export const Editor: React.FC<EditorProps> = ({
   onAiRequest,
   placeholder,
   emptyStateSlot,
+  railSlot,
   mode: controlledMode,
   onModeChange,
 }) => {
@@ -139,7 +142,13 @@ export const Editor: React.FC<EditorProps> = ({
       className="bg-white rounded-md text-black p-4 sm:p-8 unsend-editor light"
       ref={menuContainerRef}
     >
-      <EditorContent editor={editor} className="min-h-[50vh]" />
+      {/* Com o documento vazio o canvas encolhe: meia tela em branco entre o
+          placeholder e o card de IA empurrava a IA para fora da dobra, que é o
+          oposto de ser o caminho principal. */}
+      <EditorContent
+        editor={editor}
+        className={vazio ? "min-h-[80px]" : "min-h-[50vh]"}
+      />
       {editor ? <TextMenu editor={editor} /> : null}
       {editor ? <LinkMenu editor={editor} appendTo={menuContainerRef} /> : null}
     </div>
@@ -148,8 +157,17 @@ export const Editor: React.FC<EditorProps> = ({
   /** Ações de partida, só com o documento ainda vazio. */
   const acoesIniciais =
     editor && vazio && (onAiRequest || emptyStateSlot) ? (
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mx-auto mt-6 flex w-full max-w-[560px] flex-col items-stretch gap-3 px-4 pb-8">
         <AiComposer variant="empty" />
+        {/* Sem executor de IA o card acima não renderiza; nesse caso o slot do
+            app é a única oferta e não deve vir precedido de um "ou" órfão. */}
+        {onAiRequest && emptyStateSlot ? (
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">ou</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+        ) : null}
         {emptyStateSlot}
       </div>
     ) : null;
@@ -167,7 +185,7 @@ export const Editor: React.FC<EditorProps> = ({
         left={
           showBlockPalette ? (
             <div className="flex h-full items-start">
-              <LeftRail />
+              <LeftRail extraSlot={railSlot} />
               {mode === "edit" ? <BlockPalette /> : null}
             </div>
           ) : undefined

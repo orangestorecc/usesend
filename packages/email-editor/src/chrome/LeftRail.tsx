@@ -1,11 +1,20 @@
+import type { ReactNode } from "react";
 import { HomeIcon, PencilIcon, CodeIcon } from "lucide-react";
 import { cn } from "@usesend/ui/lib/utils";
 import { useEditorChrome, type EditorMode } from "../context/EditorChromeContext";
+import { AiRailButton } from "./AiComposer";
 
 /**
  * Trilho fino na borda esquerda: alterna entre editar e ver o HTML gerado.
  */
-export function LeftRail({ onHome }: { onHome?: () => void }) {
+export function LeftRail({
+  onHome,
+  extraSlot,
+}: {
+  onHome?: () => void;
+  /** Ações do app abaixo de Editar/Ver HTML (ex.: trocar template). */
+  extraSlot?: ReactNode;
+}) {
   const { mode, setMode } = useEditorChrome();
 
   const item = (
@@ -46,6 +55,9 @@ export function LeftRail({ onHome }: { onHome?: () => void }) {
       ) : null}
       {item("edit", "Editar", PencilIcon)}
       {item("code", "Ver HTML", CodeIcon)}
+      <div className="my-1 h-px w-6 bg-border" />
+      <AiRailButton />
+      {extraSlot}
     </div>
   );
 }
