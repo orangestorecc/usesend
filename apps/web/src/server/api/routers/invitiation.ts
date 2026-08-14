@@ -109,7 +109,10 @@ export const invitationRouter = createTRPCRouter({
       await ctx.db.$transaction(async (tx) => {
         // Mesma lock da exclusão de conta: aceitar convite enquanto a conta
         // está sendo excluída deixaria um vínculo órfão.
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${LOCK_NS_USER_LIFECYCLE}, hashtext(${String(
+        // O ::int4 é obrigatório: o Prisma manda número JS como int8 e a
+        // versão de dois argumentos de pg_advisory_xact_lock só existe em
+        // (int4, int4) — sem o cast o Postgres não acha a função.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${LOCK_NS_USER_LIFECYCLE}::int4, hashtext(${String(
           ctx.session.user.id,
         )}))`;
 

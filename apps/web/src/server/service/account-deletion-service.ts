@@ -108,7 +108,9 @@ export async function excluirConta(
   await db.$transaction(async (tx) => {
     // A lock fecha o TOCTOU com o aceite de convite: quem chegar depois
     // espera, e encontra a conta já marcada como excluída.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${LOCK_NS_USER_LIFECYCLE}, hashtext(${String(
+    // ::int4 obrigatório: sem o cast o Prisma manda int8 e a assinatura de
+    // dois argumentos (int4, int4) não é encontrada.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${LOCK_NS_USER_LIFECYCLE}::int4, hashtext(${String(
       userId,
     )}))`;
 
