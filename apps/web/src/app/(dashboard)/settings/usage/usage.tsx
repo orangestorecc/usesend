@@ -4,10 +4,18 @@ import { api } from "~/trpc/react";
 import Spinner from "@usesend/ui/src/spinner";
 import { format } from "date-fns";
 import { Switch } from "@usesend/ui/src/switch";
+import { Button } from "@usesend/ui/src/button";
+import { toast } from "@usesend/ui/src/toaster";
 import { PlanUpgradeButton } from "~/components/payments/plan-upgrade-button";
-import { useTeam } from "~/providers/team-context";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
+const brl = (n: number, casas = 2) =>
+  n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: casas,
+    maximumFractionDigits: casas,
+  });
 
 function Row({
   label,
@@ -73,9 +81,70 @@ function Section({
   );
 }
 
+/**
+ * Cabeçalho do plano vigente.
+ *
+ * O nome do plano tem que ser a primeira coisa legível da página: era a
+ * pergunta que a tela de Uso não respondia — dava para ler cota, limite e
+ * consumo sem descobrir em que plano a conta estava. E o botão de upgrade
+ * fica aqui sempre, não só no Free: quem já é Pro é justamente quem tem para
+ * onde subir.
+ */
+function PlanoVigente() {
+  const { data } = api.payments.billingState.useQuery();
+  if (!data) return null;
+
+  const emAtraso = data.isOverdue || Boolean(data.blockedAt);
+
+  return (
+    <div className="mb-2 rounded-xl border bg-muted/20 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            Seu plano
+          </div>
+          <div className="mt-1 flex items-center gap-3">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {data.planName}
+            </h2>
+            {emAtraso ? (
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-600">
+                Fatura em aberto
+              </span>
+            ) : data.isPaid ? (
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600">
+                Ativo
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {data.planProduct === "marketing"
+              ? "E-mails de marketing"
+              : "E-mails transacionais"}
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <PlanUpgradeButton
+            product={data.planProduct}
+            label={data.isPaid ? "Mudar de plano" : "Fazer upgrade"}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function UsagePage() {
-  const { currentTeam } = useTeam();
+  const utils = api.useUtils();
   const { data, isLoading } = api.limits.usageOverview.useQuery();
+  const setExtras = api.limits.setExtras.useMutation({
+    onSuccess: () => {
+      utils.limits.usageOverview.invalidate();
+      toast.success("Preferência salva.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const today = new Date();
   const billingPeriod = `${format(new Date(today.getFullYear(), today.getMonth(), 1), "dd MMM")} – ${format(new Date(today.getFullYear(), today.getMonth() + 1, 1), "dd MMM")}`;
@@ -88,22 +157,23 @@ export default function UsagePage() {
     );
   }
 
+  const extras = data.extras;
+  const ip = data.addons.ipDedicado;
+
   return (
     <div>
-      <div className="mb-2">
+      <div className="mb-4">
         <h1 className="text-xl font-bold">Uso</h1>
         <p className="mt-1 text-sm text-muted-foreground">{billingPeriod}</p>
       </div>
+
+      <PlanoVigente />
 
       {/* Transacional */}
       <Section
         title="Transacional"
         description="E-mails enviados pela API ou SMTP, integrados ao seu app."
-        action={
-          currentTeam?.plan === "FREE" ? (
-            <PlanUpgradeButton product="transactional" />
-          ) : undefined
-        }
+        action={<PlanUpgradeButton product="transactional" label="Ver planos" />}
       >
         <Row
           label="Limite mensal"
@@ -121,11 +191,7 @@ export default function UsagePage() {
       <Section
         title="Marketing"
         description="Crie e envie campanhas usando Contatos e Broadcasts."
-        action={
-          currentTeam?.plan === "FREE" ? (
-            <PlanUpgradeButton product="marketing" />
-          ) : undefined
-        }
+        action={<PlanUpgradeButton product="marketing" label="Ver planos" />}
       >
         <Row
           label="Contatos"
@@ -145,10 +211,7 @@ export default function UsagePage() {
       </Section>
 
       {/* Time */}
-      <Section
-        title="Time"
-        description="Cotas e limites do seu time."
-      >
+      <Section title="Time" description="Cotas e limites do seu time.">
         <Row
           label="Créditos de IA"
           used={data.team.aiCredits.used}
@@ -170,58 +233,135 @@ export default function UsagePage() {
       {/* Extras — pay-as-you-go */}
       <Section
         title="Extras"
-        description="Pay-as-you-go: continue usando além da sua cota. (Em breve)"
+        description="Pay-as-you-go: continue usando além da sua cota, cobrado na próxima fatura."
+        action={
+          extras.elegivel ? undefined : (
+            <PlanUpgradeButton label="Fazer upgrade para liberar" />
+          )
+        }
       >
         <div className="border-b py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-sm font-medium">
-                Transacional · R$ {data.extras.transactionalOverage.pricePerThousandBRL.toFixed(2)} / 1.000 e-mails
+                Transacional · {brl(extras.transacional.precoPorMilBRL)} / 1.000
+                e-mails
               </div>
               <p className="mt-1 max-w-md text-xs text-muted-foreground">
-                Quando ativo, você continua enviando além da cota. Cobrança
-                automática por bloco adicional de 1.000 e-mails.
+                {extras.elegivel
+                  ? "Quando ativo, você continua enviando além da cota. Cobrança automática por bloco adicional de 1.000 e-mails."
+                  : "Disponível a partir de um plano pago — no Free o caminho é o upgrade."}
               </p>
+              {extras.transacional.cotaMensal ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Cota do plano: {fmt(extras.transacional.cotaMensal)} e-mails ·
+                  já excedidos neste ciclo:{" "}
+                  <span className="font-medium text-foreground">
+                    {fmt(extras.transacional.excedenteAtual)}
+                  </span>
+                </p>
+              ) : null}
             </div>
-            <Switch disabled />
+            <Switch
+              checked={extras.transacional.ativo}
+              disabled={!extras.elegivel || setExtras.isPending}
+              onCheckedChange={(v) => setExtras.mutate({ transacional: v })}
+            />
           </div>
         </div>
-        <div className="py-3">
-          <div className="flex items-center justify-between">
+        <div className="border-b py-3">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-sm font-medium">
-                Automações · R$ {data.extras.automationsOverage.pricePerRunBRL.toFixed(4)} / execução
+                Automações · {brl(extras.automacoes.precoPorExecucaoBRL, 4)} /
+                execução
               </div>
               <p className="mt-1 max-w-md text-xs text-muted-foreground">
-                Comece com execuções gratuitas e escale conforme a necessidade.
+                As primeiras {fmt(extras.automacoes.execucoesInclusas)} execuções
+                do mês são gratuitas; daí em diante você paga por execução.
               </p>
             </div>
-            <Switch disabled />
+            <Switch
+              checked={extras.automacoes.ativo}
+              disabled={!extras.elegivel || setExtras.isPending}
+              onCheckedChange={(v) => setExtras.mutate({ automacoes: v })}
+            />
           </div>
         </div>
+
+        {/* O valor corrente fica visível o tempo todo: extra que só aparece na
+            fatura é extra que vira reclamação. */}
+        <div className="flex items-center justify-between py-3">
+          <span className="text-sm">Extras deste ciclo</span>
+          <span className="font-mono text-sm">
+            {brl(extras.acumuladoCents / 100)}
+          </span>
+        </div>
+        {extras.detalhe ? (
+          <p className="-mt-2 pb-3 text-xs text-muted-foreground">
+            {extras.detalhe}
+          </p>
+        ) : null}
       </Section>
 
       {/* Add-ons */}
-      <Section
-        title="Add-ons"
-        description="Recursos especiais para ir além."
-      >
-        <div className="py-3">
-          <div className="text-sm font-medium">
-            IP dedicado · R$ {data.addons.dedicatedIp.pricePerMonthBRL.toFixed(2)} / mês
+      <Section title="Add-ons" description="Recursos especiais para ir além.">
+        <div className="flex items-start justify-between gap-4 py-3">
+          <div>
+            <div className="text-sm font-medium">
+              IP dedicado · {brl(ip.precoMensalBRL)} / mês
+            </div>
+            <p className="mt-1 max-w-md text-xs text-muted-foreground">
+              Provisionamos, aquecemos e monitoramos um IP dedicado para
+              entregabilidade consistente.
+            </p>
+            <p className="mt-2 text-xs">
+              {ip.ativoDesde ? (
+                <span className="text-emerald-600">
+                  Ativo desde {format(new Date(ip.ativoDesde), "dd MMM yyyy")} ·
+                  cobrado na fatura mensal.
+                </span>
+              ) : ip.solicitadoEm ? (
+                <span className="text-amber-600">
+                  Solicitado em{" "}
+                  {format(new Date(ip.solicitadoEm), "dd MMM yyyy")} — o
+                  aquecimento leva alguns dias. A cobrança só começa quando o IP
+                  entrar em operação.
+                </span>
+              ) : ip.disponivel ? (
+                <span className="text-muted-foreground">
+                  Disponível no seu plano.
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  Disponível a partir do plano Scale.
+                </span>
+              )}
+            </p>
           </div>
-          <p className="mt-1 max-w-md text-xs text-muted-foreground">
-            Provisionamos, aquecemos e monitoramos um IP dedicado para
-            entregabilidade consistente.
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {data.addons.dedicatedIp.available
-              ? "Disponível no seu plano."
-              : "Disponível a partir do plano Pro."}
-          </p>
+
+          {ip.ativoDesde ? null : ip.solicitadoEm ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={setExtras.isPending}
+              onClick={() => setExtras.mutate({ ipDedicado: false })}
+            >
+              Cancelar pedido
+            </Button>
+          ) : ip.disponivel ? (
+            <Button
+              size="sm"
+              disabled={setExtras.isPending}
+              onClick={() => setExtras.mutate({ ipDedicado: true })}
+            >
+              Solicitar
+            </Button>
+          ) : (
+            <PlanUpgradeButton label="Fazer upgrade" />
+          )}
         </div>
       </Section>
-
     </div>
   );
 }

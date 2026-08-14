@@ -313,6 +313,16 @@ model Team {
   /// cair sozinho quando o pagamento entra, sem tocar no bloqueio do admin
   /// nem no de reputacao.
   billingBlockedAt     DateTime?
+  /// Pay-as-you-go de e-mails: quando ligado, o envio continua depois da cota
+  /// do plano e o excedente entra na proxima fatura por bloco de 1.000.
+  overageEmailsEnabled      Boolean   @default(false)
+  /// Pay-as-you-go de automacoes: execucoes alem das inclusas no plano.
+  overageAutomationsEnabled Boolean   @default(false)
+  /// Add-on de IP dedicado. `RequestedAt` e o pedido do cliente; `ActiveAt` so
+  /// e preenchido quando o IP foi provisionado e aquecido — e a partir dai que
+  /// a mensalidade do add-on entra na fatura.
+  dedicatedIpRequestedAt    DateTime?
+  dedicatedIpActiveAt       DateTime?
   /// Aviso de exclusao por inatividade ja enviado (conta gratuita).
   inactivityWarnedAt   DateTime?
   /// Data em que a conta gratuita inativa sera excluida, se nada acontecer.
@@ -364,6 +374,9 @@ model Subscription {
   status             String
   priceId            String
   priceIds           String[]
+  /// Passo do slider contratado. Define o preco junto com priceId -- sem ele a
+  /// renovacao recorrente cobraria sempre o degrau base do plano.
+  tier               Int       @default(0)
   currentPeriodEnd   DateTime?
   currentPeriodStart DateTime?
   cancelAtPeriodEnd  DateTime?
@@ -1082,7 +1095,24 @@ model Charge {
   boletoBarcode    String?
   planKey          String?
   product          String?
+  /// Passo do slider contratado (ver Subscription.tier).
+  tier             Int       @default(0)
   promoCode        String?
+  /**
+   * Mesma memoria de calculo da fatura, carregada pela cobranca. O cartao so
+   * cria a fatura depois da aprovacao (finalizeChargePaid), entao a conta
+   * precisa viajar junto com a cobranca -- senao a fatura do cartao nasceria
+   * sem saber qual era o preco cheio nem quanto o cupom tirou.
+   */
+  planName         String?
+  promoLabel       String?
+  subtotalCents    Int?
+  discountCents    Int       @default(0)
+  surchargeCents   Int       @default(0)
+  installments     Int?
+  /** Extras do ciclo anterior carregados junto (ver Invoice.overageCents). */
+  overageCents     Int       @default(0)
+  overageDetail    String?
   failReason       String?
   /** Bandeira e final do cartao, para a tela de detalhe da fatura. */
   cardBrand        String?
@@ -1183,6 +1213,35 @@ model Invoice {
   currency    String    @default("BRL")
   status      String    @default("open") // open | paid | void
   description String?
+
+  /**
+   * Memoria de calculo da fatura. Guardada na propria fatura (e nao recalculada
+   * a partir do catalogo) porque preco de plano e regra de cupom mudam com o
+   * tempo: a fatura de marco tem que continuar explicando a conta de marco.
+   *
+   * Fecha assim: subtotalCents - discountCents + surchargeCents = amountCents.
+   */
+  planName      String?
+  planKey       String?
+  product       String? // transactional | marketing
+  /// Passo do slider contratado (ver Subscription.tier).
+  tier          Int     @default(0)
+  subtotalCents Int? // preco cheio do plano, antes do cupom
+  discountCents Int     @default(0) // desconto do cupom, em centavos
+  promoCode     String?
+  promoLabel    String? // "20% OFF" ou "R$ 30,00 OFF" -- como foi mostrado na hora
+  surchargeCents Int    @default(0) // juros do parcelamento no cartao
+  installments  Int? // parcelas do cartao (1 = a vista)
+  /**
+   * Extras do ciclo anterior (pay-as-you-go e add-ons) somados a esta fatura.
+   * `overageDetail` guarda a frase pronta que a modal de detalhe mostra --
+   * "12.400 e-mails alem da cota x R$ 4,50 / 1.000" -- porque o uso do mes
+   * passado nao fica disponivel para sempre e a fatura precisa se explicar
+   * sozinha depois.
+   */
+  overageCents  Int     @default(0)
+  overageDetail String?
+
   issuedAt    DateTime  @default(now())
   dueAt       DateTime?
   paidAt      DateTime?

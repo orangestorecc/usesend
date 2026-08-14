@@ -1,12 +1,16 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, teamProcedure } from "~/server/api/trpc";
 import { LimitService } from "~/server/service/limit-service";
+import { LimitReason, PLAN_LIMITS } from "~/lib/constants/plans";
 import {
-  LimitReason,
-  PLAN_LIMITS,
-  EXTRAS_CONFIG,
-  ADDONS_CONFIG,
-} from "~/lib/constants/plans";
+  ADDONS,
+  EXTRAS,
+  cotaMensalDoPlano,
+  precoExcedenteBRL,
+} from "@usesend/lib/src/pricing";
+import { calcularExtrasDoCiclo } from "~/server/billing/overage-service";
+import { FREE_PLAN_KEY } from "~/server/billing/plan-service";
 import { db } from "~/server/db";
 import { getThisMonthUsage } from "~/server/service/usage-service";
 import type { EmailUsageType } from "@prisma/client";
@@ -23,6 +27,25 @@ export const limitsRouter = createTRPCRouter({
       list: { type: EmailUsageType; sent: number }[],
       t: EmailUsageType,
     ) => list.find((x) => x.type === t)?.sent ?? 0;
+
+    // Passo contratado: é ele, e não a chave do plano, que define a cota.
+    const sub = await db.subscription.findFirst({
+      where: { teamId: team.id, status: { in: ["active", "past_due"] } },
+      orderBy: { createdAt: "desc" },
+      select: { tier: true },
+    });
+    const tier = sub?.tier ?? 0;
+    const podeExcedente =
+      team.planKey !== FREE_PLAN_KEY &&
+      team.isActive &&
+      cotaMensalDoPlano(team.planKey, tier) !== null;
+
+    const extras = await calcularExtrasDoCiclo(team.id, {
+      planKey: team.planKey,
+      tier,
+      overageEmailsEnabled: team.overageEmailsEnabled,
+      dedicatedIpActiveAt: team.dedicatedIpActiveAt,
+    });
 
     const [contacts, segments, broadcasts, domains] = await Promise.all([
       db.contact.count({ where: { contactBook: { teamId: team.id } } }),
@@ -54,15 +77,92 @@ export const limitsRouter = createTRPCRouter({
         domains: { used: domains, limit: limits.domains },
         rateLimit: team.apiRateLimit,
       },
-      extras: EXTRAS_CONFIG,
+      extras: {
+        // Pay-as-you-go so existe para quem tem cota contratada: no Free nao ha
+        // "alem da cota", ha upgrade. Ligar o excedente ali seria vender
+        // volume sem plano e sem forma de pagamento cadastrada.
+        elegivel: podeExcedente,
+        transacional: {
+          ativo: team.overageEmailsEnabled,
+          precoPorMilBRL:
+            precoExcedenteBRL(team.planKey, tier) ??
+            EXTRAS.transacional.precoPorMilBRL,
+          cotaMensal: extras.cotaMensal,
+          excedenteAtual: extras.emailsExcedentes,
+        },
+        automacoes: {
+          ativo: team.overageAutomationsEnabled,
+          precoPorExecucaoBRL: EXTRAS.automacoes.precoPorExecucaoBRL,
+          execucoesInclusas: EXTRAS.automacoes.execucoesInclusas,
+        },
+        /** O que ja entrou na conta do ciclo corrente, em centavos. */
+        acumuladoCents: extras.totalCents,
+        detalhe: extras.detalhe,
+      },
       addons: {
-        dedicatedIp: {
-          available: limits.dedicatedIp,
-          pricePerMonthBRL: ADDONS_CONFIG.dedicatedIp.pricePerMonthBRL,
+        ipDedicado: {
+          disponivel: limits.dedicatedIp,
+          precoMensalBRL: ADDONS.ipDedicado.precoMensalBRL,
+          solicitadoEm: team.dedicatedIpRequestedAt,
+          ativoDesde: team.dedicatedIpActiveAt,
         },
       },
     };
   }),
+
+  /**
+   * Liga/desliga o pay-as-you-go e pede o add-on de IP dedicado.
+   *
+   * A trava do plano fica aqui, no servidor, e nao so no `disabled` do switch:
+   * o botao cinza da tela nao impede ninguem de chamar a rota.
+   */
+  setExtras: teamProcedure
+    .input(
+      z.object({
+        transacional: z.boolean().optional(),
+        automacoes: z.boolean().optional(),
+        ipDedicado: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const team = ctx.team;
+      const noFree = team.planKey === FREE_PLAN_KEY || !team.isActive;
+
+      if ((input.transacional || input.automacoes) && noFree) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "O pay-as-you-go vale a partir de um plano pago. Faça o upgrade para continuar enviando além da cota.",
+        });
+      }
+      if (input.ipDedicado && !PLAN_LIMITS[team.plan].dedicatedIp) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "O IP dedicado está disponível a partir do plano Scale.",
+        });
+      }
+
+      await db.team.update({
+        where: { id: team.id },
+        data: {
+          ...(input.transacional === undefined
+            ? {}
+            : { overageEmailsEnabled: input.transacional }),
+          ...(input.automacoes === undefined
+            ? {}
+            : { overageAutomationsEnabled: input.automacoes }),
+          // Pedir e cancelar o pedido; a ativacao de fato (dedicatedIpActiveAt)
+          // e do time de infra, depois de provisionar e aquecer o IP.
+          ...(input.ipDedicado === undefined
+            ? {}
+            : {
+                dedicatedIpRequestedAt: input.ipDedicado ? new Date() : null,
+                ...(input.ipDedicado ? {} : { dedicatedIpActiveAt: null }),
+              }),
+        },
+      });
+      return { success: true };
+    }),
 
   /**
    * Consulta dedicada do limite de membros: o `get` genérico devolve uma

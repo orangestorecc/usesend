@@ -9,6 +9,8 @@
  * testável sem montar tela nenhuma.
  */
 
+export * from "./catalogo";
+
 export type PrecoPorPasso = {
   /** Índice do passo do slider a partir do qual este preço passa a valer. */
   aPartirDoPasso: number;
@@ -127,6 +129,67 @@ export function precoNoPasso(
     if (passo >= faixa.aPartirDoPasso) vigente = faixa;
   }
   return vigente;
+}
+
+/**
+ * Cota mensal inclusa no plano, no passo escolhido.
+ *
+ * Sai do próprio texto do volume ("50.000 e-mails / mês" → 50000) porque é ele
+ * que o cliente leu na hora de assinar: se a cota do excedente viesse de outra
+ * tabela, um dia ela discordaria do que a tela prometeu. Retorna null para
+ * plano sem faixa variável (Free, Enterprise), que não tem excedente.
+ */
+export function cotaMensalDoPlano(
+  planoKey: string,
+  passo: number,
+): number | null {
+  const faixa = precoNoPasso(planoKey, passo);
+  if (!faixa) return null;
+  const digitos = faixa.volume.replace(/[^\d.]/g, "").replace(/\./g, "");
+  const n = Number(digitos);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * Preço do bloco de 1.000 e-mails excedentes do plano, em reais.
+ *
+ * Lê a mesma linha "E-mails extras: R$ X / 1.000" que aparece no card do
+ * /pricing — o excedente cai conforme o volume sobe, e cobrar um valor fixo
+ * enquanto a vitrine anuncia outro seria cobrar diferente do combinado.
+ */
+export function precoExcedenteBRL(
+  planoKey: string,
+  passo: number,
+): number | null {
+  const faixa = precoNoPasso(planoKey, passo);
+  const m = faixa?.extra?.match(/R\$\s*([\d.,]+)/);
+  if (!m?.[1]) return null;
+  const n = Number(m[1].replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Passo do slider que corresponde ao volume que o plano entrega naquele passo.
+ *
+ * Existe por causa de um descompasso real na modal de upgrade: no passo 0 o
+ * card do Pro marketing já mostra "5.000 contatos / R$ 200", mas o slider
+ * continuava em 1.000. Quem clicava comprava 5.000 vendo 1.000 na tela. Com
+ * isto a modal encosta o slider no volume de fato escolhido.
+ */
+export function passoDoPlano(
+  produto: "transactional" | "marketing",
+  planoKey: string,
+  passo: number,
+): number {
+  const passos =
+    produto === "transactional" ? PASSOS_TRANSACIONAL : PASSOS_MARKETING;
+  const faixa = precoNoPasso(planoKey, passo);
+  if (!faixa) return passo;
+
+  const rotulo = faixa.volume.trim().split(/\s+/)[0];
+  const i = passos.indexOf(rotulo ?? "");
+  // Nunca puxa o slider para trás: o passo escolhido é um piso de necessidade.
+  return i >= 0 ? Math.max(i, passo) : passo;
 }
 
 export type EstadoDoCard = {

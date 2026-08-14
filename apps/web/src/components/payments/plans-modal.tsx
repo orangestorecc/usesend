@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
 import { Button } from "@usesend/ui/src/button";
 import { Check, X } from "lucide-react";
 import { api } from "~/trpc/react";
-import { estadoDoCard } from "@usesend/lib/src/pricing";
+import { estadoDoCard, passoDoPlano } from "@usesend/lib/src/pricing";
 import {
   TRANSACTIONAL_PLANS,
   MARKETING_PLANS,
@@ -39,19 +39,57 @@ export function PlansModal({
   const catalogQuery = api.planCatalog.list.useQuery(undefined, {
     enabled: open,
   });
+  // Plano vigente de verdade: sem isso a modal chamava de "atual" o card mais
+  // barato, e quem já era Pro via "Plano atual" no Free.
+  const billingState = api.payments.billingState.useQuery(undefined, {
+    enabled: open,
+  });
+
   const plans: CatalogPlan[] =
     (product === "transactional"
       ? catalogQuery.data?.transactional
       : catalogQuery.data?.marketing) ??
     (product === "transactional" ? TRANSACTIONAL_PLANS : MARKETING_PLANS);
 
-  const tiers = product === "transactional" ? TRANSACTIONAL_TIERS : MARKETING_TIERS;
-  const currentPlan = plans.find((p) => p.priceBRL === 0) ?? plans[0]!;
+  const tiers =
+    product === "transactional" ? TRANSACTIONAL_TIERS : MARKETING_TIERS;
+
+  const planKeyAtual = billingState.data?.planKey ?? "free";
+  const produtoAtual = billingState.data?.planProduct ?? "transactional";
+  const currentPlan =
+    plans.find((p) => p.key === planKeyAtual) ??
+    plans.find((p) => p.priceBRL === 0) ??
+    plans[0]!;
+
+  // Ao abrir na aba do produto que a pessoa já assina, o slider começa onde o
+  // plano dela está — não no degrau zero, que não é onde ela vive.
+  useEffect(() => {
+    if (!open) return;
+    setProduct(defaultProduct);
+    setConfirming(null);
+    setTier(
+      defaultProduct === produtoAtual && planKeyAtual !== "free"
+        ? passoDoPlano(defaultProduct, planKeyAtual, 0)
+        : 0,
+    );
+  }, [open, defaultProduct, produtoAtual, planKeyAtual]);
 
   const switchProduct = (p: Product) => {
     setProduct(p);
     setTier(0);
     setConfirming(null);
+  };
+
+  /**
+   * Encosta o slider no volume que o plano escolhido entrega.
+   *
+   * O card do Pro marketing já mostra "5.000 contatos / R$ 200" com o slider
+   * em 1.000: o plano não vende 1.000, vende 5.000. Antes, quem clicava
+   * fechava a compra de 5.000 olhando 1.000 na tela.
+   */
+  const escolher = (plan: CatalogPlan, vigente: CatalogPlan) => {
+    setTier(passoDoPlano(product, plan.key, tier));
+    setConfirming(vigente);
   };
 
   const goToCheckout = (plan: CatalogPlan) => {
@@ -79,9 +117,16 @@ export function PlansModal({
         <DialogHeader>
           <DialogTitle className="text-center text-2xl">Planos</DialogTitle>
         </DialogHeader>
+        <p className="-mt-1 text-center text-sm text-muted-foreground">
+          Você está no{" "}
+          <span className="font-medium text-foreground">
+            {billingState.data?.planName ?? "Free"}
+          </span>
+          . Arraste para ver o plano que atende o seu volume.
+        </p>
 
         {/* Toggle produto */}
-        <div className="mt-2 flex justify-center">
+        <div className="mt-4 flex justify-center">
           <div className="inline-flex items-center gap-1 rounded-full border bg-muted/40 p-1">
             <button
               onClick={() => switchProduct("transactional")}
@@ -115,24 +160,37 @@ export function PlansModal({
             value={tier}
             onChange={(e) => setTier(Number(e.target.value))}
             className="w-full accent-foreground"
+            aria-label={
+              product === "transactional"
+                ? "E-mails por mês"
+                : "Número de contatos"
+            }
+            aria-valuetext={tiers[tier]}
           />
           <div
             className="mt-2 grid text-center"
             style={{ gridTemplateColumns: `repeat(${tiers.length}, 1fr)` }}
           >
             {tiers.map((t, i) => (
-              <span
+              <button
                 key={t}
-                className={`text-[11px] ${
+                type="button"
+                onClick={() => setTier(i)}
+                className={`text-[11px] transition-colors ${
                   i === tier
                     ? "font-semibold text-foreground"
-                    : "text-muted-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {t}
-              </span>
+              </button>
             ))}
           </div>
+          <p className="mt-3 text-center text-sm text-muted-foreground">
+            {product === "transactional"
+              ? `Até ${tiers[tier]} e-mails por mês`
+              : `Até ${tiers[tier]} contatos`}
+          </p>
         </div>
 
         {confirming ? (
@@ -160,12 +218,13 @@ export function PlansModal({
                 volume: estado.volume,
                 extra: estado.extra ?? plan.extra,
               };
-              const isCurrent = estado.precoBRL === 0;
+              const isCurrent =
+                plan.key === planKeyAtual && product === produtoAtual;
               const isCustom = estado.precoBRL === null;
               return (
                 <div
                   key={plan.key}
-                  className={`flex flex-col rounded-2xl border p-6 transition-opacity ${
+                  className={`relative flex flex-col rounded-2xl border p-6 transition-opacity ${
                     estado.recomendado
                       ? "border-foreground/40 bg-muted/30 shadow-lg"
                       : ""
@@ -174,7 +233,13 @@ export function PlansModal({
                   <div className="text-center text-sm font-medium text-muted-foreground">
                     {plan.name}
                   </div>
-                  {estado.recomendado ? (
+                  {isCurrent ? (
+                    <div className="mt-2 text-center">
+                      <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        Seu plano
+                      </span>
+                    </div>
+                  ) : estado.recomendado ? (
                     <div className="mt-2 text-center">
                       <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600">
                         Recomendado
@@ -229,9 +294,10 @@ export function PlansModal({
                     <Button
                       className="w-full"
                       variant={estado.recomendado ? "default" : "outline"}
-                      onClick={() => setConfirming(vigente)}
+                      onClick={() => escolher(plan, vigente)}
                     >
-                      Mudar para R$ {estado.precoBRL} / mês
+                      Mudar para R$ {estado.precoBRL?.toLocaleString("pt-BR")} /
+                      mês
                     </Button>
                   )}
                 </div>
@@ -255,6 +321,7 @@ function ConfirmPanel({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const brl = (n: number) => `R$ ${n.toLocaleString("pt-BR")}`;
   const diff = (next.priceBRL ?? 0) - (current.priceBRL ?? 0);
   return (
     <div className="mx-auto mt-10 w-full max-w-md rounded-2xl border p-8 shadow-lg">
@@ -268,7 +335,7 @@ function ConfirmPanel({
               {current.name} · {current.volume}
             </div>
           </div>
-          <span className="font-mono">R$ {current.priceBRL ?? 0} / mês</span>
+          <span className="font-mono">{brl(current.priceBRL ?? 0)} / mês</span>
         </div>
         <div className="flex items-start justify-between border-b pb-4">
           <div>
@@ -277,19 +344,20 @@ function ConfirmPanel({
               {next.name} · {next.volume}
             </div>
           </div>
-          <span className="font-mono">R$ {next.priceBRL ?? 0} / mês</span>
+          <span className="font-mono">{brl(next.priceBRL ?? 0)} / mês</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Diferença mensal</span>
           <span className="font-mono font-semibold">
-            {diff >= 0 ? "+" : ""}R$ {diff} / mês
+            {diff >= 0 ? "+" : "−"}
+            {brl(Math.abs(diff))} / mês
           </span>
         </div>
       </div>
 
       <p className="mt-5 text-xs text-muted-foreground">
-        Você será cobrado hoje e a partir daí R$ {next.priceBRL} por mês a cada
-        ciclo.
+        Você será cobrado hoje e a partir daí {brl(next.priceBRL ?? 0)} por mês
+        a cada ciclo.
       </p>
 
       <div className="mt-6 flex gap-3">

@@ -44,7 +44,6 @@ import { MiniThemeSwitcher, ThemeSwitcher } from "./theme/ThemeSwitcher";
 import { useSession } from "next-auth/react";
 import { isCloud, isSelfHosted } from "~/utils/common";
 import { usePathname } from "next/navigation";
-import { Badge } from "@usesend/ui/src/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@usesend/ui/src/avatar";
 import {
   DropdownMenu,
@@ -55,6 +54,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@usesend/ui/src/dropdown-menu";
+import { PlanBadge } from "./PlanBadge";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { OnboardingWidget } from "./OnboardingWidget";
 import { env } from "~/env";
@@ -173,7 +173,7 @@ export function AppSidebar() {
               alt="Madmail"
               className="hidden h-6 w-auto dark:block"
             />
-            <Badge variant="outline">Beta</Badge>
+            <PlanBadge />
           </div>
         </SidebarGroupLabel>
       </SidebarHeader>

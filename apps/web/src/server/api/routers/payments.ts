@@ -157,6 +157,9 @@ export const paymentsRouter = createTRPCRouter({
 
     return {
       planKey: team?.planKey ?? FREE_PLAN_KEY,
+      planProduct: (team?.planProduct ?? "transactional") as
+        | "transactional"
+        | "marketing",
       planName: plano?.name ?? "Free",
       isPaid: team?.planKey !== FREE_PLAN_KEY,
       blockedAt: team?.billingBlockedAt ?? null,
@@ -210,7 +213,40 @@ export const paymentsRouter = createTRPCRouter({
         expYear: true,
         isDefault: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
     });
   }),
+
+  /**
+   * Troca a forma padrão entre as que o time já usou. Só o admin: define de
+   * onde sai o dinheiro da próxima renovação.
+   */
+  definirFormaPadrao: teamAdminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const alvo = await db.paymentMethod.findFirst({
+        where: { id: input.id, teamId: ctx.team.id },
+      });
+      if (!alvo) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Forma de pagamento não encontrada.",
+        });
+      }
+      await db.paymentMethod.updateMany({
+        where: { teamId: ctx.team.id },
+        data: { isDefault: false },
+      });
+      await db.paymentMethod.update({
+        where: { id: alvo.id },
+        data: { isDefault: true },
+      });
+      // A assinatura precisa saber: é ela que o job de recorrência lê para
+      // decidir se cobra no cartão ou se espera um PIX/boleto do cliente.
+      await db.subscription.updateMany({
+        where: { teamId: ctx.team.id, status: { in: ["active", "past_due"] } },
+        data: { paymentMethod: alvo.type },
+      });
+      return { ok: true };
+    }),
 });

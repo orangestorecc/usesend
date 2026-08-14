@@ -111,6 +111,42 @@ export const planCatalogRouter = createTRPCRouter({
       });
     }),
 
+  /**
+   * Reescreve as linhas do banco a partir do catálogo do código.
+   *
+   * `ensureSeeded` só roda com a tabela vazia, então as bases que já foram
+   * semeadas ficaram congeladas com os preços antigos (Pro a R$ 20 enquanto o
+   * /pricing anunciava R$ 100). Isto é o botão que traz a tabela de volta para
+   * a paridade — explícito, porque sobrescreve edições feitas aqui.
+   */
+  resync: adminProcedure.mutation(async () => {
+    const sync = async (product: string, plans: CatalogPlan[]) => {
+      for (const [i, p] of plans.entries()) {
+        const data = {
+          product,
+          key: p.key,
+          name: p.name,
+          priceBRL: p.priceBRL,
+          volume: p.volume,
+          extra: p.extra ?? null,
+          features: p.features,
+          cta: p.cta,
+          highlight: p.highlight ?? false,
+          sortOrder: i,
+          active: true,
+        };
+        await db.planCatalogEntry.upsert({
+          where: { product_key: { product, key: p.key } },
+          create: data,
+          update: data,
+        });
+      }
+    };
+    await sync("transactional", TRANSACTIONAL_PLANS);
+    await sync("marketing", MARKETING_PLANS);
+    return { success: true };
+  }),
+
   delete: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {

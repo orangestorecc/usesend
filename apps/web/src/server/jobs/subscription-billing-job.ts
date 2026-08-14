@@ -8,6 +8,7 @@ import { logger } from "../logger/log";
 import { db } from "~/server/db";
 import * as rede from "~/server/billing/rede";
 import { finalizeChargePaid } from "~/server/billing/payment-service";
+import { extrasDoTime } from "~/server/billing/overage-service";
 
 const schedulerQueue = new Queue(SUBSCRIPTION_BILLING_QUEUE, {
   connection: getRedis(),
@@ -51,12 +52,18 @@ async function runBillingTick() {
     // Recupera o valor do plano (centavos).
     const { resolveAmount } = await import("~/server/billing/payment-service");
     let amountCents = 0;
+    // Nome do plano na renovação: sem ele a fatura recorrente nasceria sem
+    // memória de cálculo e a modal de detalhe não teria o que explicar.
+    let planName: string | null = null;
     try {
       const r = await resolveAmount({
         product: (product as "transactional" | "marketing") || "transactional",
         planKey: planKey || "",
+        // O passo contratado tem que ir junto: e ele que define o preco.
+        tier: sub.tier,
       });
       amountCents = r.amountCents;
+      planName = r.plan.name;
     } catch {
       logger.error(
         { sub: sub.id, priceId: sub.priceId },
@@ -75,22 +82,36 @@ async function runBillingTick() {
       continue;
     }
 
+    // Extras do ciclo que encerra: pay-as-you-go e add-ons entram na fatura da
+    // renovacao. Calculados agora, a partir do uso, e congelados na cobranca --
+    // depois que o mes vira, esse uso nao esta mais disponivel para explicar a
+    // conta.
+    const extras = await extrasDoTime(sub.teamId);
+    const totalCents = amountCents + extras.totalCents;
+
     const charge = await db.charge.create({
       data: {
         teamId: sub.teamId,
         subscriptionId: sub.id,
         method: "card",
         provider: "rede",
-        amountCents,
+        amountCents: totalCents,
         status: "pending",
         planKey,
         product,
+        planName,
+        tier: sub.tier,
+        // Renovação é sempre preço cheio, sem cupom e sem parcelamento.
+        subtotalCents: amountCents,
+        overageCents: extras.totalCents,
+        overageDetail: extras.detalhe,
+        installments: 1,
       },
     });
 
     try {
       const result = await rede.chargeWithToken({
-        amountCents,
+        amountCents: totalCents,
         reference: charge.id,
         cardToken: method.cardToken,
         softDescriptor: "MADMAIL",

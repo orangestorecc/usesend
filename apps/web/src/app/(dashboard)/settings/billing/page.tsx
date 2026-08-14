@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@usesend/ui/src/select";
 import { toast } from "@usesend/ui/src/toaster";
-import { Plus, X, Download, CreditCard } from "lucide-react";
+import { Plus, X, Download, CreditCard, QrCode, Banknote } from "lucide-react";
 import { format } from "date-fns";
 import { useTeam } from "~/providers/team-context";
 import { api } from "~/trpc/react";
@@ -33,6 +33,18 @@ const brl = (cents: number) =>
     style: "currency",
     currency: "BRL",
   });
+
+const FORMA_LABEL: Record<string, string> = {
+  card: "Cartão de crédito",
+  pix: "PIX",
+  boleto: "Boleto bancário",
+};
+
+const ICONE_FORMA: Record<string, typeof CreditCard> = {
+  card: CreditCard,
+  pix: QrCode,
+  boleto: Banknote,
+};
 
 function SectionCard({
   title,
@@ -66,6 +78,8 @@ export default function BillingPage() {
   const profileQuery = api.billingProfile.get.useQuery();
   const invoicesQuery = api.billingProfile.invoices.useQuery();
   const billingState = api.payments.billingState.useQuery();
+  const formasQuery = api.payments.paymentMethods.useQuery();
+  const definirPadrao = api.payments.definirFormaPadrao.useMutation();
   const updateContact = api.billingProfile.updateContact.useMutation();
   const updateFiscal = api.billingProfile.updateFiscal.useMutation();
 
@@ -260,16 +274,71 @@ export default function BillingPage() {
         title="Formas de pagamento"
         description="Cartão de crédito, PIX ou boleto. Uma delas será a padrão ao assinar um plano pago."
       >
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
-          <CreditCard className="h-6 w-6 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            As formas de pagamento serão configuradas no checkout.
-          </p>
-          <p className="max-w-md text-xs text-muted-foreground">
-            No plano grátis não há forma padrão. Ao assinar um plano pago, a forma
-            escolhida no checkout vira a padrão.
-          </p>
-        </div>
+        {formasQuery.data?.length ? (
+          <div className="divide-y rounded-lg border">
+            {formasQuery.data.map((forma) => {
+              const Icone = ICONE_FORMA[forma.type] ?? CreditCard;
+              return (
+                <div key={forma.id} className="flex items-center gap-3 p-3">
+                  <Icone className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">
+                      {FORMA_LABEL[forma.type] ?? forma.type}
+                      {forma.last4 ? (
+                        <span className="ml-2 font-normal text-muted-foreground">
+                          {forma.brand ? `${forma.brand} ` : ""}•••• {forma.last4}
+                        </span>
+                      ) : null}
+                    </p>
+                    {forma.type === "card" && forma.expMonth && forma.expYear ? (
+                      <p className="text-xs text-muted-foreground">
+                        Validade{" "}
+                        {String(forma.expMonth).padStart(2, "0")}/{forma.expYear}
+                      </p>
+                    ) : null}
+                  </div>
+                  {forma.isDefault ? (
+                    <span className="shrink-0 rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                      Padrão
+                    </span>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={definirPadrao.isPending}
+                      onClick={() =>
+                        definirPadrao.mutate(
+                          { id: forma.id },
+                          {
+                            onSuccess: () => {
+                              utils.payments.paymentMethods.invalidate();
+                              toast.success("Forma padrão atualizada.");
+                            },
+                            onError: (e) => toast.error(e.message),
+                          },
+                        )
+                      }
+                    >
+                      Tornar padrão
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
+            <CreditCard className="h-6 w-6 text-muted-foreground" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Nenhuma forma de pagamento usada ainda.
+            </p>
+            <p className="max-w-md text-xs text-muted-foreground">
+              No plano grátis não há forma padrão. Ao assinar um plano pago, a
+              forma escolhida no checkout vira a padrão e aparece aqui.
+            </p>
+          </div>
+        )}
       </SectionCard>
 
       {/* Responsável financeiro / dados fiscais */}
@@ -377,33 +446,40 @@ export default function BillingPage() {
       {/* Faturas */}
       <SectionCard
         title="Faturas"
-        description="Histórico de cobranças. Clique para ver os detalhes."
+        description="Histórico de cobranças, com o plano e o desconto de cada uma."
       >
         {invoicesQuery.data?.length ? (
           <div className="divide-y">
             {invoicesQuery.data.map((inv) => (
               <div
                 key={inv.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => setFaturaAberta(inv.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setFaturaAberta(inv.id);
-                  }
-                }}
-                className="flex cursor-pointer items-center justify-between py-3 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex items-center gap-3 py-3 text-sm"
               >
-                <span className="text-muted-foreground">
-                  {format(new Date(inv.issuedAt), "dd MMM yyyy")}
-                </span>
-                <span className="font-mono text-xs text-muted-foreground">
-                  {inv.number}
-                </span>
+                {/* Plano e data mandam na leitura; o número da fatura é
+                    referência de suporte, então fica secundário. */}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">
+                    {inv.planName ?? inv.description ?? "Assinatura"}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {format(new Date(inv.issuedAt), "dd MMM yyyy")}
+                    <span className="mx-1.5">·</span>
+                    <span className="font-mono">{inv.number}</span>
+                    {inv.discountCents > 0 ? (
+                      <>
+                        <span className="mx-1.5">·</span>
+                        <span className="text-emerald-600">
+                          cupom {inv.promoCode ?? "aplicado"}
+                        </span>
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+
                 <span className="font-mono">{brl(inv.amountCents)}</span>
+
                 <span
-                  className={`rounded px-2 py-0.5 text-xs font-medium ${
+                  className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${
                     inv.status === "paid"
                       ? "bg-emerald-100 text-emerald-700"
                       : inv.status === "open"
@@ -417,16 +493,28 @@ export default function BillingPage() {
                       ? "Aberta"
                       : "Cancelada"}
                 </span>
+
+                {/* Botão explícito: a linha inteira ser clicável não se anuncia
+                    sozinha, e quem não descobre nunca vê o detalhe da conta. */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => setFaturaAberta(inv.id)}
+                >
+                  Ver detalhes
+                </Button>
+
                 {inv.pdfUrl ? (
                   <a
                     href={inv.pdfUrl}
-                    onClick={(e) => e.stopPropagation()}
-                    className="rounded p-1.5 text-muted-foreground hover:bg-muted"
+                    title="Baixar fatura"
+                    className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted"
                   >
                     <Download className="h-4 w-4" />
                   </a>
                 ) : (
-                  <span className="w-7" />
+                  <span className="w-7 shrink-0" />
                 )}
               </div>
             ))}

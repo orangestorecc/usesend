@@ -61,6 +61,17 @@ export function InvoiceDetailsDialog({
   const cobranca =
     fatura?.charges.find((c) => c.status === "paid") ?? fatura?.charges[0];
 
+  // Faturas emitidas antes do detalhamento não têm subtotal gravado: nesse caso
+  // o próprio total é a única verdade que temos, e a conta fecha trivialmente.
+  const subtotal = fatura?.subtotalCents ?? fatura?.amountCents ?? 0;
+  const contaFecha =
+    !fatura ||
+    subtotal -
+      fatura.discountCents +
+      fatura.overageCents +
+      fatura.surchargeCents ===
+      fatura.amountCents;
+
   return (
     <Dialog open={Boolean(invoiceId)} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
@@ -81,12 +92,12 @@ export function InvoiceDetailsDialog({
         ) : (
           <div className="divide-y">
             <div className="pb-2">
-              <Linha rotulo="Descrição">
-                {fatura.description ?? "Assinatura"}
+              <Linha rotulo="Plano">
+                {fatura.planName ?? fatura.description ?? "Assinatura"}
               </Linha>
-              <Linha rotulo="Valor">
-                <span className="font-mono">{brl(fatura.amountCents)}</span>
-              </Linha>
+              {fatura.planName && fatura.description ? (
+                <Linha rotulo="Descrição">{fatura.description}</Linha>
+              ) : null}
               <Linha rotulo="Emitida em">
                 {format(new Date(fatura.issuedAt), "dd/MM/yyyy")}
               </Linha>
@@ -100,6 +111,74 @@ export function InvoiceDetailsDialog({
                   {format(new Date(fatura.paidAt), "dd/MM/yyyy 'às' HH:mm")}
                 </Linha>
               ) : null}
+            </div>
+
+            {/* Memória de cálculo: de onde saiu cada centavo. */}
+            <div className="py-2">
+              <Linha rotulo="Valor do plano">
+                <span className="font-mono">{brl(subtotal)}</span>
+              </Linha>
+
+              {fatura.discountCents > 0 ? (
+                <Linha
+                  rotulo={
+                    fatura.promoCode
+                      ? `Cupom ${fatura.promoCode}${
+                          fatura.promoLabel ? ` (${fatura.promoLabel})` : ""
+                        }`
+                      : "Desconto"
+                  }
+                >
+                  <span className="font-mono text-emerald-600">
+                    − {brl(fatura.discountCents)}
+                  </span>
+                </Linha>
+              ) : null}
+
+              {/* Extras do ciclo anterior. A frase do `overageDetail` é a única
+                  explicação que sobra depois que o mês vira — sem ela o cliente
+                  vê uma linha a mais na fatura e nenhuma justificativa. */}
+              {fatura.overageCents > 0 ? (
+                <Linha rotulo="Extras do ciclo">
+                  <span className="font-mono">+ {brl(fatura.overageCents)}</span>
+                  {fatura.overageDetail ? (
+                    <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                      {fatura.overageDetail}
+                    </span>
+                  ) : null}
+                </Linha>
+              ) : null}
+
+              {fatura.surchargeCents > 0 ? (
+                <Linha
+                  rotulo={`Juros do parcelamento${
+                    fatura.installments ? ` (${fatura.installments}x)` : ""
+                  }`}
+                >
+                  <span className="font-mono">+ {brl(fatura.surchargeCents)}</span>
+                </Linha>
+              ) : null}
+
+              <div className="mt-1 flex items-center justify-between border-t pt-2 text-sm font-semibold">
+                <span>Total</span>
+                <span className="font-mono">{brl(fatura.amountCents)}</span>
+              </div>
+
+              {fatura.installments && fatura.installments > 1 ? (
+                <p className="pt-1 text-right text-xs text-muted-foreground">
+                  {fatura.installments}x de{" "}
+                  {brl(Math.round(fatura.amountCents / fatura.installments))}
+                </p>
+              ) : null}
+
+              {/* Só aparece se a conta não fechar — é bug nosso, não do cliente,
+                  e é melhor ele ver o aviso do que sair somando errado. */}
+              {contaFecha ? null : (
+                <p className="pt-2 text-xs text-muted-foreground">
+                  Esta fatura é anterior ao detalhamento por item; o total
+                  cobrado é o valor acima.
+                </p>
+              )}
             </div>
 
             {/* Forma de pagamento e comprovantes */}

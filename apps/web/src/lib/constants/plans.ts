@@ -87,12 +87,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   },
 };
 
-// Extras (pay-as-you-go) e add-ons — valores PROJETADOS em R$ (ajustar depois).
-export const EXTRAS_CONFIG = {
-  transactionalOverage: { pricePerThousandBRL: 0.9 },
-  automationsOverage: { pricePerRunBRL: 0.0075 },
-};
-
-export const ADDONS_CONFIG = {
-  dedicatedIp: { pricePerMonthBRL: 150 },
-};
+// Extras (pay-as-you-go) e add-ons agora moram em `@usesend/lib/src/pricing`
+// (EXTRAS / ADDONS), junto da tabela de preços. Ficavam aqui com R$ 0,90 por
+// mil e-mails enquanto o /pricing anunciava R$ 4,50 no mesmo plano: dois
+// preços para a mesma coisa, e o cliente lendo o outro.

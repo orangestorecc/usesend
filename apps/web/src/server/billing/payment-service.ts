@@ -98,6 +98,73 @@ function applyPromo(priceCents: number, promo: PromoRow | null): number {
   return Math.max(0, Math.round(total));
 }
 
+/** Como o cupom foi apresentado ao cliente ("20% OFF", "R$ 30,00 OFF"). */
+function rotuloDoCupom(promo: PromoRow | null): string | null {
+  if (!promo) return null;
+  if (promo.percentOff) return `${promo.percentOff}% OFF`;
+  if (promo.amountOffCents)
+    return `${(promo.amountOffCents / 100).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    })} OFF`;
+  return promo.code;
+}
+
+/**
+ * A conta que a fatura precisa saber explicar mais tarde:
+ * subtotal - desconto + juros = valor cobrado.
+ *
+ * Fica gravada na cobrança e é copiada para a fatura porque preço de plano e
+ * regra de cupom mudam com o tempo — recalcular depois daria outro número.
+ */
+export type MemoriaDeCalculo = {
+  planName: string;
+  planKey: string;
+  product: Product;
+  /**
+   * Passo do slider contratado. Viaja com a cobranca ate a assinatura porque
+   * e ele, e nao a chave do plano, que define o preco: sem isso a renovacao
+   * de um Pro marketing de 100.000 contatos (R$ 2.250) voltava a cobrar o
+   * degrau base do plano (R$ 200).
+   */
+  tier: number;
+  subtotalCents: number;
+  discountCents: number;
+  promoCode: string | null;
+  promoLabel: string | null;
+  surchargeCents: number;
+  installments: number | null;
+  /** Extras do ciclo anterior; só a renovação preenche. */
+  overageCents?: number;
+  overageDetail?: string | null;
+};
+
+export function montarMemoria(args: {
+  plan: CatalogPlan;
+  product: Product;
+  promo: PromoRow | null;
+  /** Preço do plano já com o cupom, antes de juros de parcelamento. */
+  amountCents: number;
+  /** O que de fato será cobrado (com juros, no cartão). */
+  totalCents: number;
+  tier?: number;
+  installments?: number | null;
+}): MemoriaDeCalculo {
+  const subtotalCents = Math.round((args.plan.priceBRL ?? 0) * 100);
+  return {
+    planName: args.plan.name,
+    planKey: args.plan.key,
+    product: args.product,
+    tier: args.tier ?? 0,
+    subtotalCents,
+    discountCents: Math.max(0, subtotalCents - args.amountCents),
+    promoCode: args.promo?.code ?? null,
+    promoLabel: rotuloDoCupom(args.promo),
+    surchargeCents: Math.max(0, args.totalCents - args.amountCents),
+    installments: args.installments ?? null,
+  };
+}
+
 /** Resolve preço final em centavos + valida plano. */
 export async function resolveAmount(input: {
   product: Product;
@@ -122,6 +189,7 @@ async function activatePlan(
   teamId: number,
   product: Product,
   planKey: string,
+  tier: number,
   method: Method,
 ) {
   const now = new Date();
@@ -149,6 +217,7 @@ async function activatePlan(
       data: {
         status: "active",
         priceId,
+        tier,
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         paymentMethod: method,
@@ -166,10 +235,77 @@ async function activatePlan(
         teamId,
         status: "active",
         priceId,
+        tier,
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         paymentMethod: method,
       },
+    });
+  }
+}
+
+/**
+ * Registra a forma de pagamento usada como a padrão do time.
+ *
+ * Antes só o cartão *salvo* virava `PaymentMethod` — quem pagou com PIX, com
+ * boleto, ou com cartão sem marcar "salvar" passava pelo checkout, escolhia a
+ * forma, e Configurações > Faturamento continuava dizendo que nada estava
+ * configurado. Agora toda cobrança paga deixa sua marca: uma linha por tipo,
+ * e a última usada vira a padrão.
+ *
+ * O cartão com token (recorrência) é escrito no próprio checkout, com os dados
+ * do cofre da Rede; aqui só garantimos que ele fique como padrão sem duplicar.
+ */
+async function registrarFormaPadrao(charge: {
+  teamId: number;
+  method: string;
+  provider: string;
+  cardBrand: string | null;
+  cardLast4: string | null;
+}) {
+  const { teamId, method } = charge;
+
+  // Uma linha por tipo: o cliente não quer ver seis "PIX" no histórico.
+  const existente = await db.paymentMethod.findFirst({
+    where: { teamId, type: method },
+    // Um cartão tokenizado vale mais que um avulso: é o que a recorrência usa.
+    orderBy: [{ cardToken: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+  });
+
+  if (existente) {
+    await db.paymentMethod.update({
+      where: { id: existente.id },
+      data: {
+        isDefault: true,
+        provider: charge.provider,
+        // Só sobrescreve a bandeira/final quando a cobrança traz algo: um
+        // cartão tokenizado não pode perder seus dados para uma cobrança nova.
+        brand: charge.cardBrand ?? existente.brand,
+        last4: charge.cardLast4 ?? existente.last4,
+      },
+    });
+  } else {
+    await db.paymentMethod.create({
+      data: {
+        teamId,
+        type: method,
+        provider: charge.provider,
+        brand: charge.cardBrand,
+        last4: charge.cardLast4,
+        isDefault: true,
+      },
+    });
+  }
+
+  // Exclusividade do padrão: só uma forma responde pela próxima cobrança.
+  await db.paymentMethod.updateMany({
+    where: { teamId, type: { not: method } },
+    data: { isDefault: false },
+  });
+  if (existente) {
+    await db.paymentMethod.updateMany({
+      where: { teamId, type: method, id: { not: existente.id } },
+      data: { isDefault: false },
     });
   }
 }
@@ -185,6 +321,7 @@ async function createOpenInvoice(
   teamId: number,
   amountCents: number,
   description: string,
+  memoria: MemoriaDeCalculo,
   dueAt?: Date,
 ): Promise<string> {
   const count = await db.invoice.count({ where: { teamId } });
@@ -197,6 +334,7 @@ async function createOpenInvoice(
       status: "open",
       description,
       dueAt,
+      ...memoria,
     },
   });
   return invoice.id;
@@ -206,6 +344,22 @@ async function createPaidInvoice(
   teamId: number,
   amountCents: number,
   description: string,
+  // Vem da cobrança, onde tudo é anulável: uma cobrança antiga pode não ter
+  // memória de cálculo, e a fatura nasce sem ela em vez de não nascer.
+  memoria: {
+    planName: string | null;
+    planKey: string | null;
+    product: string | null;
+    subtotalCents: number;
+    discountCents: number;
+    promoCode: string | null;
+    promoLabel: string | null;
+    surchargeCents: number;
+    installments: number | null;
+    tier: number;
+    overageCents: number;
+    overageDetail: string | null;
+  },
 ): Promise<string> {
   const count = await db.invoice.count({ where: { teamId } });
   const invoice = await db.invoice.create({
@@ -217,6 +371,7 @@ async function createPaidInvoice(
       status: "paid",
       description,
       paidAt: new Date(),
+      ...memoria,
     },
   });
   // TODO(NF): emitir nota fiscal (NFS-e) via provedor fiscal (ex: Focus NFe /
@@ -233,8 +388,26 @@ export async function finalizeChargePaid(chargeId: string) {
   const charge = await db.charge.findUnique({ where: { id: chargeId } });
   if (!charge || charge.status === "paid") return;
 
-  const descricao =
-    `${charge.product ?? ""} ${charge.planKey ?? ""}`.trim() || "Assinatura";
+  // "Plano Pro — assinatura mensal", não "marketing pro_marketing": a fatura é
+  // um documento que o cliente lê, não um dump das chaves internas do catálogo.
+  const descricao = charge.planName
+    ? `${charge.planName} — assinatura mensal`
+    : `${charge.product ?? ""} ${charge.planKey ?? ""}`.trim() || "Assinatura";
+
+  const memoria = {
+    planName: charge.planName,
+    planKey: charge.planKey,
+    product: charge.product,
+    subtotalCents: charge.subtotalCents ?? charge.amountCents,
+    discountCents: charge.discountCents,
+    promoCode: charge.promoCode,
+    promoLabel: charge.promoLabel,
+    surchargeCents: charge.surchargeCents,
+    installments: charge.installments,
+    tier: charge.tier,
+    overageCents: charge.overageCents,
+    overageDetail: charge.overageDetail,
+  };
 
   // PIX e boleto já abriram a fatura quando a cobrança foi criada: aqui ela é
   // quitada. Criar outra duplicaria a mesma cobrança no histórico do cliente.
@@ -249,6 +422,7 @@ export async function finalizeChargePaid(chargeId: string) {
       charge.teamId,
       charge.amountCents,
       descricao,
+      memoria,
     );
   }
 
@@ -257,11 +431,17 @@ export async function finalizeChargePaid(chargeId: string) {
     data: { status: "paid", paidAt: new Date(), invoiceId },
   });
 
+  // O plano grátis não tem forma padrão — é o que a tela de faturamento diz.
+  if (charge.amountCents > 0) {
+    await registrarFormaPadrao(charge);
+  }
+
   if (charge.product && charge.planKey) {
     await activatePlan(
       charge.teamId,
       charge.product as Product,
       charge.planKey,
+      charge.tier ?? 0,
       charge.method as Method,
     );
   }
@@ -427,9 +607,14 @@ export async function createCheckout(
         provider: input.method === "card" ? "rede" : "inter",
         amountCents: 0,
         status: "pending",
-        planKey: input.planKey,
-        product: input.product,
-        promoCode: promo?.code,
+        ...montarMemoria({
+          plan,
+          product: input.product,
+          tier: input.tier ?? 0,
+          promo,
+          amountCents,
+          totalCents: 0,
+        }),
       },
     });
     await finalizeChargePaid(charge.id);
@@ -462,9 +647,15 @@ export async function createCheckout(
         provider: "rede",
         amountCents: totalCobrado,
         status: "pending",
-        planKey: input.planKey,
-        product: input.product,
-        promoCode: promo?.code,
+        ...montarMemoria({
+          plan,
+          product: input.product,
+          tier: input.tier ?? 0,
+          promo,
+          amountCents,
+          totalCents: totalCobrado,
+          installments,
+        }),
       },
     });
 
@@ -514,6 +705,13 @@ export async function createCheckout(
 
     // Salva o token para recorrência (se gerado / reutilizado).
     if (result.cardToken) {
+      // Cartões registrados sem token (pagamento avulso, sem "salvar cartão")
+      // só existiam para mostrar a forma usada na tela. Agora que há um cartão
+      // de verdade no cofre, eles viram ruído — e um deles como padrão faria a
+      // recorrência falhar por "sem cartão salvo".
+      await db.paymentMethod.deleteMany({
+        where: { teamId: input.teamId, type: "card", cardToken: null },
+      });
       await db.paymentMethod.updateMany({
         where: { teamId: input.teamId, type: "card" },
         data: { isDefault: false },
@@ -538,11 +736,21 @@ export async function createCheckout(
     return { status: "paid", chargeId: charge.id };
   }
 
+  const memoria = montarMemoria({
+    plan,
+    product: input.product,
+    tier: input.tier ?? 0,
+    promo,
+    amountCents,
+    totalCents: amountCents,
+  });
+
   if (input.method === "pix") {
     const invoiceId = await createOpenInvoice(
       input.teamId,
       amountCents,
       `${plan.name} — assinatura mensal`,
+      memoria,
       // PIX expira em 1h, mas a fatura vence no dia: quem paga depois do QR
       // expirar gera outro, e não faz sentido a fatura constar vencida no
       // mesmo minuto.
@@ -555,10 +763,8 @@ export async function createCheckout(
         provider: "inter",
         amountCents,
         status: "pending",
-        planKey: input.planKey,
-        product: input.product,
-        promoCode: promo?.code,
         invoiceId,
+        ...memoria,
       },
     });
     const pix = await inter.createPixCharge({
@@ -598,6 +804,7 @@ export async function createCheckout(
     input.teamId,
     amountCents,
     `${plan.name} — assinatura mensal`,
+    memoria,
     due,
   );
   const charge = await db.charge.create({
@@ -607,10 +814,8 @@ export async function createCheckout(
       provider: "inter",
       amountCents,
       status: "pending",
-      planKey: input.planKey,
-      product: input.product,
-      promoCode: promo?.code,
       invoiceId,
+      ...memoria,
     },
   });
   const boleto = await inter.createBoleto({

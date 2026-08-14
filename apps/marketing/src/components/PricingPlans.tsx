@@ -6,6 +6,7 @@ import { Button } from "@usesend/ui/src/button";
 import { AwsSesLinha } from "~/components/AwsSesBadge";
 
 import {
+  catalogoDoProduto,
   estadoDoCard,
   PASSOS_MARKETING,
   PASSOS_TRANSACIONAL,
@@ -14,10 +15,10 @@ import {
 /**
  * Planos do site.
  *
- * Usa a mesma matriz de preços do app (`@usesend/lib/src/pricing`) de
- * propósito: se o site e o checkout tivessem cada um a sua tabela, um dia
- * anunciaríamos um preço e cobraríamos outro. É o tipo de divergência que só
- * aparece com o cliente reclamando.
+ * Preços, features e textos saem de `@usesend/lib/src/pricing` — o mesmo lugar
+ * que a modal de upgrade e a tela de admin leem. Se o site e o checkout
+ * tivessem cada um a sua tabela, um dia anunciaríamos um preço e cobraríamos
+ * outro. É o tipo de divergência que só aparece com o cliente reclamando.
  */
 
 // SVG inline em vez de lucide-react: o site não tem essa dependência e não
@@ -51,144 +52,8 @@ function IconeNao({ className }: { className?: string }) {
 
 type Produto = "transactional" | "marketing";
 
-type Feature = { label: string; ok: boolean };
-
-type Card = {
-  key: string;
-  nome: string;
-  precoFixo: number | null;
-  volumeFixo: string;
-  extraFixo?: string;
-  cta: string;
-  features: Feature[];
-};
-
 const APP_URL = "https://app.madmail.com.br";
 const SIGNUP_URL = `${APP_URL}/cadastro`;
-
-const CARDS_TRANSACIONAL: Card[] = [
-  {
-    key: "free",
-    nome: "Free",
-    precoFixo: 0,
-    volumeFixo: "3.000 e-mails / mês",
-    cta: "Começar de graça",
-    features: [
-      { label: "Envio e recebimento", ok: true },
-      { label: "Suporte por ticket", ok: true },
-      { label: "10.000 execuções de automação", ok: true },
-      { label: "Retenção de dados por 30 dias", ok: true },
-      { label: "1 domínio", ok: true },
-      { label: "5 créditos de IA / mês", ok: true },
-      { label: "100 e-mails por dia", ok: false },
-      { label: "IPs dedicados", ok: false },
-    ],
-  },
-  {
-    key: "pro",
-    nome: "Pro",
-    precoFixo: 100,
-    volumeFixo: "50.000 e-mails / mês",
-    cta: "Assinar Pro",
-    features: [
-      { label: "Envio e recebimento", ok: true },
-      { label: "Suporte por ticket", ok: true },
-      { label: "10.000 execuções de automação", ok: true },
-      { label: "Retenção de dados por 30 dias", ok: true },
-      { label: "10 domínios", ok: true },
-      { label: "100 créditos de IA / mês", ok: true },
-      { label: "Sem limite diário", ok: true },
-      { label: "IPs dedicados", ok: false },
-    ],
-  },
-  {
-    key: "scale",
-    nome: "Scale",
-    precoFixo: 450,
-    volumeFixo: "100.000 e-mails / mês",
-    cta: "Assinar Scale",
-    features: [
-      { label: "Envio e recebimento", ok: true },
-      { label: "Suporte via Slack e ticket", ok: true },
-      { label: "10.000 execuções de automação", ok: true },
-      { label: "Retenção de dados por 30 dias", ok: true },
-      { label: "1.000 domínios", ok: true },
-      { label: "500 créditos de IA / mês", ok: true },
-      { label: "Sem limite diário", ok: true },
-      { label: "IP dedicado como add-on", ok: true },
-    ],
-  },
-  {
-    key: "enterprise",
-    nome: "Enterprise",
-    precoFixo: null,
-    volumeFixo: "Um plano sob medida para a sua operação",
-    cta: "Fale conosco",
-    features: [
-      { label: "Envio e recebimento", ok: true },
-      { label: "Suporte prioritário", ok: true },
-      { label: "Execuções flexíveis", ok: true },
-      { label: "Retenção flexível", ok: true },
-      { label: "Domínios flexíveis", ok: true },
-      { label: "Créditos de IA flexíveis", ok: true },
-      { label: "Sem limite diário", ok: true },
-      { label: "IPs dedicados como add-on", ok: true },
-    ],
-  },
-];
-
-const CARDS_MARKETING: Card[] = [
-  {
-    key: "free",
-    nome: "Free",
-    precoFixo: 0,
-    volumeFixo: "1.000 contatos",
-    extraFixo: "Envio de campanhas ilimitado",
-    cta: "Começar de graça",
-    features: [
-      { label: "Suporte por ticket", ok: true },
-      { label: "10.000 execuções de automação", ok: true },
-      { label: "3 segmentos", ok: true },
-      { label: "1 domínio", ok: true },
-      { label: "5 créditos de IA / mês", ok: true },
-      { label: "Análises de marketing", ok: false },
-      { label: "IPs dedicados", ok: false },
-    ],
-  },
-  {
-    key: "pro_marketing",
-    nome: "Pro marketing",
-    precoFixo: 200,
-    volumeFixo: "5.000 contatos",
-    extraFixo: "Envio de campanhas ilimitado",
-    cta: "Assinar Pro marketing",
-    features: [
-      { label: "Suporte via Slack e ticket", ok: true },
-      { label: "10.000 execuções de automação", ok: true },
-      { label: "Segmentos ilimitados", ok: true },
-      { label: "Domínios ilimitados", ok: true },
-      { label: "100 créditos de IA / mês", ok: true },
-      { label: "Análises de marketing", ok: true },
-      { label: "IP dedicado como add-on", ok: false },
-    ],
-  },
-  {
-    key: "enterprise",
-    nome: "Enterprise",
-    precoFixo: null,
-    volumeFixo: "Um plano sob medida para a sua operação",
-    extraFixo: "Envio de campanhas ilimitado",
-    cta: "Fale conosco",
-    features: [
-      { label: "Suporte prioritário", ok: true },
-      { label: "Segmentos ilimitados", ok: true },
-      { label: "Domínios ilimitados", ok: true },
-      { label: "Créditos de IA flexíveis", ok: true },
-      { label: "Análises de marketing", ok: true },
-      { label: "IPs dedicados inclusos", ok: true },
-    ],
-  },
-];
 
 export function PricingPlans({
   comoSecao = false,
@@ -203,8 +68,7 @@ export function PricingPlans({
 
   const passos =
     produto === "transactional" ? PASSOS_TRANSACIONAL : PASSOS_MARKETING;
-  const cards =
-    produto === "transactional" ? CARDS_TRANSACIONAL : CARDS_MARKETING;
+  const cards = catalogoDoProduto(produto);
 
   function trocarProduto(novo: Produto) {
     setProduto(novo);
@@ -318,8 +182,8 @@ export function PricingPlans({
             produto,
             card.key,
             passo,
-            card.precoFixo,
-            card.volumeFixo,
+            card.priceBRL,
+            card.volume,
           );
           const personalizado = estado.precoBRL === null;
 
@@ -333,7 +197,7 @@ export function PricingPlans({
               } ${estado.esmaecido ? "opacity-40" : ""}`}
             >
               <div className="text-center text-sm font-medium text-muted-foreground">
-                {card.nome}
+                {card.name}
               </div>
 
               {estado.recomendado ? (
@@ -357,9 +221,9 @@ export function PricingPlans({
 
               <div className="min-h-[64px] border-y py-4 text-center">
                 <p className="text-sm font-medium">{estado.volume}</p>
-                {estado.extra ?? card.extraFixo ? (
+                {estado.extra ?? card.extra ? (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {estado.extra ?? card.extraFixo}
+                    {estado.extra ?? card.extra}
                   </p>
                 ) : null}
               </div>
@@ -394,7 +258,7 @@ export function PricingPlans({
                       : SIGNUP_URL
                   }
                 >
-                  {card.cta}
+                  {card.ctaSite ?? card.cta}
                 </a>
               </Button>
             </div>
