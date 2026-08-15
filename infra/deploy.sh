@@ -92,6 +92,12 @@ export NODE_OPTIONS="--max-old-space-size=3072"
 # funcionar — a issue fecha sozinha quando sobe o deploy com a correção.
 export NEXT_PUBLIC_GIT_SHA="$AFTER"
 
+# Google Analytics 4. NEXT_PUBLIC_ é inlinado no bundle durante a compilação:
+# setar isso só no .env do serviço não teria efeito nenhum. Fica no topo (e não
+# no build.env, que só é lido pelo build do app) porque o site institucional
+# também precisa dele. Dá para sobrescrever exportando antes de chamar o script.
+export NEXT_PUBLIC_GA_ID="${NEXT_PUBLIC_GA_ID:-G-3LVH7XXFML}"
+
 # Segredos que só o BUILD usa (hoje o SENTRY_AUTH_TOKEN, que sobe o sourcemap)
 # ficam num arquivo separado do .env da aplicação. O .env é lido pelo processo
 # do Next enquanto ele serve requisição, então tudo que estiver lá fica no
@@ -143,24 +149,38 @@ log "Documentação"
 # `mint export` gera um zip; descompactamos para servir como estático, do
 # mesmo jeito que o site institucional.
 #
-# O heap PRECISA ser maior aqui, e o valor não é chute. O `NODE_OPTIONS` lá de
-# cima vale para o script inteiro e limita o export a 3 GB — com esse teto ele
-# morre em `FATAL ERROR: Reached heap limit` no meio de um JSON.parse. Medido
-# no servidor em 14/08/2026: 3 GB e 4 GB estouram o heap (com 4 GB o pico de
-# memória real foi de só 6,6 GiB, ou seja, sobrava máquina); 8 GB é o que
-# passa. O gasto é de UM processo grande, não de muitos: o export usa 7
-# processos no pico.
+# O resultado é servido de FORA de apps/docs, e isso não é preferência de
+# organização. Enquanto ele morava em apps/docs/site, cada export empacotava o
+# export anterior — a documentação tem 6 MB, mas o diretório chegou a 5,7 GB e
+# o `mint` passou a morrer com "The value of length is out of range ... Received
+# 2751257197": buffer de 2,75 GB contra o teto RÍGIDO de 2 GiB do Node, que
+# nenhum ajuste de heap resolve.
 #
-# Como o passo é não-fatal de propósito, o efeito de errar aqui é a
-# documentação parar de ser republicada em silêncio, com o deploy verde.
+# Como o passo é não-fatal de propósito, o efeito disso foi a documentação
+# parar de ser republicada em silêncio, com o deploy verde.
 #
-# `mint` sai com código 0 mesmo quando um filho morre por falta de memória,
-# então quem decide se deu certo é a checagem do export.zip logo abaixo.
-cd "$APP/apps/docs"
-if npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
+# `mint` sai com código 0 mesmo quando falha, então quem decide se deu certo é
+# a checagem do export.zip logo abaixo.
+DOCS_SITE=/opt/madmail/docs-site
+
+# Migração do caminho antigo, idempotente: na primeira execução leva o export
+# que já está no ar para o lugar novo (para a doc não sair do ar enquanto o
+# export roda) e apaga o diretório de dentro de apps/docs, que é o que
+# realimentava o zip.
+if [ -d "$APP/apps/docs/site" ]; then
+  if [ ! -d "$DOCS_SITE" ]; then
+    echo "  migrando o export servido para $DOCS_SITE"
+    cp -r "$APP/apps/docs/site" "$DOCS_SITE"
+  fi
   rm -rf "$APP/apps/docs/site"
-  mkdir -p "$APP/apps/docs/site"
-  unzip -q -o export.zip -d "$APP/apps/docs/site"
+fi
+mkdir -p "$DOCS_SITE"
+
+cd "$APP/apps/docs"
+if npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -s export.zip ]; then
+  rm -rf "$DOCS_SITE.novo"
+  mkdir -p "$DOCS_SITE.novo"
+  unzip -q -o export.zip -d "$DOCS_SITE.novo"
   rm -f export.zip
 
   # Ajustes no HTML exportado, todos por injeção antes de </head>:
@@ -176,9 +196,17 @@ if npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
   # significa "o trecho casado" e estragaria a substituição.
   INJECAO='<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500"><style>[aria-label="Open search"],[aria-label="Abrir busca"]{display:none !important}code,pre,kbd,samp{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace !important}</style>'
 
-  find "$APP/apps/docs/site" -name '*.html' -print0 | xargs -0 -r sed -i     "s#</head>#${INJECAO}</head>#"
+  find "$DOCS_SITE.novo" -name '*.html' -print0 | xargs -0 -r sed -i     "s#</head>#${INJECAO}</head>#"
 
-  echo "  export: $(du -sh "$APP/apps/docs/site" | cut -f1) (busca ocultada, fontes do site)"
+  # Troca no fim, como o build do app: o diretório servido nunca fica em
+  # estado intermediário. Quem reinicia o serviço é o passo "Reiniciando os
+  # serviços", lá embaixo — reiniciar aqui pegaria a config antiga, que ainda
+  # aponta para o caminho de dentro de apps/docs.
+  rm -rf "$DOCS_SITE.anterior"
+  [ -d "$DOCS_SITE" ] && mv "$DOCS_SITE" "$DOCS_SITE.anterior"
+  mv "$DOCS_SITE.novo" "$DOCS_SITE"
+
+  echo "  export: $(du -sh "$DOCS_SITE" | cut -f1) (busca ocultada, fontes do site)"
 else
   echo "  build da documentação falhou (o app segue no ar):"
   tail -10 "$LOGS/build-docs.log" | sed 's/^/    /'
