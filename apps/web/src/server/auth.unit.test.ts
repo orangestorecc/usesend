@@ -192,10 +192,25 @@ describe("authOptions", () => {
         canRegisterSelfHostedUser("invited@example.com"),
       ).resolves.toBe(true);
 
+      // O prazo entra no WHERE: convite vencido não abre cadastro numa
+      // instalação self-hosted fechada.
       expect(mocks.inviteFindFirst).toHaveBeenCalledWith({
-        where: { email: "invited@example.com" },
+        where: {
+          email: "invited@example.com",
+          expiresAt: { gt: expect.any(Date) },
+        },
         select: { id: true },
       });
+    });
+
+    it("rejects a new user whose only invite has expired", async () => {
+      mocks.userFindFirst.mockResolvedValue({ id: 1 });
+      // O convite existe na tabela, mas o filtro de prazo não o devolve.
+      mocks.inviteFindFirst.mockResolvedValue(null);
+
+      await expect(
+        canRegisterSelfHostedUser("expirado@example.com"),
+      ).resolves.toBe(false);
     });
 
     it("rejects a new user without a matching invite", async () => {
@@ -293,7 +308,7 @@ describe("authOptions", () => {
       });
 
       expect(mocks.transactionInviteFindFirst).toHaveBeenCalledWith({
-        where: { email: newUser.email },
+        where: { email: newUser.email, expiresAt: { gt: expect.any(Date) } },
         select: { id: true },
       });
       expect(mocks.transactionUserCreate).toHaveBeenCalledWith({

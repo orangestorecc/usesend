@@ -22,7 +22,7 @@ import JoinTeam from "./JoinTeam";
 
 const FormSchema = z.object({
   name: z.string().min(2, {
-    message: "O nome do time deve ter pelo menos 2 caracteres.",
+    message: "O nome do workspace deve ter pelo menos 2 caracteres.",
   }),
 });
 

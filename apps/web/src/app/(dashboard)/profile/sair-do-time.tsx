@@ -21,7 +21,7 @@ import { toast } from "@usesend/ui/src/toaster";
 import { api } from "~/trpc/react";
 
 /**
- * Sair do time, com a transferência de administração no mesmo dialog quando
+ * Sair do workspace, com a transferência de administração no mesmo dialog quando
  * a pessoa é o único admin. Mandar embora para outra tela seria abandonar
  * quem está no meio da exclusão de conta.
  */
@@ -56,7 +56,7 @@ export function SairDoTime({
         className="text-destructive"
         onClick={() => setAberto(true)}
       >
-        Sair do time
+        Sair deste workspace
       </Button>
 
       <Dialog open={aberto} onOpenChange={setAberto}>
@@ -66,7 +66,7 @@ export function SairDoTime({
             <DialogDescription>
               {ultimoAdmin
                 ? "Você é o único admin. Escolha quem assume a administração — a transferência e a saída acontecem juntas."
-                : "Você perde o acesso aos domínios, contatos e envios deste time."}
+                : "Você perde o acesso aos domínios, contatos e envios deste workspace."}
             </DialogDescription>
           </DialogHeader>
 
@@ -76,8 +76,8 @@ export function SairDoTime({
                 <div className="text-sm text-muted-foreground">Carregando…</div>
               ) : semMembros ? (
                 <div className="text-sm text-muted-foreground">
-                  Este time não tem outros membros. Para sair, exclua o time nas
-                  configurações.
+                  Este workspace não tem outros membros. Para sair, exclua o
+                  workspace nas configurações.
                 </div>
               ) : (
                 <>
@@ -133,7 +133,7 @@ export function SairDoTime({
                 )
               }
             >
-              {sair.isPending ? "Saindo…" : "Sair do time"}
+              {sair.isPending ? "Saindo…" : "Sair deste workspace"}
             </Button>
           )}
         </DialogContent>

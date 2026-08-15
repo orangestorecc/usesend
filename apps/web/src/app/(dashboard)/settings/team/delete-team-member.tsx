@@ -7,19 +7,19 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@usesend/ui/src/dialog";
 import { api } from "~/trpc/react";
-import { useState } from "react";
 import { toast } from "@usesend/ui/src/toaster";
 import { Role } from "@prisma/client";
-import { LogOut, Trash2 } from "lucide-react";
 
+/** Diálogo puramente controlado: quem abre é o menu de ações do membro. */
 export const DeleteTeamMember: React.FC<{
   teamUser: { userId: string; role: Role; email: string };
   self: boolean;
-}> = ({ teamUser, self }) => {
-  const [open, setOpen] = useState(false);
+  open: boolean;
+  onOpenChange: (aberto: boolean) => void;
+}> = ({ teamUser, self, open, onOpenChange }) => {
+  const setOpen = onOpenChange;
   const deleteTeamUserMutation = api.team.deleteTeamUser.useMutation();
 
   const utils = api.useUtils();
@@ -33,7 +33,7 @@ export const DeleteTeamMember: React.FC<{
         onSuccess: async () => {
           utils.team.getTeamUsers.invalidate();
           setOpen(false);
-          toast.success("Membro do time removido com sucesso");
+          toast.success(`${teamUser.email} não tem mais acesso a este workspace.`);
         },
         onError: async (error) => {
           toast.error(error.message);
@@ -43,28 +43,16 @@ export const DeleteTeamMember: React.FC<{
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(_open) => (_open !== open ? setOpen(_open) : null)}
-    >
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
-          {self ? (
-            <LogOut className="h-4 w-4 text-red/80" />
-          ) : (
-            <Trash2 className="h-4 w-4 text-red/80" />
-          )}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {self ? "Sair do time" : "Remover membro do time"}
+            {self ? "Sair deste workspace" : "Remover do workspace"}
           </DialogTitle>
           <DialogDescription>
             {self
-              ? "Tem certeza de que deseja sair do time? Esta ação não pode ser desfeita."
-              : `Tem certeza de que deseja remover ${teamUser.email} do time? Esta ação não pode ser desfeita.`}
+              ? "Tem certeza de que deseja sair deste workspace? Você perde o acesso aos dados dele e esta ação não pode ser desfeita."
+              : `Tem certeza de que deseja remover ${teamUser.email} deste workspace? Esta ação não pode ser desfeita.`}
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end gap-4 mt-6">

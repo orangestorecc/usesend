@@ -35,7 +35,7 @@ async function exigirTime(teamId: number) {
     select: SELECT,
   });
   if (!team) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Time não encontrado." });
+    throw new TRPCError({ code: "NOT_FOUND", message: "Workspace não encontrado." });
   }
   return team;
 }
@@ -68,7 +68,7 @@ export const dedicatedIpAdminRouter = createTRPCRouter({
       if (!team.dedicatedIpRequestedAt) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Este time não tem pedido de IP dedicado em aberto.",
+          message: "Este workspace não tem pedido de IP dedicado em aberto.",
         });
       }
       if (team.dedicatedIpActiveAt && !team.dedicatedIpCanceledAt) {

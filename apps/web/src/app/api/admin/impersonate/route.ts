@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
-import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
 import { env } from "~/env";
 import { ehAdminDaPlataformaPorId } from "~/server/service/platform-admin";
+import { lerTravaDeLinkDeAcesso } from "~/server/service/active-team";
+import {
+  SESSION_COOKIE,
+  criarSessaoEGravarCookie,
+  opcoesDeCookie,
+} from "~/server/service/session-service";
 
-// Docker builds skip environment validation, so this module can be evaluated
-// without NEXTAUTH_URL while Next.js collects route data. Runtime validation
-// still requires the URL in production.
-const isSecure = env.NEXTAUTH_URL?.startsWith("https") ?? false;
-const SESSION_COOKIE = isSecure
-  ? "__Secure-next-auth.session-token"
-  : "next-auth.session-token";
 const IMPERSONATOR_COOKIE = "madmail-impersonator";
 
 /**
@@ -26,15 +24,35 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
   }
 
+  // Esta é a ÚNICA rota fora do tRPC que fabrica uma sessão nova, então é
+  // também a única porta por onde a trava de link de acesso poderia ser
+  // lavada: sessão presa a um workspace entrava aqui e saía com uma sessão
+  // limpa (sem `accessLinkTeamId`) para qualquer time. Ser admin de plataforma
+  // não desfaz a trava — quem quiser impersonar entra pela própria conta.
+  if ((await lerTravaDeLinkDeAcesso(req.headers, db)) !== null) {
+    return NextResponse.json(
+      { error: "Este acesso está limitado a um workspace" },
+      { status: 403 },
+    );
+  }
+
   const teamId = Number(new URL(req.url).searchParams.get("teamId"));
   if (!teamId) {
     return NextResponse.json({ error: "teamId obrigatório" }, { status: 400 });
   }
 
+  // `orderBy` explícito: sem ele o banco escolhe um membro arbitrário e a
+  // mesma URL entra em contas diferentes entre um request e outro. O menor
+  // `userId` do time é o alvo estável.
   const teamUser =
     (await db.teamUser.findFirst({
       where: { teamId, role: "ADMIN" },
-    })) ?? (await db.teamUser.findFirst({ where: { teamId } }));
+      orderBy: { userId: "asc" },
+    })) ??
+    (await db.teamUser.findFirst({
+      where: { teamId },
+      orderBy: { userId: "asc" },
+    }));
 
   if (!teamUser) {
     return NextResponse.json(
@@ -46,29 +64,17 @@ export async function GET(req: Request) {
   const cookieStore = await cookies();
   const currentToken = cookieStore.get(SESSION_COOKIE)?.value;
 
-  const token = randomBytes(32).toString("hex");
-  await db.session.create({
-    data: {
-      sessionToken: token,
-      userId: teamUser.userId,
-      expires: new Date(Date.now() + 60 * 60 * 1000),
-    },
-  });
-
   const res = NextResponse.redirect(new URL("/dashboard", env.NEXTAUTH_URL));
   if (currentToken) {
-    res.cookies.set(IMPERSONATOR_COOKIE, currentToken, {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: "lax",
-      path: "/",
-    });
+    res.cookies.set(IMPERSONATOR_COOKIE, currentToken, opcoesDeCookie());
   }
-  res.cookies.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: isSecure,
-    sameSite: "lax",
-    path: "/",
+
+  // Mesmo caminho de criação de sessão do resgate de link de acesso. Isto passa
+  // a aplicar o gate de MFA também aqui: entrar na conta de um cliente que tem
+  // MFA ligado exige o código dele, como já exigia por qualquer outra porta.
+  await criarSessaoEGravarCookie(teamUser.userId, res, {
+    expires: new Date(Date.now() + 60 * 60 * 1000),
   });
+
   return res;
 }

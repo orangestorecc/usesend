@@ -18,8 +18,8 @@ import {
   listarBloqueios,
   pedirCodigoDeExclusao,
 } from "~/server/service/account-deletion-service";
-import { prazoDoConvite } from "~/lib/invites";
 import { TeamService } from "~/server/service/team-service";
+import { invalidarLinksDoMembro } from "~/server/service/access-link-service";
 
 export const userRouter = createTRPCRouter({
   /** Tudo que a tela /profile precisa numa consulta só. */
@@ -53,7 +53,7 @@ export const userRouter = createTRPCRouter({
           ? ctx.db.teamInvite.findMany({
               where: {
                 email: { equals: user.email, mode: "insensitive" },
-                createdAt: { gte: prazoDoConvite() },
+                expiresAt: { gt: new Date() },
               },
               include: { team: { select: { id: true, name: true } } },
             })
@@ -84,10 +84,18 @@ export const userRouter = createTRPCRouter({
       _count: { _all: true },
     });
 
+    // Acesso assistido não é a conta da pessoa: vê o workspace de onde o link
+    // saiu e nada mais. A lista de times e os convites pendentes dela em outras
+    // empresas não são do admin que emitiu o link.
+    const preso = ctx.acessoPresoAoTime;
+    const timesVisiveis =
+      preso === null ? teamUsers : teamUsers.filter((tu) => tu.teamId === preso);
+    const convitesVisiveis = preso === null ? invites : [];
+
     return {
       user,
       elevada: sessaoElevada(sessionRow),
-      times: teamUsers.map((tu) => ({
+      times: timesVisiveis.map((tu) => ({
         teamId: tu.teamId,
         nome: tu.team.name,
         papel: tu.role,
@@ -97,7 +105,7 @@ export const userRouter = createTRPCRouter({
           (adminsPorTime.find((a) => a.teamId === tu.teamId)?._count._all ??
             0) <= 1,
       })),
-      convites: invites.map((i) => ({
+      convites: convitesVisiveis.map((i) => ({
         id: i.id,
         time: i.team.name,
         papel: i.role,
@@ -197,7 +205,7 @@ export const userRouter = createTRPCRouter({
         if (!meu) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Você não faz parte deste time",
+            message: "Você não faz parte deste workspace",
           });
         }
 
@@ -209,7 +217,7 @@ export const userRouter = createTRPCRouter({
             throw new TRPCError({
               code: "FORBIDDEN",
               message:
-                "Você é o único admin. Transfira a administração ou exclua o time.",
+                "Você é o único admin. Transfira a administração ou exclua o workspace.",
             });
           }
         }
@@ -219,6 +227,10 @@ export const userRouter = createTRPCRouter({
             teamId_userId: { teamId: input.teamId, userId: ctx.session.user.id },
           },
         });
+
+        // Mesma regra do `deleteTeamUser`: sair do time mata os links pendentes
+        // e as sessões que já nasceram presas a ele. Estava só numa das portas.
+        await invalidarLinksDoMembro(input.teamId, ctx.session.user.id, tx);
 
         await registrarAuditoria(
           "team_left",
@@ -265,7 +277,7 @@ export const userRouter = createTRPCRouter({
         if (!destino) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Membro não encontrado neste time",
+            message: "Membro não encontrado neste workspace",
           });
         }
 
@@ -279,11 +291,18 @@ export const userRouter = createTRPCRouter({
           data: { role: "ADMIN" },
         });
 
+        // Quem virou ADMIN não pode continuar com link de acesso pendente: a
+        // política recusa emitir link para admin, então um link emitido 5
+        // minutos antes da promoção não pode sobreviver a ela.
+        await invalidarLinksDoMembro(input.teamId, input.paraUserId, tx);
+
         await tx.teamUser.delete({
           where: {
             teamId_userId: { teamId: input.teamId, userId: ctx.session.user.id },
           },
         });
+
+        await invalidarLinksDoMembro(input.teamId, ctx.session.user.id, tx);
 
         await registrarAuditoria(
           "team_left",

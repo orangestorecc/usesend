@@ -46,7 +46,7 @@ const COPY: Record<
   warning: {
     title: "Sua taxa de retorno subiu um pouco",
     lead: (p) =>
-      `A taxa de retorno do time ${p.teamName} está em ${p.bounceRate.toFixed(2)}%, um pouco acima do que consideramos saudável.`,
+      `A taxa de retorno do workspace ${p.teamName} está em ${p.bounceRate.toFixed(2)}%, um pouco acima do que consideramos saudável.`,
     body: () => [
       "Isso costuma acontecer quando a lista tem endereços antigos, digitados com erro ou que já não existem mais. Nada está pausado — este é só um aviso cedo, enquanto é fácil resolver.",
       "O caminho mais rápido é limpar os endereços que já retornaram e ativar a confirmação de cadastro (double opt-in) nos formulários novos.",
@@ -57,7 +57,7 @@ const COPY: Record<
   critical: {
     title: "Atenção: sua taxa de retorno está perto do limite",
     lead: (p) =>
-      `A taxa de retorno do time ${p.teamName} chegou a ${p.bounceRate.toFixed(2)}%. O limite para pausa automática de envios é ${p.blockRate}%.`,
+      `A taxa de retorno do workspace ${p.teamName} chegou a ${p.bounceRate.toFixed(2)}%. O limite para pausa automática de envios é ${p.blockRate}%.`,
     body: (p) => [
       `Faltam ${Math.max(0, p.blockRate - p.bounceRate).toFixed(2)} ponto(s) percentual(is) para o limite. Ainda dá tempo de reverter, e queremos ajudar nisso.`,
       "Na página de entregabilidade você vê exatamente quais domínios e quais motivos estão puxando a taxa para cima, com o passo a passo de correção.",
@@ -68,7 +68,7 @@ const COPY: Record<
   blocked: {
     title: "Seus envios foram pausados — veja como retomar",
     lead: (p) =>
-      `A taxa de retorno do time ${p.teamName} chegou a ${p.bounceRate.toFixed(2)}%, acima do limite de ${p.blockRate}%. Para proteger a entregabilidade da sua conta, pausamos os novos envios.`,
+      `A taxa de retorno do workspace ${p.teamName} chegou a ${p.bounceRate.toFixed(2)}%, acima do limite de ${p.blockRate}%. Para proteger a entregabilidade da sua conta, pausamos os novos envios.`,
     body: () => [
       "Seu painel, seus contatos, seus relatórios e suas campanhas continuam exatamente onde estavam. Campanhas em andamento foram pausadas e retomam do ponto certo quando o envio voltar — nada foi perdido.",
       "Para voltar a enviar: limpe os endereços que retornaram, revise de onde vieram os contatos mais recentes e fale com a gente. A liberação volta sozinha assim que a taxa cair e houver envios novos saudáveis, e nosso time pode acompanhar esse processo com você.",
@@ -79,7 +79,7 @@ const COPY: Record<
   blocked_reminder: {
     title: "Ainda podemos te ajudar a voltar a enviar",
     lead: (p) =>
-      `Os envios do time ${p.teamName} seguem pausados, com taxa de retorno em ${p.bounceRate.toFixed(2)}%.`,
+      `Os envios do workspace ${p.teamName} seguem pausados, com taxa de retorno em ${p.bounceRate.toFixed(2)}%.`,
     body: () => [
       "Se ficou alguma dúvida sobre o que precisa ser ajustado, responda este e-mail: alguém do time olha a sua conta com você e indica o caminho mais curto.",
       "Seus dados continuam todos disponíveis no painel.",
@@ -101,7 +101,7 @@ const COPY: Record<
   recovered: {
     title: "Sua taxa de retorno voltou ao normal",
     lead: (p) =>
-      `A taxa de retorno do time ${p.teamName} está em ${p.bounceRate.toFixed(2)}%, de volta à faixa saudável.`,
+      `A taxa de retorno do workspace ${p.teamName} está em ${p.bounceRate.toFixed(2)}%, de volta à faixa saudável.`,
     body: () => [
       "Os envios seguem liberados normalmente. Obrigado pelo cuidado com a lista — isso protege a entrega dos seus e-mails e a de todo mundo que usa a plataforma.",
     ],

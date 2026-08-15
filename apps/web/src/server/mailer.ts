@@ -4,7 +4,12 @@ import { isSelfHosted } from "~/utils/common";
 import { db } from "./db";
 import { sendEmail } from "./service/email-service";
 import { logger } from "./logger/log";
-import { renderOtpEmail, renderTeamInviteEmail } from "./email-templates";
+import {
+  renderAccessLinkEmail,
+  renderAccessLinkRedeemedEmail,
+  renderOtpEmail,
+  renderTeamInviteEmail,
+} from "./email-templates";
 
 let usesend: UseSend | undefined;
 
@@ -54,7 +59,8 @@ export async function sendTeamInviteEmail(
     return;
   }
 
-  const subject = "Você foi convidado para entrar no Madmail";
+  // Nomear o workspace no assunto: a pessoa pode ter convite de vários.
+  const subject = `Convite para o workspace ${teamName} no Madmail`;
 
   // Use jsx-email template for beautiful HTML
   const html = await renderTeamInviteEmail({
@@ -63,7 +69,102 @@ export async function sendTeamInviteEmail(
   });
 
   // Fallback text version
-  const text = `Olá,\n\nVocê foi convidado para entrar no time ${teamName} no Madmail.\n\nPara aceitar o convite, clique no link abaixo:\n${url}\n\nAtenciosamente,\nTime Madmail`;
+  const text = `Olá,\n\nVocê foi convidado para o workspace ${teamName} no Madmail.\n\nPara aceitar o convite, clique no link abaixo:\n${url}\n\nAtenciosamente,\nEquipe Madmail`;
+
+  await sendMail(email, subject, text, html);
+}
+
+/**
+ * Link de acesso de uso único gerado por um admin do time. Sai pelo mesmo
+ * caminho de remetente de sistema (`sendMail` → `resolveSystemSender`).
+ */
+export async function sendAccessLinkEmail(
+  email: string,
+  url: string,
+  options: {
+    minutosDeValidade: number;
+    nome?: string | null;
+    /**
+     * Nome (ou e-mail) de quem liberou o acesso. OBRIGATÓRIO: um e-mail que
+     * pede para clicar num link e não diz quem mandou é, do ponto de vista de
+     * quem recebe, phishing. Sem fallback genérico — quem não consegue
+     * preencher isto não envia.
+     */
+    quemLiberou: string;
+    /** Workspace de onde o acesso saiu. Obrigatório pelo mesmo motivo. */
+    nomeDoWorkspace: string;
+  }
+) {
+  if (env.NODE_ENV === "development") {
+    logger.info({ email, url }, "Sending access link email");
+    return;
+  }
+
+  const { quemLiberou, nomeDoWorkspace } = options;
+
+  // O assunto precisa nomear o workspace: é o que separa um acesso legítimo de
+  // um phishing na lista de e-mails de quem administra várias contas.
+  const subject = `${nomeDoWorkspace}: seu link de acesso ao Madmail`;
+
+  const html = await renderAccessLinkEmail({
+    accessUrl: url,
+    minutosDeValidade: options.minutosDeValidade,
+    nome: options.nome,
+    quemLiberou,
+    nomeDoWorkspace,
+  });
+
+  const text = `Olá,\n\n${quemLiberou} liberou um acesso rápido para você no workspace ${nomeDoWorkspace}, no Madmail. Entre por este link:\n${url}\n\nO link vale por ${options.minutosDeValidade} minutos e funciona uma única vez. Não repasse para ninguém: quem abrir entra na sua conta.\n\nSe você não pediu este acesso, não clique e avise nosso suporte em suporte@madmail.com.br.\n\nMadmail`;
+
+  await sendMail(email, subject, text, html);
+}
+
+/**
+ * Aviso para o dono da conta de que um link de acesso foi RESGATADO. Existe
+ * porque na variante "copiar link" o link nunca passa pela caixa de entrada
+ * dela: sem este e-mail, quem tem a conta acessada nunca fica sabendo. Sai
+ * pelo mesmo caminho de remetente de sistema (`sendMail` → `resolveSystemSender`).
+ */
+export async function sendAccessLinkRedeemedEmail(
+  email: string,
+  options: {
+    /** Nome (ou e-mail) de quem liberou o acesso. */
+    quemLiberou: string;
+    /** Workspace onde a sessão nasceu presa. */
+    nomeDoWorkspace: string;
+    /** Momento do resgate. */
+    quando: Date;
+    /** Duração da sessão — vem de `ACCESS_LINK_SESSAO_HORAS`, sem repetir o 8. */
+    horasDeSessao: number;
+    nome?: string | null;
+  }
+) {
+  if (env.NODE_ENV === "development") {
+    logger.info({ email, ...options }, "Sending access link redeemed email");
+    return;
+  }
+
+  const { quemLiberou, nomeDoWorkspace, horasDeSessao } = options;
+
+  const quando = options.quando.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const subject = `${nomeDoWorkspace}: alguém entrou na sua conta com um link de acesso`;
+
+  const html = await renderAccessLinkRedeemedEmail({
+    quemLiberou,
+    nomeDoWorkspace,
+    quando,
+    horasDeSessao,
+    nome: options.nome,
+  });
+
+  const text = `Olá,\n\nUm link de acesso à sua conta Madmail foi usado em ${quando}. O acesso foi liberado por ${quemLiberou} e vale apenas dentro do workspace ${nomeDoWorkspace}.\n\nA sessão criada por esse link dura ${horasDeSessao} horas e expira sozinha. Tudo o que for feito nela fica registrado na auditoria do workspace, com a identificação de quem liberou o acesso.\n\nSe você combinou esse acesso, não precisa fazer nada. Se não reconhece ${quemLiberou} nem o workspace ${nomeDoWorkspace}, avise nosso suporte em suporte@madmail.com.br.\n\nMadmail`;
 
   await sendMail(email, subject, text, html);
 }

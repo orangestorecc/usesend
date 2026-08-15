@@ -10,6 +10,8 @@ const { mockDb, mockCheckTeamMemberLimit } = vi.hoisted(() => ({
     },
     teamUser: {
       create: vi.fn(),
+      createMany: vi.fn(),
+      findFirst: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -61,6 +63,7 @@ function convite(over: Record<string, unknown> = {}) {
     email: "convidado@example.com",
     role: "MEMBER",
     createdAt: new Date(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     ...over,
   };
 }
@@ -76,6 +79,8 @@ describe("invitationRouter.acceptTeamInvite", () => {
     mockDb.user.findUnique.mockResolvedValue({ deletedAt: null });
     mockDb.teamInvite.deleteMany.mockResolvedValue({ count: 1 });
     mockDb.teamUser.create.mockResolvedValue({});
+    mockDb.teamUser.createMany.mockResolvedValue({ count: 1 });
+    mockDb.teamUser.findFirst.mockResolvedValue(null);
   });
 
   it("recusa convite endereçado a outra pessoa", async () => {
@@ -87,7 +92,7 @@ describe("invitationRouter.acceptTeamInvite", () => {
       createCaller(contexto()).acceptTeamInvite({ inviteId: "inv_1" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
 
-    expect(mockDb.teamUser.create).not.toHaveBeenCalled();
+    expect(mockDb.teamUser.createMany).not.toHaveBeenCalled();
   });
 
   it("aceita ignorando diferença de maiúsculas no e-mail", async () => {
@@ -99,13 +104,14 @@ describe("invitationRouter.acceptTeamInvite", () => {
       createCaller(contexto()).acceptTeamInvite({ inviteId: "inv_1" }),
     ).resolves.toBe(true);
 
-    expect(mockDb.teamUser.create).toHaveBeenCalled();
+    expect(mockDb.teamUser.createMany).toHaveBeenCalled();
   });
 
   it("recusa convite expirado (mais de 7 dias)", async () => {
     mockDb.teamInvite.findUnique.mockResolvedValue(
       convite({
         createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
       }),
     );
 
@@ -113,7 +119,7 @@ describe("invitationRouter.acceptTeamInvite", () => {
       createCaller(contexto()).acceptTeamInvite({ inviteId: "inv_1" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
 
-    expect(mockDb.teamUser.create).not.toHaveBeenCalled();
+    expect(mockDb.teamUser.createMany).not.toHaveBeenCalled();
   });
 
   it("bloqueia quando o time estourou o limite do plano, sem queimar o convite", async () => {
@@ -131,7 +137,7 @@ describe("invitationRouter.acceptTeamInvite", () => {
     });
 
     expect(mockDb.teamInvite.deleteMany).not.toHaveBeenCalled();
-    expect(mockDb.teamUser.create).not.toHaveBeenCalled();
+    expect(mockDb.teamUser.createMany).not.toHaveBeenCalled();
   });
 
   it("recusa aceite de conta já excluída (corrida com o delete)", async () => {
@@ -142,7 +148,7 @@ describe("invitationRouter.acceptTeamInvite", () => {
       createCaller(contexto()).acceptTeamInvite({ inviteId: "inv_1" }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
-    expect(mockDb.teamUser.create).not.toHaveBeenCalled();
+    expect(mockDb.teamUser.createMany).not.toHaveBeenCalled();
   });
 
   it("perde a corrida de dois aceites do mesmo convite sem criar vínculo duplo", async () => {
@@ -153,7 +159,57 @@ describe("invitationRouter.acceptTeamInvite", () => {
       createCaller(contexto()).acceptTeamInvite({ inviteId: "inv_1" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
 
-    expect(mockDb.teamUser.create).not.toHaveBeenCalled();
+    expect(mockDb.teamUser.createMany).not.toHaveBeenCalled();
+  });
+
+  it("é idempotente: quem já é membro aceita de novo sem estourar unique", async () => {
+    mockDb.teamInvite.findUnique.mockResolvedValue(convite());
+    mockDb.teamUser.findFirst.mockResolvedValue({ teamId: 1 });
+
+    await expect(
+      createCaller(contexto()).acceptTeamInvite({ inviteId: "inv_1" }),
+    ).resolves.toBe(true);
+
+    // Convite é consumido, mas nenhum vínculo novo é criado.
+    expect(mockDb.teamInvite.deleteMany).toHaveBeenCalledWith({
+      where: { id: "inv_1" },
+    });
+    expect(mockDb.teamUser.createMany).not.toHaveBeenCalled();
+  });
+
+  it("cria o vínculo com o papel do convite e o usuário da SESSÃO", async () => {
+    // O convite carrega o papel; quem entra é sempre quem está logado, nunca
+    // um id vindo do input.
+    mockDb.teamInvite.findUnique.mockResolvedValue(
+      convite({ role: "ADMIN", teamId: 42 }),
+    );
+
+    await expect(
+      createCaller(contexto()).acceptTeamInvite({ inviteId: "inv_1" }),
+    ).resolves.toBe(true);
+
+    expect(mockDb.teamUser.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [{ teamId: 42, userId: 7, role: "ADMIN" }],
+      }),
+    );
+  });
+
+  it("aceita convite reenviado: o prazo vale por expiresAt, não por createdAt", async () => {
+    // Convite criado há 8 dias mas renovado no reenvio — o aceite tem que
+    // passar. Era exatamente o caso que o botão "Reenviar convite" quebrava.
+    mockDb.teamInvite.findUnique.mockResolvedValue(
+      convite({
+        createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      }),
+    );
+
+    await expect(
+      createCaller(contexto()).acceptTeamInvite({ inviteId: "inv_1" }),
+    ).resolves.toBe(true);
+
+    expect(mockDb.teamUser.createMany).toHaveBeenCalled();
   });
 });
 

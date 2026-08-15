@@ -210,8 +210,11 @@ export default function UsagePage() {
         />
       </Section>
 
-      {/* Time */}
-      <Section title="Time" description="Cotas e limites do seu time.">
+      {/* Workspace */}
+      <Section
+        title="Workspace"
+        description="Cotas e limites deste workspace."
+      >
         <Row
           label="Créditos de IA"
           used={data.team.aiCredits.used}

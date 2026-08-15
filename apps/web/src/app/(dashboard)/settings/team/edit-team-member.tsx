@@ -6,7 +6,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@usesend/ui/src/dialog";
 import {
   Form,
@@ -18,8 +17,6 @@ import {
 } from "@usesend/ui/src/form";
 
 import { api } from "~/trpc/react";
-import { useState } from "react";
-import { PencilIcon } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,10 +34,13 @@ const teamUserSchema = z.object({
   role: z.enum(["MEMBER", "ADMIN"]),
 });
 
+/** Diálogo puramente controlado: quem abre é o menu de ações do membro. */
 export const EditTeamMember: React.FC<{
   teamUser: { userId: string; role: Role };
-}> = ({ teamUser }) => {
-  const [open, setOpen] = useState(false);
+  open: boolean;
+  onOpenChange: (aberto: boolean) => void;
+}> = ({ teamUser, open, onOpenChange }) => {
+  const setOpen = onOpenChange;
   const updateTeamUserMutation = api.team.updateTeamUserRole.useMutation();
 
   const utils = api.useUtils();
@@ -62,7 +62,7 @@ export const EditTeamMember: React.FC<{
         onSuccess: async () => {
           utils.team.getTeamUsers.invalidate();
           setOpen(false);
-          toast.success("Função do membro do time atualizada com sucesso");
+          toast.success("Função atualizada neste workspace.");
         },
         onError: async (error) => {
           toast.error(error.message);
@@ -72,18 +72,10 @@ export const EditTeamMember: React.FC<{
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(_open) => (_open !== open ? setOpen(_open) : null)}
-    >
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <PencilIcon className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Editar função do membro do time</DialogTitle>
+          <DialogTitle>Editar função no workspace</DialogTitle>
         </DialogHeader>
         <div className="py-2">
           <Form {...teamUserForm}>

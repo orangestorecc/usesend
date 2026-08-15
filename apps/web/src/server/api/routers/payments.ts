@@ -194,7 +194,7 @@ export const paymentsRouter = createTRPCRouter({
     if (!team || team.planKey === FREE_PLAN_KEY) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Este time já está no plano gratuito.",
+        message: "Este workspace já está no plano gratuito.",
       });
     }
     await downgradeParaGratis(ctx.team.id, "downgrade");

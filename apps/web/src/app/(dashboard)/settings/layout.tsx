@@ -25,7 +25,11 @@ export default function ApiKeysPage({
             Faturamento
           </SettingsNavButton>
         ) : null}
-        <SettingsNavButton href="/settings/team">Time</SettingsNavButton>
+        {/* A rota continua `/settings/team` (código e links antigos), mas o
+            rótulo acompanha o conteúdo, que fala workspace. */}
+        <SettingsNavButton href="/settings/team">
+          Pessoas do workspace
+        </SettingsNavButton>
         <SettingsNavButton href="/settings/unsubscribe-page">
           Página de descadastramento
         </SettingsNavButton>

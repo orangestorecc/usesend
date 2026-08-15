@@ -22,7 +22,9 @@ export function TeamInviteEmail({
   role = "member",
 }: TeamInviteEmailProps) {
   return (
-    <EmailLayout preview={`Você foi convidado para entrar em ${teamName} no Madmail`}>
+    <EmailLayout
+      preview={`Convite para o workspace ${teamName} no Madmail`}
+    >
       <EmailHeader logoUrl={logoUrl} title="Você foi convidado!" />
 
       <Container style={{ padding: "20px 0", textAlign: "left" as const }}>
@@ -48,8 +50,8 @@ export function TeamInviteEmail({
           }}
         >
           {inviterName
-            ? `${inviterName} convidou você para entrar em `
-            : "Você foi convidado para entrar em "}
+            ? `${inviterName} convidou você para o workspace `
+            : "Você foi convidado para o workspace "}
           <strong style={{ color: "#000000" }}>{teamName}</strong> no Madmail
           {role && role !== "member" && (
             <span>
@@ -73,7 +75,8 @@ export function TeamInviteEmail({
             textAlign: "left" as const,
           }}
         >
-          Se você não esperava este convite ou não quer entrar neste time, pode
+          Se você não esperava este convite ou não quer entrar neste workspace,
+          pode
           ignorar este e-mail com segurança.
         </Text>
       </Container>

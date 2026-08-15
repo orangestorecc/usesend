@@ -21,10 +21,10 @@ export const LIMIT_REASON_MESSAGES: Record<LimitReason, string> = {
   [LimitReason.CONTACT_BOOK]:
     "Você atingiu o limite de listas de contatos do seu plano. Faça upgrade ou use uma lista existente.",
   [LimitReason.TEAM_MEMBER]:
-    "Você atingiu o limite de membros do time no seu plano. Faça upgrade para convidar mais pessoas.",
+    "Você atingiu o limite de membros do workspace no seu plano. Faça upgrade para convidar mais pessoas.",
   [LimitReason.WEBHOOK]:
     "Você atingiu o limite de webhooks do seu plano. Faça upgrade para criar mais.",
-  [LimitReason.EMAIL_BLOCKED]: "Os envios deste time estão bloqueados.",
+  [LimitReason.EMAIL_BLOCKED]: "Os envios deste workspace estão bloqueados.",
   [LimitReason.EMAIL_BOUNCE_BLOCKED]:
     "Os envios estão pausados por taxa de retorno acima do limite.",
   [LimitReason.EMAIL_BILLING_BLOCKED]:

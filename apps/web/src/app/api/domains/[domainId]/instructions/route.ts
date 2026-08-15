@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getServerAuthSession } from "~/server/auth";
-import { db } from "~/server/db";
+import { exigirTimePermitido } from "~/server/service/active-team";
 import { buildDnsInstructionsMarkdown } from "~/server/service/dns-instructions";
 
 /**
@@ -27,13 +27,17 @@ export async function GET(
     return new NextResponse("Domínio inválido", { status: 400 });
   }
 
-  const teamUser = await db.teamUser.findFirst({
-    where: { userId: session.user.id },
-    include: { team: true },
-  });
+  // `domainId` é inteiro enumerável: quem resolve o time é o servidor, pela
+  // mesma regra do tRPC (cookie revalidado + trava de link de acesso), e o
+  // domínio é buscado dentro DESSE time.
+  const teamUser = await exigirTimePermitido(
+    session.user.id,
+    null,
+    request.headers,
+  );
 
   if (!teamUser) {
-    return new NextResponse("Time não encontrado", { status: 404 });
+    return new NextResponse("Workspace não encontrado", { status: 404 });
   }
 
   let markdown: string;

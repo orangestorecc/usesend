@@ -18,6 +18,10 @@ import { db } from "~/server/db";
 import { lerSessionTokenDoCookie } from "~/server/auth-session";
 import { avaliarGate } from "~/server/service/mfa-service";
 import { ehAdminDaPlataformaPorId } from "~/server/service/platform-admin";
+import {
+  lerTravaDeLinkDeAcesso,
+  resolverTimeAtivo,
+} from "~/server/service/active-team";
 import { getChildLogger, logger, withLogger } from "../logger/log";
 import { criarSentryMiddleware } from "./sentry-middleware";
 import { randomUUID } from "crypto";
@@ -114,42 +118,105 @@ export const authedProcedure = publicProcedure.use(({ ctx, next }) => {
 });
 
 /**
+ * `teamId` declarado no input da procedure, se houver.
+ *
+ * Serve a UM propósito no choke point abaixo: comparar o `teamId` pedido com a
+ * trava de link de acesso da sessão. NÃO checa vínculo — não pergunta se o
+ * usuário é membro do time pedido, e uma procedure que só use este caminho
+ * continua exposta a IDOR de team. A checagem de vínculo mora no
+ * `teamProcedure` (via `resolverTimeAtivo`/`usuarioPertenceAoTime`), e é lá que
+ * ela precisa acontecer.
+ */
+function teamIdDoInput(raw: unknown): number | null {
+  if (!raw || typeof raw !== "object") return null;
+  const valor = (raw as Record<string, unknown>).teamId;
+  if (typeof valor === "number" && Number.isInteger(valor)) return valor;
+  if (typeof valor === "string" && /^\d+$/.test(valor)) return Number(valor);
+  return null;
+}
+
+/**
  * Protected (authenticated) procedure
  *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
+ * Sessão válida, gate de MFA/conta excluída e — o ponto novo — a TRAVA de link
+ * de acesso, resolvida aqui e só aqui. Enquanto a trava era propriedade do
+ * `resolverTimeAtivo`, tudo que não passava pelo `teamProcedure` (procedure com
+ * `teamId` no input, `adminProcedure`, route handler) operava sem ela.
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = authedProcedure.use(async ({ ctx, next }) => {
-  if (ctx.session.user.isWaitlisted) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
-  }
+export const protectedProcedure = authedProcedure.use(
+  async ({ ctx, next, getRawInput }) => {
+    if (ctx.session.user.isWaitlisted) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
 
-  // Gate fail-closed: sessão com MFA pendente ou conta excluída não passa.
-  // Só as rotas do próprio desafio (router `mfa`) e o logout ficam de fora.
-  const gate = await avaliarGate(lerSessionTokenDoCookie(ctx.headers));
-  if (!gate.liberado) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message:
-        gate.motivo === "conta_excluida"
-          ? "Esta conta foi excluída"
-          : "Confirmação por e-mail pendente",
-    });
-  }
+    // Gate fail-closed: sessão com MFA pendente ou conta excluída não passa.
+    // Só as rotas do próprio desafio (router `mfa`) e o logout ficam de fora.
+    const gate = await avaliarGate(lerSessionTokenDoCookie(ctx.headers));
+    if (!gate.liberado) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message:
+          gate.motivo === "conta_excluida"
+            ? "Esta conta foi excluída"
+            : "Confirmação por e-mail pendente",
+      });
+    }
 
-  return next();
-});
+    // A trava de link de acesso é lida UMA vez por request, na camada de
+    // autenticação — não como propriedade da resolução de time ativo. Quem
+    // dependia do `resolverTimeAtivo` para travar deixava sem trava tudo que
+    // não passava por ele (procedures com `teamId` no input, por exemplo).
+    const acessoPresoAoTime = await lerTravaDeLinkDeAcesso(ctx.headers, db);
+
+    if (acessoPresoAoTime !== null) {
+      const teamIdPretendido = teamIdDoInput(await getRawInput());
+      if (teamIdPretendido !== null && teamIdPretendido !== acessoPresoAoTime) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Este acesso está limitado a um workspace. Entre pela sua própria conta para agir em outro.",
+        });
+      }
+    }
+
+    return next({ ctx: { acessoPresoAoTime } });
+  },
+);
+
+/**
+ * Para o punhado de procedures que mexem em vínculo de time SEM `teamId` no
+ * input — criar time, aceitar convite. O choke point genérico não as alcança
+ * (não há `teamId` para comparar), e elas mudam a que workspaces a conta
+ * pertence: um acesso assistido de 8 horas não decide isso pela pessoa.
+ */
+export const semAcessoAssistidoProcedure = protectedProcedure.use(
+  async ({ ctx, next }) => {
+    if (ctx.acessoPresoAoTime !== null) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message:
+          "Este acesso está limitado a um workspace. Entre pela sua própria conta para isso.",
+      });
+    }
+    return next();
+  },
+);
 
 export const teamProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  const teamUser = await db.teamUser.findFirst({
-    where: { userId: ctx.session.user.id },
-    include: { team: true },
-  });
+  // Workspace ativo vem do cookie (revalidado), da trava de link de acesso ou
+  // do fallback determinístico. A trava já veio lida do `protectedProcedure`:
+  // reler aqui era uma segunda query idêntica no mesmo request.
+  const teamUser = await resolverTimeAtivo(
+    ctx.session.user.id,
+    ctx.headers,
+    db,
+    ctx.acessoPresoAoTime,
+  );
 
   if (!teamUser) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Time não encontrado" });
+    throw new TRPCError({ code: "NOT_FOUND", message: "Workspace não encontrado" });
   }
 
   const requestId = randomUUID();
@@ -289,6 +356,17 @@ export const templateProcedure = teamProcedure
  * To manage application settings, for hosted version, authenticated users will be considered as admin
  */
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  // Sessão de link de acesso NUNCA administra a plataforma. Sem isto, um admin
+  // de um workspace qualquer emitia link para o dono do `ADMIN_EMAIL` (ou, em
+  // self-hosted, para quem quer que fosse, já que a linha abaixo não checa
+  // nada) e a sessão resultante virava admin da instalação inteira.
+  if (ctx.acessoPresoAoTime !== null) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "Este acesso está limitado a um workspace e não administra a plataforma.",
+    });
+  }
   // Lê o estado atual do banco em vez de confiar no flag da sessão: remover
   // alguém de admin precisa valer na hora, sem esperar a sessão dele expirar.
   if (

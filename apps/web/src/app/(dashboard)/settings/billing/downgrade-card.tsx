@@ -48,8 +48,8 @@ export function DowngradeCard({ planName }: { planName: string }) {
     <Card className="border-destructive/30 p-6">
       <h2 className="text-base font-semibold">Voltar para o plano gratuito</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Você sai do plano {planName} e deixa de ser cobrado. O time continua no
-        ar, com os limites do plano gratuito:{" "}
+        Você sai do plano {planName} e deixa de ser cobrado. O workspace continua
+        no ar, com os limites do plano gratuito:{" "}
         {limite.emailsPerMonth.toLocaleString("pt-BR")} e-mails por mês e{" "}
         {limite.domains} domínio.
       </p>

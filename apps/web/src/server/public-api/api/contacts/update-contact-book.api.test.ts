@@ -212,7 +212,7 @@ describe("PATCH /v1/contactBooks/{contactBookId}", () => {
     expect(body).toMatchObject({
       error: {
         code: "NOT_FOUND",
-        message: "Lista de contatos não encontrada para este time",
+        message: "Lista de contatos não encontrada para este workspace",
       },
     });
   });

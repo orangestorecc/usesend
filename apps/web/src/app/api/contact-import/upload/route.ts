@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
+import { exigirTimePermitido } from "~/server/service/active-team";
 import { logger } from "~/server/logger/log";
 import { iniciarImportacao } from "~/server/service/contact-import-service";
 import {
@@ -26,12 +27,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const vinculo = await db.teamUser.findFirst({
-    where: { userId: session.user.id },
-    select: { teamId: true },
-  });
+  // Mesma resolução de time que o tRPC usa (cookie revalidado + trava de link
+  // de acesso). O `findFirst({ userId })` solto que estava aqui pegava um time
+  // qualquer do usuário e ignorava a trava.
+  const vinculo = await exigirTimePermitido(session.user.id, null, req.headers);
   if (!vinculo) {
-    return NextResponse.json({ error: "Time não encontrado" }, { status: 403 });
+    return NextResponse.json({ error: "Workspace não encontrado" }, { status: 403 });
   }
 
   const form = await req.formData();

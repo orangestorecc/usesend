@@ -124,10 +124,10 @@ export default function ProfilePage() {
         </Bloco>
       ) : null}
 
-      <Bloco titulo="Times">
+      <Bloco titulo="Workspaces">
         {times.length === 0 ? (
           <div className="text-sm text-muted-foreground">
-            Você ainda não faz parte de nenhum time.
+            Você ainda não faz parte de nenhum workspace.
           </div>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -150,7 +150,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">
                   {t.papel === "ADMIN" ? (
                     <Button size="sm" variant="ghost" asChild>
-                      <Link href="/settings/team">Gerenciar time →</Link>
+                      <Link href="/settings/team">Gerenciar workspace →</Link>
                     </Button>
                   ) : null}
                   <SairDoTime
@@ -245,7 +245,7 @@ export default function ProfilePage() {
 
       <Bloco
         titulo="Zona de perigo"
-        descricao="Excluir a conta remove seu acesso e seus vínculos de time."
+        descricao="Excluir a conta remove seu acesso e seus vínculos com os workspaces."
       >
         <ExcluirConta />
       </Bloco>

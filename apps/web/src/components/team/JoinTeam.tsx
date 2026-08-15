@@ -75,7 +75,7 @@ export default function JoinTeam({
             setDialogOpen(false);
             return;
           }
-          toast.error(`Não foi possível entrar no time: ${error.message}`);
+          toast.error(`Não foi possível entrar no workspace: ${error.message}`);
           setDialogOpen(false);
         },
       }
@@ -89,8 +89,9 @@ export default function JoinTeam({
           Aguardando liberação do administrador
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          O time <span className="font-medium">{bloqueadoPorLimite}</span>{" "}
-          atingiu o limite de membros do plano. Avisamos quem administra o time;
+          O workspace <span className="font-medium">{bloqueadoPorLimite}</span>{" "}
+          atingiu o limite de membros do plano. Avisamos quem administra o
+          workspace;
           assim que houver vaga, você recebe um e-mail e este mesmo link
           funciona.
         </p>
@@ -114,7 +115,7 @@ export default function JoinTeam({
 
   return (
     <div>
-      <div>Você foi convidado para entrar em um time</div>
+      <div>Você foi convidado para um workspace</div>
       <div className="space-y-2 mt-4">
         {invites.map((invite) => (
           <div
@@ -148,15 +149,15 @@ export default function JoinTeam({
         ))}
       </div>
       {showCreateTeam ? (
-        <div className="mt-8 text-muted-foreground text-sm font-mono text-center">
-          OR
+        <div className="mt-8 text-muted-foreground text-sm text-center">
+          ou
         </div>
       ) : null}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Aceitar convite do time</DialogTitle>
+            <DialogTitle>Aceitar convite do workspace</DialogTitle>
             <DialogDescription>
               Tem certeza de que deseja entrar em{" "}
               <span className="font-semibold text-foreground">

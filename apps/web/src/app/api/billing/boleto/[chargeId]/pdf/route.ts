@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
+import { exigirTimePermitido } from "~/server/service/active-team";
 import { fetchBoletoPdf } from "~/server/billing/inter";
 
 /**
@@ -16,7 +17,7 @@ import { fetchBoletoPdf } from "~/server/billing/inter";
  * acessível a qualquer outro que descobrisse o identificador.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ chargeId: string }> },
 ) {
   const session = await getServerAuthSession();
@@ -26,11 +27,16 @@ export async function GET(
 
   const { chargeId } = await params;
 
-  const teamUser = await db.teamUser.findFirst({
-    where: { userId: session.user.id },
-  });
+  // Mesma resolução de time do tRPC: cookie revalidado, trava de link de
+  // acesso e fallback determinístico. `findFirst({ userId })` solto escolhia um
+  // time qualquer e ignorava a trava.
+  const teamUser = await exigirTimePermitido(
+    session.user.id,
+    null,
+    request.headers,
+  );
   if (!teamUser) {
-    return new NextResponse("Time não encontrado", { status: 404 });
+    return new NextResponse("Workspace não encontrado", { status: 404 });
   }
 
   const charge = await db.charge.findFirst({

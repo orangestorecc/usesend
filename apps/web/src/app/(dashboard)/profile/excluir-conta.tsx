@@ -75,7 +75,7 @@ export function ExcluirConta() {
                       <div className="mt-1 text-muted-foreground">
                         {b.ultimoAdmin
                           ? "Você é o único admin. Transfira a administração a outro membro ou exclua o time."
-                          : "Saia do time para continuar."}
+                          : "Saia do workspace para continuar."}
                       </div>
                       <Button
                         size="sm"

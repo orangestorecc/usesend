@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { randomBytes } from "crypto";
 import { db } from "~/server/db";
 import { getServerAuthSession } from "~/server/auth";
+import {
+  exigirTimePermitido,
+  lerTravaDeLinkDeAcesso,
+} from "~/server/service/active-team";
 
 export const dynamic = "force-dynamic";
 
@@ -91,12 +96,26 @@ async function decide(formData: FormData) {
     redirect(url.toString());
   }
 
-  const teamUser = await db.teamUser.findFirst({
-    where: { userId: Number(session.user.id) },
-    include: { team: true },
-  });
+  // Sessão de link de acesso NÃO autoriza integração de IA. A chave que sai
+  // daqui sobrevive à sessão, ao `usedAt` do link e ao `invalidarLinksDoMembro`
+  // — seria acesso permanente concedido por um acesso que era para durar 8h.
+  const cabecalhos = await headers();
+  if ((await lerTravaDeLinkDeAcesso(cabecalhos)) !== null) {
+    throw new Error(
+      "Este acesso está limitado a um workspace e não pode conectar aplicativos de IA. Entre pela sua própria conta.",
+    );
+  }
+
+  // `findFirst({ userId })` sem ordem escolhia um time qualquer da pessoa: o
+  // consentimento era dado numa tela que mostrava o time A e a chave saía no
+  // time B. O time é o mesmo que o resto do produto resolve.
+  const teamUser = await exigirTimePermitido(
+    Number(session.user.id),
+    null,
+    cabecalhos,
+  );
   if (!teamUser) {
-    throw new Error("Nenhum time encontrado para a sua conta.");
+    throw new Error("Nenhum workspace encontrado para a sua conta.");
   }
 
   const code = randomBytes(32).toString("hex");
@@ -166,10 +185,19 @@ export default async function AuthorizePage({
     redirect(`/login?callbackUrl=${encodeURIComponent(`/oauth/authorize?${params.toString()}`)}`);
   }
 
-  const teamUser = await db.teamUser.findFirst({
-    where: { userId: Number(session.user.id) },
-    include: { team: true },
-  });
+  // Mesma recusa da server action, só que antes de o botão existir.
+  const cabecalhos = await headers();
+  if ((await lerTravaDeLinkDeAcesso(cabecalhos)) !== null) {
+    return (
+      <ErrorView message="Este acesso está limitado a um workspace e não pode conectar aplicativos de IA. Entre pela sua própria conta do Madmail e tente de novo." />
+    );
+  }
+
+  const teamUser = await exigirTimePermitido(
+    Number(session.user.id),
+    null,
+    cabecalhos,
+  );
 
   // O nome vem do próprio app que está pedindo acesso — qualquer um pode
   // escolher o seu. Por isso ele aparece entre aspas, e quem manda na tela é o

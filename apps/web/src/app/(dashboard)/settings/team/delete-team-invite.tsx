@@ -7,17 +7,17 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@usesend/ui/src/dialog";
 import { api } from "~/trpc/react";
-import { useState } from "react";
 import { toast } from "@usesend/ui/src/toaster";
-import { Trash2 } from "lucide-react";
 
+/** Diálogo puramente controlado: quem abre é o menu de ações do convite. */
 export const DeleteTeamInvite: React.FC<{
   invite: { id: string; email: string };
-}> = ({ invite }) => {
-  const [open, setOpen] = useState(false);
+  open: boolean;
+  onOpenChange: (aberto: boolean) => void;
+}> = ({ invite, open, onOpenChange }) => {
+  const setOpen = onOpenChange;
   const deleteInviteMutation = api.team.deleteTeamInvite.useMutation();
 
   const utils = api.useUtils();
@@ -41,15 +41,7 @@ export const DeleteTeamInvite: React.FC<{
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(_open) => (_open !== open ? setOpen(_open) : null)}
-    >
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <Trash2 className="h-4 w-4 text-red/80" />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Cancelar convite</DialogTitle>

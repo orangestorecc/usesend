@@ -78,7 +78,43 @@ model Session {
   ip            String?
   createdAt     DateTime  @default(now())
 
+  /// Sessão nascida de um link de acesso: fica PRESA a este time. Enquanto
+  /// preenchido, o cookie de workspace é ignorado e a troca de workspace é
+  /// recusada — admin do time A não escapa para o time B do alvo.
+  accessLinkTeamId Int?
+  accessLinkTeam   Team? @relation("SessionPresaAoTime", fields: [accessLinkTeamId], references: [id], onDelete: Cascade)
+
   mfaChallenge MfaChallenge?
+
+  @@index([accessLinkTeamId])
+}
+
+/**
+ * Link de acesso de uso único emitido por um admin do time. Model próprio (e
+ * não `VerificationToken` do NextAuth) porque o resgate precisa amarrar a
+ * sessão ao time emissor: magic link cria sessão global e vira escada para
+ * outro workspace do mesmo usuário.
+ */
+model AccessLink {
+  id              String    @id @default(cuid())
+  /// sha256("access-link:" + token + ":" + NEXTAUTH_SECRET). O prefixo de
+  /// domínio impede que um hash desta tabela valha como token de outro
+  /// mecanismo. O token cru só existe na URL, nunca no banco.
+  tokenHash       String    @unique
+  teamId          Int
+  targetUserId    Int
+  createdByUserId Int
+  expiresAt       DateTime
+  /// Marcado por update condicional no resgate: uso único mesmo sob corrida.
+  usedAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  target    User @relation("AccessLinkAlvo", fields: [targetUserId], references: [id], onDelete: Cascade)
+  createdBy User @relation("AccessLinkEmissor", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, targetUserId])
+  @@index([expiresAt])
 }
 
 model VerificationToken {
@@ -123,6 +159,8 @@ model User {
   securityCodes       SecurityCode[]
   mfaRecoveryCodes    MfaRecoveryCode[]
   emailChangeRequests EmailChangeRequest[]
+  accessLinksRecebidos AccessLink[] @relation("AccessLinkAlvo")
+  accessLinksEmitidos  AccessLink[] @relation("AccessLinkEmissor")
 
   @@index([deletedAt])
 }
@@ -363,6 +401,8 @@ model Team {
   automations      Automation[]
   customEvents     CustomEvent[]
   forwardingRules  ForwardingRule[]
+  accessLinks      AccessLink[]
+  sessoesPresas    Session[]        @relation("SessionPresaAoTime")
 
   @@index([planKey])
   @@index([billingBlockedAt])
@@ -375,11 +415,15 @@ model TeamInvite {
   role      Role
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  /// Prazo explícito do convite. Reenviar renova esta data — não dá para
+  /// derivar do `createdAt`, senão "reenviar" não renova nada.
+  expiresAt DateTime
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, email])
   @@index([email])
+  @@index([expiresAt])
 }
 
 model Subscription {

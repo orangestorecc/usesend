@@ -11,6 +11,8 @@ import { LimitService } from "./limit-service";
 import { renderUsageLimitReachedEmail } from "../email-templates/UsageLimitReachedEmail";
 import { renderUsageWarningEmail } from "../email-templates/UsageWarningEmail";
 import { provisionStarterTemplates } from "./starter-templates-service";
+import { novoPrazoDeConvite } from "~/lib/invites";
+import { invalidarLinksDoMembro } from "./access-link-service";
 
 // Cache stores exactly Prisma Team shape (no counts)
 
@@ -48,7 +50,7 @@ export class TeamService {
     }
     const fresh = await TeamService.refreshTeamCache(teamId);
     if (!fresh) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Time não encontrado" });
+      throw new TRPCError({ code: "NOT_FOUND", message: "Workspace não encontrado" });
     }
     return fresh;
   }
@@ -76,7 +78,7 @@ export class TeamService {
       const _team = await db.team.findFirst();
       if (_team) {
         throw new TRPCError({
-          message: "Não é possível ter múltiplos times na versão self-hosted",
+          message: "Não é possível ter múltiplos workspaces na versão self-hosted",
           code: "UNAUTHORIZED",
         });
       }
@@ -135,18 +137,33 @@ export class TeamService {
           },
         },
       },
+      // Ordem estável: o seletor de workspace não pode dançar entre requests.
+      orderBy: { id: "asc" },
     });
   }
 
   static async getTeamUsers(teamId: number) {
-    return db.teamUser.findMany({
+    const teamUsers = await db.teamUser.findMany({
       where: {
         teamId,
       },
+      // `include: { user: true }` entregava `mfaEnabled`, `subjectId`,
+      // `pendingEmail` e `deletedAt` a qualquer MEMBER do time. A lista de
+      // membros e os e-mails de aviso só precisam de id/nome/e-mail.
       include: {
-        user: true,
+        user: {
+          select: { id: true, name: true, email: true },
+        },
       },
+      orderBy: { userId: "asc" },
     });
+
+    // `joinedAt` é a entrada no time (TeamUser.createdAt). Sem esse campo a UI
+    // acaba mostrando a criação da conta (`user.createdAt`), que é outra coisa.
+    return teamUsers.map((teamUser) => ({
+      ...teamUser,
+      joinedAt: teamUser.createdAt,
+    }));
   }
 
   static async getTeamInvites(teamId: number) {
@@ -175,7 +192,7 @@ export class TeamService {
     if (isLimitReached) {
       throw new UnsendApiError({
         code: "FORBIDDEN",
-        message: "Limite de convites do time atingido",
+        message: "Limite de convites do workspace atingido",
       });
     }
 
@@ -188,11 +205,23 @@ export class TeamService {
       },
     });
 
-    if (user && user.teamUsers.length > 0) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Usuário já faz parte de um time",
-      });
+    if (user) {
+      // Já ser membro DESTE time é sempre recusa: o convite não teria efeito.
+      if (user.teamUsers.some((tu) => tu.teamId === teamId)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Este usuário já faz parte deste workspace",
+        });
+      }
+
+      // Na nuvem uma pessoa pode pertencer a vários workspaces; na versão
+      // self-hosted a regra continua sendo um único time por usuário.
+      if (!env.NEXT_PUBLIC_IS_CLOUD && user.teamUsers.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Usuário já faz parte de um workspace",
+        });
+      }
     }
 
     const teamInvite = await db.teamInvite.create({
@@ -200,6 +229,7 @@ export class TeamService {
         teamId,
         email,
         role,
+        expiresAt: novoPrazoDeConvite(),
       },
     });
 
@@ -239,7 +269,7 @@ export class TeamService {
     if (!teamUser) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Membro do time não encontrado",
+        message: "Membro do workspace não encontrado",
       });
     }
 
@@ -258,16 +288,29 @@ export class TeamService {
       });
     }
 
-    const updated = await db.teamUser.update({
-      where: {
-        teamId_userId: {
-          teamId,
-          userId: Number(userId),
+    const updated = await db.$transaction(async (tx) => {
+      const atualizado = await tx.teamUser.update({
+        where: {
+          teamId_userId: {
+            teamId,
+            userId: Number(userId),
+          },
         },
-      },
-      data: {
-        role,
-      },
+        data: {
+          role,
+        },
+      });
+
+      // Virar ADMIN invalida os links pendentes daquela pessoa: a emissão
+      // recusa alvo ADMIN, mas o resgate acontece até 30 minutos depois — sem
+      // isto, promover alguém dentro da janela entregava um link que a política
+      // já proíbe. A rota de resgate reconfere o papel de qualquer forma; são
+      // as duas metades da mesma regra.
+      if (role === "ADMIN") {
+        await invalidarLinksDoMembro(teamId, Number(userId), tx);
+      }
+
+      return atualizado;
     });
     // Role updates might influence permissions; refresh cache to be safe
     await TeamService.invalidateTeamCache(teamId);
@@ -290,14 +333,14 @@ export class TeamService {
     if (!teamUser) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Membro do time não encontrado",
+        message: "Membro do workspace não encontrado",
       });
     }
 
     if (requestorRole !== "ADMIN" && requestorId !== Number(userId)) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "Você não tem autorização para remover este membro do time",
+        message: "Você não tem autorização para remover este membro do workspace",
       });
     }
 
@@ -316,13 +359,21 @@ export class TeamService {
       });
     }
 
-    const deleted = await db.teamUser.delete({
-      where: {
-        teamId_userId: {
-          teamId,
-          userId: Number(userId),
+    const deleted = await db.$transaction(async (tx) => {
+      const removido = await tx.teamUser.delete({
+        where: {
+          teamId_userId: {
+            teamId,
+            userId: Number(userId),
+          },
         },
-      },
+      });
+
+      // Link de 30 minutos não pode sobreviver à saída do time, e nem a sessão
+      // que já tinha nascido dele.
+      await invalidarLinksDoMembro(teamId, Number(userId), tx);
+
+      return removido;
     });
     await TeamService.invalidateTeamCache(teamId);
     return deleted;
@@ -351,9 +402,18 @@ export class TeamService {
 
     const teamUrl = `${env.NEXTAUTH_URL}/join-team?inviteId=${invite.id}`;
 
+    // Reenviar tem que RENOVAR o prazo: sem isto o botão só aparece quando o
+    // convite já venceu e o link reenviado estoura no aceite.
+    // Ordem importa: só renova depois que o e-mail saiu de fato. Se o envio
+    // falhar, o convite fica exatamente como estava.
     await sendTeamInviteEmail(invite.email, teamUrl, teamName);
 
-    return { success: true };
+    const renovado = await db.teamInvite.update({
+      where: { id: invite.id },
+      data: { expiresAt: novoPrazoDeConvite() },
+    });
+
+    return { success: true, expiresAt: renovado.expiresAt };
   }
 
   static async deleteTeamInvite(teamId: number, inviteId: string) {
@@ -440,12 +500,12 @@ export class TeamService {
         ? "Madmail: Você atingiu seu limite mensal de e-mails"
         : "Madmail: Você atingiu seu limite diário de e-mails";
 
-    const text = `Olá, time ${team.name},\n\nVocê atingiu seu limite ${
+    const text = `Olá, ${team.name},\n\nVocê atingiu seu limite ${
       reason === LimitReason.EMAIL_FREE_PLAN_MONTHLY_LIMIT_REACHED
         ? "mensal"
         : "diário"
     } de ${limit.toLocaleString()} e-mails.\n\nO envio está temporariamente pausado até o limite ser renovado ou ${
-      isPaidPlan ? "seu time ser verificado" : "seu plano ser atualizado"
+      isPaidPlan ? "seu workspace ser verificado" : "seu plano ser atualizado"
     }.\n\nGerenciar plano: ${env.NEXTAUTH_URL}/settings`;
 
     const teamUsers = await TeamService.getTeamUsers(teamId);
@@ -549,11 +609,11 @@ export class TeamService {
         ? "Madmail: Você está perto do seu limite mensal de e-mails"
         : "Madmail: Você está perto do seu limite diário de e-mails";
 
-    const text = `Olá, time ${team.name},\n\nVocê já usou ${used.toLocaleString()} do seu limite ${
+    const text = `Olá, ${team.name},\n\nVocê já usou ${used.toLocaleString()} do seu limite ${
       period === "monthly" ? "mensal" : "diário"
     } de ${limit.toLocaleString()} e-mails.\n\nConsidere ${
       isPaidPlan
-        ? "verificar seu time respondendo a este e-mail"
+        ? "verificar seu workspace respondendo a este e-mail"
         : "atualizar seu plano"
     }.\n\nGerenciar plano: ${env.NEXTAUTH_URL}/settings`;
 

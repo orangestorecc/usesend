@@ -19,7 +19,7 @@ export const getContactBook = async (c: Context, teamId: number) => {
   if (!contactBook) {
     throw new UnsendApiError({
       code: "NOT_FOUND",
-      message: "Lista de contatos não encontrada para este time",
+      message: "Lista de contatos não encontrada para este workspace",
     });
   }
 

@@ -36,6 +36,7 @@ import {
 import { useTeam } from "~/providers/team-context";
 import { isCloud, isSelfHosted } from "~/utils/common";
 import { useUpgradeModalStore } from "~/store/upgradeModalStore";
+import { INVITE_TTL_DIAS } from "~/lib/invites";
 
 const inviteTeamMemberSchema = z.object({
   email: z
@@ -108,10 +109,13 @@ export default function InviteTeamMember() {
       },
       {
         onSuccess: () => {
+          const destinatario = values.email;
           form.reset();
           setOpen(false);
           void utils.team.getTeamInvites.invalidate();
-          toast.success("Convite enviado com sucesso");
+          toast.success(
+            `Convite enviado para ${destinatario}. Vale por ${INVITE_TTL_DIAS} dias — depois disso é só reenviar.`,
+          );
         },
         onError: (error) => {
           console.error(error);
@@ -141,7 +145,9 @@ export default function InviteTeamMember() {
           );
           form.reset();
           setOpen(false);
-          toast.success("Link do convite copiado para a área de transferência");
+          toast.success(
+            `Link do convite copiado. Ele dá acesso a este workspace e vale por ${INVITE_TTL_DIAS} dias — mande só para quem você convidou.`,
+          );
         },
         onError: (error) => {
           console.error(error);
@@ -199,7 +205,7 @@ export default function InviteTeamMember() {
       </DialogTrigger>
       <DialogContent className=" max-w-lg">
         <DialogHeader>
-          <DialogTitle>Convidar membro do time</DialogTitle>
+          <DialogTitle>Convidar alguém para este workspace</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -213,13 +219,14 @@ export default function InviteTeamMember() {
                 <FormItem>
                   <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input placeholder="colega@exemplo.com" {...field} />
+                    <Input placeholder="nome@empresa.com.br" {...field} />
                   </FormControl>
                   {formState.errors.email ? (
                     <FormMessage />
                   ) : (
                     <FormDescription>
-                      Informe o endereço de e-mail do seu colega
+                      E-mail de quem vai entrar neste workspace — pode ser um
+                      colega ou alguém do cliente
                     </FormDescription>
                   )}
                 </FormItem>
@@ -234,8 +241,10 @@ export default function InviteTeamMember() {
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
-                        <div className="capitalize">
-                          {field.value.toLowerCase()}
+                        {/* O gatilho mostra o mesmo rótulo em pt-BR das opções
+                            — `capitalize(value)` exibia "Admin"/"Member". */}
+                        <div>
+                          {field.value === "ADMIN" ? "Administrador" : "Membro"}
                         </div>
                       </SelectTrigger>
                     </FormControl>
@@ -273,16 +282,18 @@ export default function InviteTeamMember() {
               >
                 Cancelar
               </Button>
-              {isSelfHosted() ? (
-                <Button
-                  disabled={createInvite.isPending || limitsQuery.isLoading}
-                  isLoading={createInvite.isPending}
-                  className="w-[150px]"
-                  onClick={form.handleSubmit(onCopyLink)}
-                >
-                  Copiar convite
-                </Button>
-              ) : null}
+              {/* Copiar o link não é exclusividade de self-hosted: quando o
+                  e-mail cai no spam, o administrador precisa de um plano B. */}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={createInvite.isPending || limitsQuery.isLoading}
+                isLoading={createInvite.isPending}
+                className="w-[150px]"
+                onClick={form.handleSubmit(onCopyLink)}
+              >
+                Copiar link
+              </Button>
               {isCloud() || domains?.length ? (
                 <Button
                   type="submit"

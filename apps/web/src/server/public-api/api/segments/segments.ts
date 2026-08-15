@@ -72,7 +72,7 @@ export default function registerSegments(app: PublicAPIApp) {
         if (!book) {
           throw new UnsendApiError({
             code: "BAD_REQUEST",
-            message: "contactBookId inválido para este time",
+            message: "contactBookId inválido para este workspace",
           });
         }
       }

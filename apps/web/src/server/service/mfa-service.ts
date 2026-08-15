@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 
 import { db } from "~/server/db";
 import { env } from "~/env";
+import { logger } from "~/server/logger/log";
 import { registrarAuditoria } from "~/server/service/audit-service";
 import {
   consumirCodigo,
@@ -57,6 +58,34 @@ export async function criarDesafioDeMfa(
     codigo,
     "concluir o login com Google ou GitHub",
   );
+}
+
+/**
+ * Gate de MFA de toda sessão recém-criada. Vive aqui, e não dentro do adapter
+ * do NextAuth, porque existe uma segunda porta que cria sessão sem passar pelo
+ * adapter (resgate de link de acesso) — duplicar a regra é como o gate some.
+ *
+ * Fail-closed por construção: se o envio do código falhar, a sessão continua
+ * sem `mfaVerifiedAt` e o `avaliarGate` barra.
+ */
+export async function aplicarGateDeMfaNaSessao(
+  sessionToken: string,
+  userId: number,
+): Promise<void> {
+  if (!mfaHabilitado()) return;
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { mfaEnabled: true, email: true },
+  });
+
+  if (!user?.mfaEnabled || !user.email) return;
+
+  try {
+    await criarDesafioDeMfa(sessionToken, userId, user.email);
+  } catch (err) {
+    logger.error({ err }, "Falha ao criar desafio de MFA");
+  }
 }
 
 export type EstadoDoGate =

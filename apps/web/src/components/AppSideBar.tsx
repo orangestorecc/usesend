@@ -57,6 +57,7 @@ import {
 import { PlanBadge } from "./PlanBadge";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { OnboardingWidget } from "./OnboardingWidget";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { env } from "~/env";
 
 // General items
@@ -176,6 +177,7 @@ export function AppSidebar() {
             <PlanBadge />
           </div>
         </SidebarGroupLabel>
+        <WorkspaceSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -397,7 +399,7 @@ export function NavUser({
               <DropdownMenuItem asChild>
                 <Link href="/settings/team">
                   <UsersIcon />
-                  Time
+                  Pessoas do workspace
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

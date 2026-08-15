@@ -1,12 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
-  INVITE_BLOQUEADO_POR_LIMITE,
-  conviteExpirado,
-  prazoDoConvite,
-} from "~/lib/invites";
+  createTRPCRouter,
+  protectedProcedure,
+  semAcessoAssistidoProcedure,
+} from "~/server/api/trpc";
+import { INVITE_BLOQUEADO_POR_LIMITE, conviteExpirado } from "~/lib/invites";
 import { LimitService } from "~/server/service/limit-service";
 import { LOCK_NS_USER_LIFECYCLE } from "~/server/service/account-deletion-service";
 
@@ -31,7 +31,9 @@ export const invitationRouter = createTRPCRouter({
       const invites = await ctx.db.teamInvite.findMany({
         where: {
           email: { equals: email, mode: "insensitive" },
-          createdAt: { gte: prazoDoConvite() },
+          // Prazo explícito: reenviar renova `expiresAt`, então filtrar por
+          // `createdAt` esconderia convite renovado.
+          expiresAt: { gt: new Date() },
           ...(input.inviteId ? { id: input.inviteId } : {}),
         },
         include: {
@@ -64,7 +66,12 @@ export const invitationRouter = createTRPCRouter({
       return invite;
     }),
 
-  acceptTeamInvite: protectedProcedure
+  /**
+   * Fora do acesso assistido: aceitar convite entra a conta num workspace novo
+   * e o `inviteId` não carrega `teamId`, então o choke point genérico não o vê.
+   * Quem decide de que times a pessoa participa é a pessoa.
+   */
+  acceptTeamInvite: semAcessoAssistidoProcedure
     .input(z.object({ inviteId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const email = ctx.session.user.email;
@@ -90,6 +97,17 @@ export const invitationRouter = createTRPCRouter({
           code: "NOT_FOUND",
           message: "Convite não encontrado ou expirado",
         });
+      }
+
+      // Já ser membro do time é caso de sucesso, não de erro: o convite se
+      // resolve sozinho (é consumido) e o usuário segue para o workspace.
+      const jaEMembro = await ctx.db.teamUser.findFirst({
+        where: { teamId: invite.teamId, userId: ctx.session.user.id },
+        select: { teamId: true },
+      });
+      if (jaEMembro) {
+        await ctx.db.teamInvite.deleteMany({ where: { id: invite.id } });
+        return true;
       }
 
       // Rechecagem no momento do aceite: o limite pode ter sido estourado
@@ -139,12 +157,17 @@ export const invitationRouter = createTRPCRouter({
           });
         }
 
-        await tx.teamUser.create({
-          data: {
-            teamId: invite.teamId,
-            userId: ctx.session.user.id,
-            role: invite.role,
-          },
+        // `skipDuplicates` fecha a corrida com um vínculo criado entre a
+        // checagem acima e aqui: aceitar duas vezes não estoura unique.
+        await tx.teamUser.createMany({
+          data: [
+            {
+              teamId: invite.teamId,
+              userId: ctx.session.user.id,
+              role: invite.role,
+            },
+          ],
+          skipDuplicates: true,
         });
       });
 

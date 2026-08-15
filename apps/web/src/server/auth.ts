@@ -14,9 +14,8 @@ import { Provider } from "next-auth/providers/index";
 import { sendSignUpEmail } from "~/server/mailer";
 import { env } from "~/env";
 import { db } from "~/server/db";
+import { aplicarGateDeMfaNaSessao } from "~/server/service/mfa-service";
 import { ehAdminDaPlataforma } from "~/server/service/platform-admin";
-import { logger } from "~/server/logger/log";
-import { criarDesafioDeMfa, mfaHabilitado } from "~/server/service/mfa-service";
 
 const GITHUB_OAUTH_ISSUER = "https://github.com/login/oauth";
 
@@ -86,8 +85,10 @@ export async function canRegisterSelfHostedUser(
     return false;
   }
 
+  // `expiresAt` no where: sem ele um convite vencido continuava sendo carta
+  // branca para registrar conta numa instalação self-hosted fechada.
   const invite = await db.teamInvite.findFirst({
-    where: { email },
+    where: { email, expiresAt: { gt: new Date() } },
     select: { id: true },
   });
 
@@ -213,24 +214,11 @@ export const authOptions: NextAuthOptions = {
         }
         const criada = await prismaAdapter.createSession(session);
 
-        if (mfaHabilitado()) {
-          const user = await db.user.findUnique({
-            where: { id: Number(session.userId) },
-            select: { mfaEnabled: true, email: true },
-          });
-
-          if (user?.mfaEnabled && user.email) {
-            try {
-              await criarDesafioDeMfa(
-                session.sessionToken,
-                Number(session.userId),
-                user.email,
-              );
-            } catch (err) {
-              logger.error({ err }, "Falha ao criar desafio de MFA");
-            }
-          }
-        }
+        // Mesma regra que a rota de resgate de link de acesso aplica.
+        await aplicarGateDeMfaNaSessao(
+          session.sessionToken,
+          Number(session.userId),
+        );
 
         return criada;
       },
@@ -258,8 +246,10 @@ export const authOptions: NextAuthOptions = {
               throw new SelfHostedRegistrationError();
             }
 
+            // Mesmo prazo do `canRegisterSelfHostedUser`: convite vencido não
+            // cria conta. Esta é a checagem que vale (a outra é o callback).
             const invite = await tx.teamInvite.findFirst({
-              where: { email: user.email },
+              where: { email: user.email, expiresAt: { gt: new Date() } },
               select: { id: true },
             });
 

@@ -1,5 +1,10 @@
 export { OtpEmail, renderOtpEmail } from "./OtpEmail";
 export { TeamInviteEmail, renderTeamInviteEmail } from "./TeamInviteEmail";
+export { AccessLinkEmail, renderAccessLinkEmail } from "./AccessLinkEmail";
+export {
+  AccessLinkRedeemedEmail,
+  renderAccessLinkRedeemedEmail,
+} from "./AccessLinkRedeemedEmail";
 export {
   UsageWarningEmail,
   renderUsageWarningEmail,

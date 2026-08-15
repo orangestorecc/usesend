@@ -36,7 +36,7 @@ export const DomainSchema = z.object({
   name: z
     .string()
     .openapi({ description: "Nome do domínio", example: "example.com" }),
-  teamId: z.number().openapi({ description: "ID do time", example: 1 }),
+  teamId: z.number().openapi({ description: "ID do workspace", example: 1 }),
   status: DomainStatusSchema,
   region: z.string().default("us-east-1"),
   clickTracking: z.boolean().default(false),

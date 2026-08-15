@@ -27,7 +27,7 @@ export function PlanBadge() {
 
   return (
     <Link
-      href="/settings/usage"
+      href="/settings"
       title={
         emAtraso
           ? `Plano ${data.planName} · fatura em aberto`

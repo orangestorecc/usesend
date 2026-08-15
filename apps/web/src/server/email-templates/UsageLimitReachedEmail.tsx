@@ -80,7 +80,7 @@ export function UsageLimitReachedEmail({
             O envio está pausado temporariamente até seu limite ser reiniciado
             ou{" "}
             {isPaidPlan
-              ? "seu time ser verificado"
+              ? "seu workspace ser verificado"
               : "seu plano receber upgrade"}
           </Text>
         </Container>
@@ -100,7 +100,7 @@ export function UsageLimitReachedEmail({
         >
           Considere{" "}
           {isPaidPlan
-            ? "verificar seu time respondendo a este e-mail"
+            ? "verificar seu workspace respondendo a este e-mail"
             : "fazer upgrade do seu plano"}
         </Text>
       </Container>
