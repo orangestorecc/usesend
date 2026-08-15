@@ -143,17 +143,21 @@ log "Documentação"
 # `mint export` gera um zip; descompactamos para servir como estático, do
 # mesmo jeito que o site institucional.
 #
-# NÃO aumente o heap por aqui. O container tem 16 GiB no total e o `mint`
-# roda vários processos de build em paralelo, todos herdando o NODE_OPTIONS:
-# com `--max-old-space-size=8192` o cgroup foi medido batendo nos 16 GiB e o
-# OOM killer levou junto o que estava rodando — em 14/08/2026 matou o build
-# do Next no meio de um deploy. O export já vinha falhando sozinho por limite
-# de heap; a saída é reduzir o consumo, não dar mais teto a cada processo.
+# O heap PRECISA ser maior aqui, e o valor não é chute. O `NODE_OPTIONS` lá de
+# cima vale para o script inteiro e limita o export a 3 GB — com esse teto ele
+# morre em `FATAL ERROR: Reached heap limit` no meio de um JSON.parse. Medido
+# no servidor em 14/08/2026: 3 GB e 4 GB estouram o heap (com 4 GB o pico de
+# memória real foi de só 6,6 GiB, ou seja, sobrava máquina); 8 GB é o que
+# passa. O gasto é de UM processo grande, não de muitos: o export usa 7
+# processos no pico.
 #
-# `mint` sai com código 0 mesmo quando um filho morre por OOM, então quem
-# decide se deu certo é a checagem do export.zip logo abaixo.
+# Como o passo é não-fatal de propósito, o efeito de errar aqui é a
+# documentação parar de ser republicada em silêncio, com o deploy verde.
+#
+# `mint` sai com código 0 mesmo quando um filho morre por falta de memória,
+# então quem decide se deu certo é a checagem do export.zip logo abaixo.
 cd "$APP/apps/docs"
-if npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
+if NODE_OPTIONS="--max-old-space-size=8192" npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
   rm -rf "$APP/apps/docs/site"
   mkdir -p "$APP/apps/docs/site"
   unzip -q -o export.zip -d "$APP/apps/docs/site"
