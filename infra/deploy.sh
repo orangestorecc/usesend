@@ -157,7 +157,7 @@ log "Documentação"
 # `mint` sai com código 0 mesmo quando um filho morre por falta de memória,
 # então quem decide se deu certo é a checagem do export.zip logo abaixo.
 cd "$APP/apps/docs"
-if NODE_OPTIONS="--max-old-space-size=8192" npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
+if npx mint export > "$LOGS/build-docs.log" 2>&1 && [ -f export.zip ]; then
   rm -rf "$APP/apps/docs/site"
   mkdir -p "$APP/apps/docs/site"
   unzip -q -o export.zip -d "$APP/apps/docs/site"
